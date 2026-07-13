@@ -20,6 +20,26 @@ import {
   Check
 } from 'lucide-react';
 
+// Custom Upward Arrow / Rocket Logo Icon from brand deck
+const LogoIcon = ({ className = "logo-icon", style = {} }) => (
+  <svg 
+    viewBox="0 0 100 100" 
+    className={className} 
+    style={{ fill: 'none', strokeWidth: 0, ...style }}
+  >
+    {/* Outer Red Arrow / A-Frame */}
+    <path 
+      d="M50,15 L20,80 L38,80 L50,48 L62,80 L80,80 Z" 
+      fill="var(--color-orange)" 
+    />
+    {/* Inner Gray 3D Diamond / Rocket core */}
+    <path 
+      d="M50,48 L59,65 L50,82 L41,65 Z" 
+      fill="var(--color-gold)" 
+    />
+  </svg>
+);
+
 // Premium Visual Asset Paths (Vite Local Dev serving from local images)
 const IMAGES = {
   hero_background: {
@@ -107,7 +127,7 @@ export default function App() {
     setMobileMenuOpen(false);
     const el = document.getElementById(sectionId);
     if (el) {
-      const offset = 80;
+      const offset = 90;
       const bodyRect = document.body.getBoundingClientRect().top;
       const elementRect = el.getBoundingClientRect().top;
       const elementPosition = elementRect - bodyRect;
@@ -226,7 +246,7 @@ export default function App() {
       <header className={`header ${scrolled ? 'scrolled' : ''}`}>
         <div className="container nav-container">
           <a href="#home" className="logo-wrapper" onClick={(e) => { e.preventDefault(); handleNavClick('home'); }}>
-            <Building2 className="logo-icon" />
+            <LogoIcon className="logo-icon" />
             <div className="logo-text">
               <span className="logo-title">ALIPSON</span>
               <span className="logo-subtitle">B U I L D E R S</span>
@@ -759,7 +779,7 @@ export default function App() {
         <div className="container footer-grid">
           <div className="footer-brand">
             <div className="footer-logo">
-              <Building2 className="logo-icon" style={{ width: '42px', height: '42px' }} />
+              <LogoIcon className="logo-icon" style={{ width: '42px', height: '42px' }} />
               <div className="logo-text">
                 <span className="logo-title" style={{ fontSize: '1.7rem' }}>ALIPSON</span>
                 <span className="logo-subtitle" style={{ letterSpacing: '0.34em' }}>B U I L D E R S</span>
