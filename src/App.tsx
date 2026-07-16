@@ -43,27 +43,27 @@ const LogoIcon = ({ className = "logo-icon", style = {} }) => (
 // Premium Visual Asset Paths (Vite Local Dev serving from local images)
 const IMAGES = {
   hero_background: {
-    fs: '/@fs/Users/muhammedshareefcv/.gemini/antigravity-ide/brain/ba741a77-9329-4e7e-a39a-fa43095822a7/hero_background_1783260979022.png',
+    fs: '/@fs/Users/muhammedshareefcv/.gemini/antigravity-ide/brain/d81aacfd-ca94-4147-bd40-c1e593c95da5/hero_background_1784178681407.png',
     fallback: '/images/hero_background.png'
   },
   project_grandeur: {
-    fs: '/@fs/Users/muhammedshareefcv/.gemini/antigravity-ide/brain/ba741a77-9329-4e7e-a39a-fa43095822a7/project_grandeur_1783260995144.png',
+    fs: '/@fs/Users/muhammedshareefcv/.gemini/antigravity-ide/brain/d81aacfd-ca94-4147-bd40-c1e593c95da5/project_grandeur_1784178695302.png',
     fallback: '/images/project_grandeur.png'
   },
   project_heights: {
-    fs: '/@fs/Users/muhammedshareefcv/.gemini/antigravity-ide/brain/ba741a77-9329-4e7e-a39a-fa43095822a7/project_heights_1783261011491.png',
+    fs: '/@fs/Users/muhammedshareefcv/.gemini/antigravity-ide/brain/d81aacfd-ca94-4147-bd40-c1e593c95da5/project_heights_1784178709256.png',
     fallback: '/images/project_heights.png'
   },
   project_hub: {
-    fs: '/@fs/Users/muhammedshareefcv/.gemini/antigravity-ide/brain/ba741a77-9329-4e7e-a39a-fa43095822a7/project_hub_1783261030450.png',
+    fs: '/@fs/Users/muhammedshareefcv/.gemini/antigravity-ide/brain/d81aacfd-ca94-4147-bd40-c1e593c95da5/project_hub_1784178724388.png',
     fallback: '/images/project_hub.png'
   },
   project_residency: {
-    fs: '/@fs/Users/muhammedshareefcv/.gemini/antigravity-ide/brain/ba741a77-9329-4e7e-a39a-fa43095822a7/project_residency_1783261051518.png',
+    fs: '/@fs/Users/muhammedshareefcv/.gemini/antigravity-ide/brain/d81aacfd-ca94-4147-bd40-c1e593c95da5/project_residency_1784178741956.png',
     fallback: '/images/project_residency.png'
   },
   interior_living: {
-    fs: '/@fs/Users/muhammedshareefcv/.gemini/antigravity-ide/brain/ba741a77-9329-4e7e-a39a-fa43095822a7/interior_living_1783261077779.png',
+    fs: '/@fs/Users/muhammedshareefcv/.gemini/antigravity-ide/brain/d81aacfd-ca94-4147-bd40-c1e593c95da5/interior_living_1784178762850.png',
     fallback: '/images/interior_living.png'
   }
 };
