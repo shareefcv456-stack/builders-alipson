@@ -179,7 +179,7 @@
 .ribbon__grid { display: grid; grid-template-columns: repeat(4, 1fr); }
 .ribbon__cell { padding: clamp(2rem, 4vw, 3.4rem) 1.5rem; text-align: center; border-left: 1px solid var(--border); }
 .ribbon__cell:first-child { border-left: none; }
-.ribbon__num { font-family: var(--font-display); font-weight: 300; font-size: clamp(2.2rem, 5vw, 3.6rem); color: var(--text); letter-spacing: -0.02em; }
+.ribbon__num { font-family: var(--font-display); font-weight: 300; font-size: clamp(2.2rem, 5vw, 3.6rem); color: #f8f8f6; letter-spacing: -0.02em; }
 .ribbon__num em { font-style: normal; color: var(--accent-soft); }
 .ribbon__label { margin-top: 0.4rem; font-size: 0.74rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-mute); }
 @media (max-width: 720px) { .ribbon__grid { grid-template-columns: repeat(2, 1fr); } .ribbon__cell:nth-child(3) { border-left: none; } .ribbon__cell:nth-child(odd) { border-left: none; } .ribbon__cell:nth-child(n+3) { border-top: 1px solid var(--border); } }
