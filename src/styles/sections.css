@@ -57,12 +57,13 @@
 
 /* ---- MOBILE MENU --------------------------------------------------------- */
 .mnav { position: fixed; inset: 0; z-index: 950; background: var(--ink-900); display: flex; flex-direction: column; padding: 6rem var(--pad-x) 3rem; }
-.mnav__x { position: absolute; top: 1.6rem; right: var(--pad-x); width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--border); display: grid; place-items: center; color: var(--text); }
+.mnav__x { position: absolute; top: 1.6rem; right: var(--pad-x); width: 48px; height: 48px; border-radius: 50%; border: 1px solid rgba(248,248,246,0.25); display: grid; place-items: center; color: #f8f8f6; }
 .mnav__links { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 2rem; }
-.mnav__link { font-family: var(--font-display); font-size: clamp(2rem, 9vw, 3.2rem); font-weight: 300; color: var(--text); padding: 0.4rem 0; border-bottom: 1px solid var(--border); }
-.mnav__link em { font-style: normal; color: var(--text-mute); font-size: 0.9rem; font-family: var(--font-grotesk); margin-right: 1rem; }
+.mnav__link { font-family: var(--font-display); font-size: clamp(2rem, 9vw, 3.2rem); font-weight: 300; color: #f8f8f6; padding: 0.4rem 0; border-bottom: 1px solid rgba(248,248,246,0.14); transition: color 0.3s var(--ease-lux); }
+.mnav__link:hover { color: var(--accent); }
+.mnav__link em { font-style: normal; color: rgba(248,248,246,0.5); font-size: 0.9rem; font-family: var(--font-grotesk); margin-right: 1rem; }
 .mnav__foot { margin-top: auto; display: flex; flex-direction: column; gap: 1.2rem; }
-.mnav__foot a { color: var(--text-soft); font-size: 0.95rem; }
+.mnav__foot a { color: rgba(248,248,246,0.72); font-size: 0.95rem; }
 
 /* ==========================================================================
    HERO
