@@ -39,7 +39,7 @@ export default function StoryScroll() {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({
         scrollTrigger: {
-          trigger: root.current, start: 'top top', end: 'bottom bottom', scrub: 0.6,
+          trigger: root.current, start: 'top top', end: 'bottom bottom', scrub: 1,
           onUpdate: (self) => {
             canvas.current?.setProgress(self.progress);
             const idx = phaseFor(self.progress);
@@ -82,8 +82,10 @@ export default function StoryScroll() {
         {/* Finale — finished landmark */}
         <div className="story__finale-copy">
           <span className="eyebrow story__eyebrow">Alipson Builders Pvt Ltd</span>
-          <h1 className="story__headline">From Foundation to Landmark —<br /><em>Built to Last.</em></h1>
-          <div className="story__cta">
+          <h1 className="story__headline text-left sm:text-center text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white">
+            Building More Than Structures,<br />We Build <em>Trust.</em>
+          </h1>
+          <div className="story__cta flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
             <button className="btn btn-primary" onClick={() => scrollToId('work')}>
               Explore Projects <ArrowUpRight size={16} />
             </button>
@@ -102,7 +104,7 @@ export default function StoryScroll() {
             <LogoMark size={72} />
             <span className="story__gate-name">ALIPSON BUILDERS</span>
             <span className="story__gate-sub">PVT LTD</span>
-            <span className="story__gate-hint">Scroll to witness the craft</span>
+            <span className="story__gate-hint">Scroll to Enter</span>
           </div>
         </div>
       </div>

@@ -6,8 +6,8 @@ import { isCapture } from '../lib/capture';
 /**
  * Cinematic opening — begins in near-silence: a luxury villa outline draws
  * itself under soft volumetric light, then a movie-style line of dialogue fades
- * through black, resolving on the brand. Skippable, plays once per session, and
- * collapses to an instant reveal for reduced-motion / capture.
+ * through black, resolving on the brand. Skippable, plays on every load/refresh
+ * (no persistence), and collapses to an instant reveal for reduced-motion / capture.
  *
  *   silence (villa forms) → "We don't build buildings."
  *   → "We create places where dreams become reality." → ALIPSON BUILDERS → hero
@@ -23,12 +23,12 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 
 export default function CinematicIntro({ onDone }: { onDone: () => void }) {
   const reduce = useReducedMotion();
-  const seen = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('ab-intro') === '1';
-  const skip = isCapture() || !!reduce || seen;
+  // Always play the intro on every load/refresh — no sessionStorage/localStorage
+  // persistence. Only skip for capture (screenshots) or reduced-motion users.
+  const skip = isCapture() || !!reduce;
   const [step, setStep] = useState(0);
 
   const finish = useCallback(() => {
-    try { sessionStorage.setItem('ab-intro', '1'); } catch { /* private mode */ }
     onDone();
   }, [onDone]);
 

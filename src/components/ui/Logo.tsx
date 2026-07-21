@@ -9,8 +9,8 @@ export function LogoMark({ size = 34 }: { size?: number }) {
       <defs>
         <linearGradient id="lg-brand" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#f16a63" />
-          <stop offset="0.5" stopColor="#e53935" />
-          <stop offset="1" stopColor="#8d2323" />
+          <stop offset="0.5" stopColor="#c8102e" />
+          <stop offset="1" stopColor="#800000" />
         </linearGradient>
       </defs>
       {/* A silhouette = roof + upward arrow */}

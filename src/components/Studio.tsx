@@ -17,41 +17,43 @@ export default function Studio() {
 
   return (
     <section id="studio" className="section bg-alt grain">
-      <AmbientCanvas variant="blueprint" />
-      <div className="container studio__grid">
+      <div className="absolute inset-0 bg-[#0D1117] z-0" aria-hidden />
+      <AmbientCanvas variant="blueprint" className="z-10" />
+      <div className="container studio__grid relative z-20">
         <div className="studio__visual" ref={visualRef}>
           <Reveal dir="scale">
-            <div className="studio__frame" style={{ overflow: 'hidden' }}>
+            <div className="studio__frame rounded-2xl overflow-hidden shadow-2xl" style={{ overflow: 'hidden' }}>
               <motion.img
                 src={MEDIA.team}
                 alt="The Alipson Builders studio team reviewing architectural plans on site"
                 style={{ y: imgY, scale: 1.12 }}
                 loading="lazy"
+                className="w-full h-auto object-cover"
               />
             </div>
           </Reveal>
           <Reveal dir="up" delay={0.2}>
-            <div className="studio__badge glass">
-              <b>15+</b>
+            <div className="studio__badge glass !text-[#111827] bg-[#FAF9F6]/90 backdrop-blur-md">
+              <b className="text-[#C8102E]">15+</b>
               <span>Years of<br />Excellence</span>
             </div>
           </Reveal>
         </div>
 
-        <div className="studio__details">
-          <Reveal><span className="eyebrow">The Studio</span></Reveal>
+        <div className="studio__details bg-[#FAF9F6] text-[#111827] rounded-2xl p-6 sm:p-10 shadow-2xl">
+          <Reveal><span className="eyebrow !text-[#C8102E]">The Studio</span></Reveal>
           <RevealText
-            className="title"
-            lines={[<>Architecture with</>, <>a sense of <em>permanence.</em></>]}
+            className="title !text-[#111827]"
+            lines={[<>Architecture with</>, <>a sense of <em className="!text-[#C8102E]">permanence.</em></>]}
           />
           <Reveal delay={0.1}>
-            <p className="studio__quote">
+            <p className="studio__quote !text-gray-800 text-lg sm:text-xl font-medium my-6 border-l-4 border-[#C8102E] pl-6">
               "We believe architecture has the power to inspire, shape cultures and{' '}
-              <span>build lasting legacies.</span>"
+              <span className="text-[#C8102E]">build lasting legacies.</span>"
             </p>
           </Reveal>
           <Reveal delay={0.15}>
-            <p className="studio__body">
+            <p className="studio__body !text-gray-700 leading-relaxed text-base sm:text-lg">
               For over fifteen years, Alipson Builders has turned bold visions into
               enduring landmarks. We are architects, structural engineers and luxury
               homebuilders devoted to premium craftsmanship, absolute transparency and
@@ -59,14 +61,14 @@ export default function Studio() {
             </p>
           </Reveal>
 
-          <div className="studio__highlights">
+          <div className="studio__highlights my-8">
             {HIGHLIGHTS.map((h, i) => (
               <Reveal key={h.title} delay={0.1 + i * 0.08}>
-                <div className="studio__hl">
-                  <div className="studio__hl-icon"><h.icon size={20} /></div>
+                <div className="studio__hl flex gap-4 items-start mb-4">
+                  <div className="studio__hl-icon text-[#C8102E] mt-1"><h.icon size={20} /></div>
                   <div>
-                    <h4>{h.title}</h4>
-                    <p>{h.desc}</p>
+                    <h4 className="font-bold text-[#111827]">{h.title}</h4>
+                    <p className="text-gray-600 text-sm">{h.desc}</p>
                   </div>
                 </div>
               </Reveal>
@@ -74,13 +76,13 @@ export default function Studio() {
           </div>
 
           <Reveal delay={0.15}>
-            <div className="btn-group">
+            <div className="btn-group flex flex-wrap gap-4 mt-8">
               <Magnetic strength={0.25}>
                 <button className="btn btn-primary" onClick={openQuote}>
                   Start a Project <ArrowUpRight size={16} />
                 </button>
               </Magnetic>
-              <button className="btn btn-ghost" onClick={openBrochure}>
+              <button className="btn btn-ghost !text-gray-700 hover:!text-[#111827]" onClick={openBrochure}>
                 <Download size={15} /> Brochure
               </button>
             </div>

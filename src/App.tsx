@@ -5,6 +5,7 @@ import { UIProvider } from './context/UIContext';
 import { useLenis } from './hooks/useLenis';
 
 import CinematicIntro from './components/CinematicIntro';
+import DroneBackground from './components/DroneBackground';
 import Navbar from './components/Navbar';
 import FloatingActions from './components/FloatingActions';
 import StoryScroll from './components/StoryScroll';
@@ -35,6 +36,13 @@ export default function App() {
 
   useLenis();
 
+  // On every load/refresh: stop the browser restoring the previous scroll
+  // position and force the top, so the scroll-driven intro gate starts at frame 0.
+  useEffect(() => {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     document.body.style.overflow = loaded ? '' : 'hidden';
   }, [loaded]);
@@ -56,6 +64,7 @@ export default function App() {
       <UIProvider value={{ openQuote: () => setQuoteOpen(true), openBrochure: () => setBrochureOpen(true), openVideo: () => setVideoOpen(true) }}>
         <AnimatePresence>{!loaded && <CinematicIntro onDone={() => setLoaded(true)} />}</AnimatePresence>
 
+        <DroneBackground />
         <Navbar />
         <FloatingActions />
 

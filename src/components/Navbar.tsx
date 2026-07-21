@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, X, Sun, Moon, ArrowUpRight } from 'lucide-react';
+import { Menu, X, ArrowUpRight } from 'lucide-react';
 import Logo from './ui/Logo';
 import { NAV } from '../data/site';
 import { scrollToId } from '../hooks/useLenis';
-import { useTheme } from '../context/ThemeContext';
 import { useUI } from '../context/UIContext';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
-  const { theme, toggle } = useTheme();
   const { openQuote } = useUI();
 
   useEffect(() => {
@@ -59,20 +57,6 @@ export default function Navbar() {
           </nav>
 
           <div className="nav__right">
-            <button className="theme-btn" onClick={toggle} aria-label="Toggle theme" data-cursor="">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                  key={theme}
-                  initial={{ rotate: -90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: 90, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  style={{ display: 'grid' }}
-                >
-                  {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                </motion.span>
-              </AnimatePresence>
-            </button>
             <button className="btn btn-primary" onClick={openQuote}>
               Book Consultation <ArrowUpRight size={16} />
             </button>

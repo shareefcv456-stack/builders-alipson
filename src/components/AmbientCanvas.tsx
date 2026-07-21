@@ -32,9 +32,14 @@ export default function AmbientCanvas({ variant, className }: { variant: Variant
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
-    const ink = (a: number) => (isDark() ? `rgba(226,232,240,${a})` : `rgba(17,24,39,${a})`);
-    const crimson = (a: number) => `rgba(229,57,53,${a})`;
+    // These backgrounds render over a deep charcoal (#0D1117) section overlay,
+    // so structural line-work is always drawn in light ink to stay visible;
+    // crimson accents (#C8102E) carry the brand highlight.
+    const ink = (a: number) => `rgba(226,232,240,${a})`;
+    const crimson = (a: number) => `rgba(200, 16, 46,${a})`;
+    // Cinematic slow-down: ease the global clock so motion stays subtle & calm
+    // (keeps every drawing routine untouched — only the tempo changes).
+    const SPEED = 0.6;
 
     // ---- blueprint: grid + a building elevation that draws itself ----------
     const elevation = [
@@ -136,7 +141,7 @@ export default function AmbientCanvas({ variant, className }: { variant: Variant
     };
 
     const frame = (t: number) => { ctx.clearRect(0, 0, W, H); DRAW[variant](t); };
-    const loop = () => { if (visible) frame(performance.now() * 0.001); raf = requestAnimationFrame(loop); };
+    const loop = () => { if (visible) frame(performance.now() * 0.001 * SPEED); raf = requestAnimationFrame(loop); };
 
     resize();
     window.addEventListener('resize', resize);
@@ -148,5 +153,10 @@ export default function AmbientCanvas({ variant, className }: { variant: Variant
     return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); io.disconnect(); };
   }, [variant]);
 
-  return <canvas ref={ref} className={`ambient-bg ${className || ''}`} aria-hidden />;
+  return (
+    <>
+      <canvas ref={ref} className={`ambient-bg ${className || ''}`} aria-hidden />
+      <div className="ambient-mask" aria-hidden />
+    </>
+  );
 }

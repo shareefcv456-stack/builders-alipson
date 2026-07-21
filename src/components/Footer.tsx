@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { Facebook, Instagram, Youtube, ArrowUpRight, Phone, Mail, MapPin } from 'lucide-react';
 import Logo from './ui/Logo';
 import Magnetic from './ui/Magnetic';
@@ -12,18 +11,6 @@ export default function Footer() {
 
   return (
     <footer className="footer grain" id="footer">
-      {/* Cinematic background watermark — behind all content, fades + drifts once on entry */}
-      <motion.div
-        className="footer__wm"
-        aria-hidden
-        initial={{ opacity: 0, x: 42 }}
-        whileInView={{ opacity: 1, x: 0 }}
-        viewport={{ once: true, amount: 0.25 }}
-        transition={{ duration: 1.7, ease: 'easeInOut' }}
-      >
-        <span>ALIPSON</span>
-        <span>BUILDERS</span>
-      </motion.div>
 
       {/* Closing CTA */}
       <div className="container footer__cta">
@@ -38,7 +25,7 @@ export default function Footer() {
       </div>
 
       {/* Top row — Contact · Quick Links · Map */}
-      <div className="container footer__top" id="location">
+      <div className="container footer__top grid grid-cols-1 md:grid-cols-3 gap-8" id="location">
         <div className="footer__col footer__col--contact">
           <Logo />
           <h4>Visit &amp; Contact</h4>
@@ -81,6 +68,13 @@ export default function Footer() {
               allowFullScreen
             />
           </div>
+        </div>
+      </div>
+
+      {/* Dedicated watermark band — its own unblocked row, above the copyright bar */}
+      <div className="footer__watermark" aria-hidden>
+        <div className="text-gray-900/10 font-black text-[12vw] leading-none uppercase text-center select-none pointer-events-none my-4">
+          ALIPSON
         </div>
       </div>
 

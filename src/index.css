@@ -20,14 +20,18 @@
   --bone-200: #ececec;
   --bone-300: #d9d9d9;   /* concrete grey */
 
-  --accent:      #e53935;   /* brand crimson red */
+  --accent:      #c8102e;   /* brand crimson red */
   --accent-soft: #f16a63;   /* lighter crimson — text accents on slate */
-  --accent-deep: #8d2323;   /* deep brick red */
-  --ember:       #8d2323;   /* maroon */
-  --ember-soft:  #e53935;
+  --accent-deep: #800000;   /* deep brick red */
+  --ember:       #800000;   /* maroon */
+  --ember-soft:  #c8102e;
 
-  --accent-rgb: 229, 57, 53;
-  --ember-rgb:  141, 35, 35;
+  --accent-rgb: 200, 16, 46;
+  --ember-rgb:  128, 0, 0;
+
+  --gold:      #d4af37;   /* champagne gold — secondary highlight */
+  --gold-soft: #e6c964;   /* lighter gold for text on dark */
+  --gold-rgb:  212, 175, 55;
 
   /* Concrete grey / slate accents (brand book) */
   --silver:      #d9d9d9;
@@ -39,13 +43,13 @@
   --bg-alt:      var(--ink-850);
   --surface:     rgba(248, 248, 246, 0.035);
   --surface-2:   rgba(248, 248, 246, 0.055);
-  --border:      rgba(229, 57, 53, 0.14);         /* subtle red borders */
-  --border-strong: rgba(229, 57, 53, 0.28);
+  --border:      rgba(200, 16, 46, 0.14);         /* subtle red borders */
+  --border-strong: rgba(200, 16, 46, 0.28);
   --text:        #f8f8f6;
   --text-soft:   rgba(248, 248, 246, 0.72);
   --text-mute:   rgba(248, 248, 246, 0.46);
   --glass:       rgba(11, 13, 15, 0.6);           /* ultra-dark glassmorphism */
-  --glass-brd:   rgba(229, 57, 53, 0.2);
+  --glass-brd:   rgba(200, 16, 46, 0.2);
   --shadow:      0 30px 80px -20px rgba(0, 0, 0, 0.8);
 
   /* Fonts — modern editorial sans (no decorative faces) */
@@ -59,31 +63,36 @@
 
   --container: 1360px;
   --pad-x: clamp(1.25rem, 5vw, 5rem);
-  --section-py: clamp(5rem, 12vh, 11rem);
+  /* Compact, responsive vertical rhythm (~py-10 → py-16). Kills the huge
+     empty gaps around sections while staying breathable on desktop. */
+  --section-py: clamp(2.75rem, 6vw, 4.5rem);
   --radius: 20px;
   --radius-lg: 28px;
 }
 
-/* Light theme — clean minimalist elite */
+/* Light theme — clean minimalist elite (the single unified theme) */
+:root,
 :root[data-theme='light'] {
-  --bg:          #f8f8f6;   /* brand off-white */
+  --bg:          #faf9f6;   /* pure ivory / soft alabaster */
+  --bg-rgb:      250, 249, 246;
   --bg-elev:     #ffffff;
-  --bg-alt:      #efefec;
+  --bg-alt:      #f3f1ec;
+  --bg-alt-rgb:  243, 241, 236;
   --surface:     rgba(21, 21, 21, 0.028);
   --surface-2:   rgba(21, 21, 21, 0.05);
-  --border:      rgba(229, 57, 53, 0.16);         /* light crimson borders */
-  --border-strong: rgba(229, 57, 53, 0.32);
-  --text:        #0a0a0a;   /* premium dark */
-  --text-soft:   rgba(10, 10, 10, 0.72);
-  --text-mute:   rgba(10, 10, 10, 0.52);
-  --accent:      #e53935;   /* brand red */
+  --border:      rgba(200, 16, 46, 0.16);         /* light crimson borders */
+  --border-strong: rgba(200, 16, 46, 0.32);
+  --text:        #111827;   /* deep charcoal black */
+  --text-soft:   rgba(17, 24, 39, 0.74);
+  --text-mute:   rgba(17, 24, 39, 0.54);
+  --accent:      #c8102e;   /* brand red */
   --accent-soft: #a8231f;   /* deeper red — readable on light */
-  --accent-deep: #8d2323;
-  --ember:       #8d2323;
-  --accent-rgb:  229, 57, 53;
-  --ember-rgb:   141, 35, 35;
+  --accent-deep: #800000;
+  --ember:       #800000;
+  --accent-rgb:  200, 16, 46;
+  --ember-rgb:   128, 0, 0;
   --glass:       rgba(255, 255, 255, 0.7);        /* milk glassmorphism */
-  --glass-brd:   rgba(229, 57, 53, 0.15);
+  --glass-brd:   rgba(200, 16, 46, 0.15);
   --shadow:      0 30px 70px -28px rgba(80, 12, 10, 0.18);
 }
 
@@ -96,18 +105,27 @@ html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  background: var(--bg);   /* ivory fallback beneath the fixed drone layer */
 }
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
 
 body {
-  background: var(--bg);
+  background: transparent;   /* let the fixed drone fly-through layer show through */
   color: var(--text);
   font-family: var(--font-sans);
   line-height: 1.6;
   overflow-x: hidden;
-  transition: background 0.5s ease-in-out, color 0.5s ease-in-out;
+  transition: color 0.5s ease-in-out;
 }
+
+/* ---- FPV drone fly-through: fixed full-viewport video behind all content ---- */
+.drone { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--bg); }
+.drone__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; will-change: transform; }
+.drone--failed .drone__video { opacity: 0; }   /* missing/broken file → stay ivory */
+/* Soft ivory wash so the drone never fights the foreground text */
+.drone__veil { position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(var(--bg-rgb), 0.28) 0%, rgba(var(--bg-rgb), 0.12) 45%, rgba(var(--bg-rgb), 0.34) 100%); }
 
 /* Smooth, layout-shift-free theme transitions across surfaces */
 .section, .bg-alt, .bg-elev, .nav.scrolled .nav__inner, .glass,
@@ -149,15 +167,26 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 /* --------------------------------------------------------------------------
    3. LAYOUT UTILITIES
    -------------------------------------------------------------------------- */
-.container { width: 100%; max-width: var(--container); margin: 0 auto; padding-inline: var(--pad-x); }
-.section { padding-block: var(--section-py); position: relative; isolation: isolate; }
+.container { width: 100%; max-width: 80rem; margin: 0 auto; padding-left: 1rem; padding-right: 1rem; }
+@media (min-width: 640px) { .container { padding-left: 1.5rem; padding-right: 1.5rem; } }
+@media (min-width: 1024px) { .container { padding-left: 2rem; padding-right: 2rem; } }
+/* Translucent glass surfaces — the fixed drone fly-through reads through every
+   section while a frosted ivory wash + blur keep text 100% readable. */
+.section { padding-block: var(--section-py); position: relative; isolation: isolate;
+  background: rgba(var(--bg-rgb), 0.68); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); }
 
-/* Ambient scroll-linked construction backgrounds behind body sections */
-.ambient-bg { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; display: block; pointer-events: none; opacity: 0.6; }
-:root[data-theme='dark'] .ambient-bg { opacity: 0.5; }
+/* Ambient scroll-linked construction backgrounds behind body sections.
+   These sit over the deep charcoal (#0D1117) section overlay, so the light
+   structural line-work + crimson accents read clearly but stay subtle. */
+.ambient-bg { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; display: block; pointer-events: none;
+  opacity: 0.6; will-change: transform; transform: translateZ(0); }
+/* Readability scrim — a whisper-thin charcoal veil that unifies the tone over
+   the animation without lightening the dark backdrop (GPU-cheap, no blur). */
+.ambient-mask { position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: rgba(13, 17, 23, 0.28); }
 .section > .container { position: relative; z-index: 1; }
-.section--tight { padding-block: clamp(3.5rem, 8vh, 7rem); }
-.bg-alt { background: var(--bg-alt); }
+.section--tight { padding-block: clamp(2rem, 4vw, 3rem); }
+.bg-alt { background: rgba(var(--bg-alt-rgb), 0.66); }
 .bg-elev { background: var(--bg-elev); }
 
 .eyebrow {
@@ -166,7 +195,7 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
   font-size: 0.75rem; letter-spacing: 0.32em; text-transform: uppercase;
   color: var(--accent-soft);
 }
-.eyebrow::before { content: ''; width: 30px; height: 1px; background: var(--accent); opacity: 0.7; }
+.eyebrow::before { content: ''; width: 30px; height: 1px; background: linear-gradient(90deg, var(--accent), var(--gold)); opacity: 0.85; }
 .eyebrow--center { justify-content: center; }
 
 .display {
@@ -179,7 +208,7 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 .title em { font-style: italic; color: var(--accent-soft); }
 
 .lede { color: var(--text-soft); font-size: clamp(1rem, 1.3vw, 1.15rem); line-height: 1.75; max-width: 52ch; }
-.section-head { max-width: 760px; margin-bottom: clamp(2.5rem, 5vw, 4.5rem); }
+.section-head { max-width: 760px; margin-bottom: clamp(1.75rem, 3vw, 2.75rem); }
 .section-head--center { margin-inline: auto; text-align: center; }
 .section-head--center .eyebrow { justify-content: center; }
 .section-head .title { margin-top: 1.4rem; }
@@ -314,4 +343,196 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
   .marquee__track { animation: none; }
+}
+
+/* Custom UI Fix Utilities */
+.bg-black\/70 { background-color: rgba(0, 0, 0, 0.7) !important; }
+.backdrop-blur-md { backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; }
+.text-white { color: #ffffff !important; }
+.font-semibold { font-weight: 600 !important; }
+.shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important; }
+.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+.py-1\.5 { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+.rounded-full { border-radius: 9999px !important; }
+
+.bg-\[\#0D1117\] { 
+  background-color: #0D1117 !important; 
+  --bg: #0D1117;
+  --bg-alt: #0D1117;
+  --accent: #C8102E;
+  --accent-soft: #C8102E;
+  --text: #ffffff;
+  --text-soft: #ffffff;
+  --text-mute: rgba(255, 255, 255, 0.8);
+  color: #ffffff !important;
+}
+.text-\[\#C8102E\] { color: #C8102E !important; }
+
+.text-gray-900\/10 { color: rgba(17, 24, 39, 0.1) !important; }
+.font-black { font-weight: 900 !important; }
+.text-\[12vw\] { font-size: 12vw !important; }
+.tracking-widest { letter-spacing: 0.1em !important; }
+.uppercase { text-transform: uppercase !important; }
+.text-center { text-align: center !important; }
+.select-none { user-select: none !important; }
+.pointer-events-none { pointer-events: none !important; }
+
+/* Drone Background Video Utilities */
+.fixed { position: fixed !important; }
+.absolute { position: absolute !important; }
+.inset-0 { top: 0 !important; right: 0 !important; bottom: 0 !important; left: 0 !important; }
+.w-full { width: 100% !important; }
+.h-full { height: 100% !important; }
+.object-cover { object-fit: cover !important; }
+.z-0 { z-index: 0 !important; }
+.z-\[-1\] { z-index: -1 !important; }
+.bg-black\/60 { background-color: rgba(0, 0, 0, 0.6) !important; }
+.backdrop-blur-sm { backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; }
+
+/* Tailwind Typography & Flex Utilities */
+.text-left { text-align: left !important; }
+.font-bold { font-weight: 700 !important; }
+.tracking-tight { letter-spacing: -0.025em !important; }
+.text-white { color: #ffffff !important; }
+.flex-col { flex-direction: column !important; }
+.items-stretch { align-items: stretch !important; }
+.gap-4 { gap: 1rem !important; }
+
+@media (min-width: 640px) {
+  .sm\:text-center { text-align: center !important; }
+  .sm\:text-5xl { font-size: 3rem !important; line-height: 1 !important; }
+  .sm\:flex-row { flex-direction: row !important; }
+  .sm\:items-center { align-items: center !important; }
+}
+@media (min-width: 1024px) {
+  .lg\:text-6xl { font-size: 3.75rem !important; line-height: 1 !important; }
+}
+.text-3xl { font-size: 1.875rem !important; line-height: 2.25rem !important; }
+
+/* Readability Colors */
+.text-gray-900 { color: #111827 !important; }
+.text-\[\#111827\] { color: #111827 !important; }
+.bg-\[\#FAF9F6\] { background-color: #FAF9F6 !important; }
+.bg-\[\#0D1117\] { background-color: #0D1117 !important; }
+.bg-black\/75 { background-color: rgba(0, 0, 0, 0.75) !important; }
+.text-xs { font-size: 0.75rem !important; line-height: 1rem !important; }
+.px-3 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+.py-1 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+.rounded-full { border-radius: 9999px !important; }
+.border { border-width: 1px !important; }
+.border-white\/20 { border-color: rgba(255, 255, 255, 0.2) !important; }
+.bg-gradient-to-t { background-image: linear-gradient(to top, var(--tw-gradient-stops)) !important; }
+.from-black\/80 { --tw-gradient-from: rgba(0,0,0,0.8); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(0,0,0,0)); }
+.via-black\/40 { --tw-gradient-stops: var(--tw-gradient-from), rgba(0,0,0,0.4), var(--tw-gradient-to, rgba(0,0,0,0)); }
+.to-transparent { --tw-gradient-to: transparent; }
+
+/* Grid Utilities */
+.grid { display: grid !important; }
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.gap-8 { gap: 2rem !important; }
+
+@media (min-width: 768px) {
+  .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+.text-\[14vw\] { font-size: 14vw !important; }
+.text-\[12vw\] { font-size: 12vw !important; }
+
+/* ==========================================================================
+   MISSING UTILITY LAYER
+   The 2026 redesign was authored against Tailwind, but this project ships a
+   hand-rolled utility subset. These fill every gap the components rely on so
+   card padding, spacing, layering and contrast render as intended.
+   ========================================================================== */
+
+/* ---- Positioning & layering --------------------------------------------- */
+.relative { position: relative !important; }
+.z-10 { z-index: 10 !important; }
+.z-20 { z-index: 20 !important; }
+.left-4 { left: 1rem !important; }
+.top-4 { top: 1rem !important; }
+.overflow-hidden { overflow: hidden !important; }
+.h-auto { height: auto !important; }
+.block { display: block !important; }
+
+/* ---- Flex --------------------------------------------------------------- */
+.flex { display: flex !important; }
+.inline-flex { display: inline-flex !important; }
+.flex-wrap { flex-wrap: wrap !important; }
+.items-center { align-items: center !important; }
+.items-start { align-items: flex-start !important; }
+.gap-1 { gap: 0.25rem !important; }
+
+/* ---- Padding ------------------------------------------------------------ */
+.p-4 { padding: 1rem !important; }
+.p-6 { padding: 1.5rem !important; }
+.p-8 { padding: 2rem !important; }
+.p-10 { padding: 2.5rem !important; }
+.p-12 { padding: 3rem !important; }
+.pl-6 { padding-left: 1.5rem !important; }
+
+/* ---- Margin ------------------------------------------------------------- */
+.mt-1 { margin-top: 0.25rem !important; }
+.mt-4 { margin-top: 1rem !important; }
+.mt-8 { margin-top: 2rem !important; }
+.mb-1 { margin-bottom: 0.25rem !important; }
+.mb-2 { margin-bottom: 0.5rem !important; }
+.mb-3 { margin-bottom: 0.75rem !important; }
+.mb-4 { margin-bottom: 1rem !important; }
+.mb-6 { margin-bottom: 1.5rem !important; }
+.mb-8 { margin-bottom: 2rem !important; }
+.my-4 { margin-top: 1rem !important; margin-bottom: 1rem !important; }
+.my-6 { margin-top: 1.5rem !important; margin-bottom: 1.5rem !important; }
+.my-8 { margin-top: 2rem !important; margin-bottom: 2rem !important; }
+.last\:mb-0:last-child { margin-bottom: 0 !important; }
+
+/* ---- Typography --------------------------------------------------------- */
+.text-sm { font-size: 0.875rem !important; line-height: 1.5rem !important; }
+.text-base { font-size: 1rem !important; line-height: 1.6rem !important; }
+.text-lg { font-size: 1.125rem !important; line-height: 1.75rem !important; }
+.text-xl { font-size: 1.25rem !important; line-height: 1.75rem !important; }
+.text-2xl { font-size: 1.5rem !important; line-height: 2rem !important; }
+.font-medium { font-weight: 500 !important; }
+.italic { font-style: italic !important; }
+.leading-relaxed { line-height: 1.7 !important; }
+.leading-none { line-height: 1 !important; }
+.tracking-wider { letter-spacing: 0.05em !important; }
+
+/* ---- Text colours (readability) ----------------------------------------- */
+.text-gray-400 { color: #9ca3af !important; }
+.text-gray-500 { color: #6b7280 !important; }
+.text-gray-600 { color: #4b5563 !important; }
+.text-gray-700 { color: #374151 !important; }
+.text-gray-800 { color: #1f2937 !important; }
+.\!text-white { color: #ffffff !important; }
+.\!text-\[\#111827\] { color: #111827 !important; }
+.\!text-\[\#C8102E\] { color: #C8102E !important; }
+.\!text-gray-700 { color: #374151 !important; }
+.\!text-gray-800 { color: #1f2937 !important; }
+.hover\:\!text-\[\#111827\]:hover { color: #111827 !important; }
+
+/* ---- Borders, radius, shadow -------------------------------------------- */
+.border-l-4 { border-left-width: 4px !important; border-left-style: solid !important; }
+.border-\[\#C8102E\] { border-color: #C8102E !important; }
+.border-gray-100 { border-color: #f3f4f6 !important; }
+.border-gray-200 { border-color: #e5e7eb !important; }
+.rounded-xl { border-radius: 0.75rem !important; }
+.rounded-2xl { border-radius: 1rem !important; }
+.shadow-xl { box-shadow: 0 20px 45px -22px rgba(8, 10, 16, 0.45) !important; }
+.shadow-2xl { box-shadow: 0 30px 70px -28px rgba(8, 10, 16, 0.55) !important; }
+
+/* ---- Backgrounds with opacity ------------------------------------------- */
+.bg-black\/70 { background-color: rgba(0, 0, 0, 0.7) !important; }
+.bg-white\/50 { background-color: rgba(255, 255, 255, 0.5) !important; }
+.bg-\[\#FAF9F6\]\/90 { background-color: rgba(250, 249, 246, 0.9) !important; }
+
+/* ---- Responsive overrides ----------------------------------------------- */
+@media (min-width: 640px) {
+  .sm\:p-8 { padding: 2rem !important; }
+  .sm\:p-10 { padding: 2.5rem !important; }
+  .sm\:text-lg { font-size: 1.125rem !important; line-height: 1.75rem !important; }
+  .sm\:text-xl { font-size: 1.25rem !important; line-height: 1.75rem !important; }
+}
+@media (min-width: 1024px) {
+  .lg\:p-12 { padding: 3rem !important; }
 }

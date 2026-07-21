@@ -19,10 +19,10 @@ export const CONTACT = {
 
 export const NAV = [
   { id: 'hero', label: 'Home' },
-  { id: 'work', label: 'Projects' },
   { id: 'studio', label: 'Story' },
-  { id: 'nunny', label: 'Nunny' },
+  { id: 'work', label: 'Projects' },
   { id: 'services', label: 'Services' },
+  { id: 'founder', label: 'Founder & Legacy' },
   { id: 'footer', label: 'Contact' },
 ];
 

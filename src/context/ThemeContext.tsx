@@ -1,24 +1,19 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, type ReactNode } from 'react';
 
-type Theme = 'dark' | 'light';
-type Ctx = { theme: Theme; toggle: () => void };
+/**
+ * Single unified light theme — the theme toggle was removed. Kept as a tiny
+ * provider so any `useTheme()` consumers still resolve; theme is always 'light'.
+ */
+type Ctx = { theme: 'light'; toggle: () => void };
 
-const ThemeContext = createContext<Ctx>({ theme: 'dark', toggle: () => {} });
+const ThemeContext = createContext<Ctx>({ theme: 'light', toggle: () => {} });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === 'undefined') return 'dark';
-    return (localStorage.getItem('ab-theme') as Theme) || 'dark';
-  });
-
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('ab-theme', theme);
-  }, [theme]);
+    document.documentElement.setAttribute('data-theme', 'light');
+  }, []);
 
-  const toggle = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
-
-  return <ThemeContext.Provider value={{ theme, toggle }}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={{ theme: 'light', toggle: () => {} }}>{children}</ThemeContext.Provider>;
 }
 
 export const useTheme = () => useContext(ThemeContext);

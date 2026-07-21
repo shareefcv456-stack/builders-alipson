@@ -86,7 +86,7 @@ const ConstructionCanvas = forwardRef<ConstructionHandle, { className?: string }
       const drawGround = () => {
         ctx.fillStyle = '#0c0f16';
         ctx.fillRect(0, ground, W, H - ground);
-        ctx.strokeStyle = 'rgba(229,57,53,0.18)';
+        ctx.strokeStyle = 'rgba(200, 16, 46,0.18)';
         ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(0, ground + 0.5); ctx.lineTo(W, ground + 0.5); ctx.stroke();
       };
@@ -173,7 +173,7 @@ const ConstructionCanvas = forwardRef<ConstructionHandle, { className?: string }
           const colH = fp * fh;
 
           // steel columns rising (crimson-tinted steel)
-          ctx.strokeStyle = mix([120, 60, 62], [229, 57, 53], 0.5);
+          ctx.strokeStyle = mix([120, 60, 62], [200, 16, 46], 0.5);
           ctx.lineWidth = 4; ctx.lineCap = 'round';
           for (let c = 0; c <= 3; c++) {
             const cx = bx + c * colGap;
