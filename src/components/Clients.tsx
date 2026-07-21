@@ -17,7 +17,8 @@ export default function Clients() {
               style={{
                 fontFamily: 'var(--font-display)',
                 fontWeight: 300,
-                fontSize: 'clamp(1.3rem, 3vw, 2.2rem)',
+                fontSize: 'clamp(1.4rem, 2.6vw, 2rem)',
+                letterSpacing: '0.01em',
                 color: 'rgba(248,248,246,0.78)',
                 whiteSpace: 'nowrap',
               }}
