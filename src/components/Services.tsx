@@ -16,7 +16,7 @@ function Card({ service }: { service: Service }) {
   return (
     <motion.article className="svc cursor-target bg-[#FAF9F6] text-[#111827] rounded-xl p-6 shadow-xl border border-gray-100" variants={staggerItem} onMouseMove={onMove}>
       <span className="svc__num text-gray-400">{service.num}</span>
-      <div className="svc__icon text-[#C8102E]"><Icon size={22} /></div>
+      <div className="svc__icon"><Icon size={22} /></div>
       <h3 className="svc__title font-bold text-xl mb-2">{service.title}</h3>
       <p className="svc__desc !text-gray-700">{service.desc}</p>
     </motion.article>
