@@ -3,7 +3,7 @@ import { CLIENTS } from '../data/site';
 export default function Clients() {
   const loop = [...CLIENTS, ...CLIENTS];
   return (
-    <div className="section--tight" style={{ paddingBottom: 0 }}>
+    <div className="section--tight" style={{ paddingBottom: 'clamp(2.5rem, 6vw, 4.5rem)' }}>
       <div className="container" style={{ marginBottom: '1.5rem' }}>
         <span className="eyebrow eyebrow--center" style={{ width: '100%', justifyContent: 'center' }}>
           Trusted collaborators
