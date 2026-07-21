@@ -3,51 +3,55 @@
    Dark + warm-white theme · glassmorphism · architectural typography
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@200;300;400;500;600;700;800&display=swap');
 
 /* --------------------------------------------------------------------------
    1. DESIGN TOKENS
    -------------------------------------------------------------------------- */
 :root {
-  /* Charcoal + gold palette · warm off-white text */
-  --ink-900: #0b0d0f;    /* deep charcoal black */
-  --ink-850: #0e1012;
-  --ink-800: #131518;
-  --ink-700: #191c20;
-  --ink-600: #22262b;
+  /* Alipson brand · premium near-black + brand red · warm white text */
+  --ink-900: #0a0a0a;    /* premium dark */
+  --ink-850: #0d0d0d;
+  --ink-800: #111111;
+  --ink-700: #181818;
+  --ink-600: #232323;
 
-  --bone-100: #f9f9f9;   /* off-white / cream */
+  --bone-100: #f8f8f6;   /* warm white */
   --bone-200: #ececec;
-  --bone-300: #cfcfcf;
+  --bone-300: #d9d9d9;   /* concrete grey */
 
-  --accent:      #d4af37;   /* rich metallic gold */
-  --accent-soft: #e6c877;
-  --accent-deep: #a8842a;
-  --ember:       #c69a3a;   /* warm bronze */
-  --ember-soft:  #d4af37;
+  --accent:      #e53935;   /* brand crimson red */
+  --accent-soft: #f16a63;   /* lighter crimson — text accents on slate */
+  --accent-deep: #8d2323;   /* deep brick red */
+  --ember:       #8d2323;   /* maroon */
+  --ember-soft:  #e53935;
 
-  --accent-rgb: 212, 175, 55;
-  --ember-rgb:  198, 154, 58;
+  --accent-rgb: 229, 57, 53;
+  --ember-rgb:  141, 35, 35;
+
+  /* Concrete grey / slate accents (brand book) */
+  --silver:      #d9d9d9;
+  --slate:       #0a0a0a;
 
   /* Semantic (dark = default) */
   --bg:          var(--ink-900);
   --bg-elev:     var(--ink-800);
   --bg-alt:      var(--ink-850);
-  --surface:     rgba(249, 249, 249, 0.035);
-  --surface-2:   rgba(249, 249, 249, 0.055);
-  --border:      rgba(212, 175, 55, 0.14);        /* subtle golden borders */
-  --border-strong: rgba(212, 175, 55, 0.26);
-  --text:        #f9f9f9;
-  --text-soft:   rgba(249, 249, 249, 0.72);
-  --text-mute:   rgba(249, 249, 249, 0.46);
-  --glass:       rgba(15, 17, 20, 0.6);           /* ultra-dark glassmorphism */
-  --glass-brd:   rgba(212, 175, 55, 0.2);
+  --surface:     rgba(248, 248, 246, 0.035);
+  --surface-2:   rgba(248, 248, 246, 0.055);
+  --border:      rgba(229, 57, 53, 0.14);         /* subtle red borders */
+  --border-strong: rgba(229, 57, 53, 0.28);
+  --text:        #f8f8f6;
+  --text-soft:   rgba(248, 248, 246, 0.72);
+  --text-mute:   rgba(248, 248, 246, 0.46);
+  --glass:       rgba(11, 13, 15, 0.6);           /* ultra-dark glassmorphism */
+  --glass-brd:   rgba(229, 57, 53, 0.2);
   --shadow:      0 30px 80px -20px rgba(0, 0, 0, 0.8);
 
-  /* Fonts */
-  --font-sans:    'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-display: 'Playfair Display', 'Cormorant Garamond', serif;
-  --font-grotesk: 'Plus Jakarta Sans', sans-serif;
+  /* Fonts — modern editorial sans (no decorative faces) */
+  --font-sans:    'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Manrope', 'Inter', system-ui, sans-serif;
+  --font-grotesk: 'Inter', system-ui, sans-serif;
 
   /* Motion */
   --ease-lux:  cubic-bezier(0.16, 1, 0.3, 1);
@@ -62,24 +66,25 @@
 
 /* Light theme — clean minimalist elite */
 :root[data-theme='light'] {
-  --bg:          #faf9f6;   /* soft alabaster / warm off-white */
+  --bg:          #f8f8f6;   /* brand off-white */
   --bg-elev:     #ffffff;
-  --bg-alt:      #f3f1ea;
-  --surface:     rgba(26, 28, 30, 0.028);
-  --surface-2:   rgba(26, 28, 30, 0.05);
-  --border:      rgba(197, 160, 89, 0.16);        /* light bronze borders */
-  --border-strong: rgba(197, 160, 89, 0.32);
-  --text:        #1a1c1e;   /* deep slate / charcoal */
-  --text-soft:   rgba(26, 28, 30, 0.72);
-  --text-mute:   rgba(26, 28, 30, 0.52);
-  --accent:      #c5a059;   /* warm bronze-gold */
-  --accent-soft: #a9863f;
-  --accent-deep: #8c6c2e;
-  --ember:       #c5a059;
-  --accent-rgb:  197, 160, 89;
+  --bg-alt:      #efefec;
+  --surface:     rgba(21, 21, 21, 0.028);
+  --surface-2:   rgba(21, 21, 21, 0.05);
+  --border:      rgba(229, 57, 53, 0.16);         /* light crimson borders */
+  --border-strong: rgba(229, 57, 53, 0.32);
+  --text:        #0a0a0a;   /* premium dark */
+  --text-soft:   rgba(10, 10, 10, 0.72);
+  --text-mute:   rgba(10, 10, 10, 0.52);
+  --accent:      #e53935;   /* brand red */
+  --accent-soft: #a8231f;   /* deeper red — readable on light */
+  --accent-deep: #8d2323;
+  --ember:       #8d2323;
+  --accent-rgb:  229, 57, 53;
+  --ember-rgb:   141, 35, 35;
   --glass:       rgba(255, 255, 255, 0.7);        /* milk glassmorphism */
-  --glass-brd:   rgba(197, 160, 89, 0.15);
-  --shadow:      0 30px 70px -28px rgba(60, 45, 20, 0.22);
+  --glass-brd:   rgba(229, 57, 53, 0.15);
+  --shadow:      0 30px 70px -28px rgba(80, 12, 10, 0.18);
 }
 
 /* --------------------------------------------------------------------------
@@ -119,7 +124,11 @@ h1, h2, h3, h4, h5 {
   letter-spacing: -0.02em;
   line-height: 1.04;
   color: var(--text);
+  text-wrap: balance;          /* avoid orphan/awkward heading breaks */
 }
+p { text-wrap: pretty; }        /* avoid single-word last lines */
+h1 em, h2 em, h3 em, h4 em, h5 em, .display em, .title em { font-style: normal; }  /* editorial sans has no italic */
+:where(h1, h2, h3, p) { overflow-wrap: break-word; }  /* never overflow the container */
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
 img { display: block; max-width: 100%; }
@@ -133,15 +142,20 @@ input, textarea, select { font-family: inherit; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
-@media (hover: hover) and (pointer: fine) {
-  body.has-cursor, body.has-cursor * { cursor: none; }
-}
+/* Native pointer affordance for interactive elements */
+button, [role='button'], a[href], label, summary { cursor: pointer; }
+button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 
 /* --------------------------------------------------------------------------
    3. LAYOUT UTILITIES
    -------------------------------------------------------------------------- */
 .container { width: 100%; max-width: var(--container); margin: 0 auto; padding-inline: var(--pad-x); }
-.section { padding-block: var(--section-py); position: relative; }
+.section { padding-block: var(--section-py); position: relative; isolation: isolate; }
+
+/* Ambient scroll-linked construction backgrounds behind body sections */
+.ambient-bg { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; display: block; pointer-events: none; opacity: 0.6; }
+:root[data-theme='dark'] .ambient-bg { opacity: 0.5; }
+.section > .container { position: relative; z-index: 1; }
 .section--tight { padding-block: clamp(3.5rem, 8vh, 7rem); }
 .bg-alt { background: var(--bg-alt); }
 .bg-elev { background: var(--bg-elev); }
@@ -179,36 +193,32 @@ input, textarea, select { font-family: inherit; }
 /* --------------------------------------------------------------------------
    4. BUTTONS
    -------------------------------------------------------------------------- */
+/* Production-grade CTA — fixed geometry, zero layout shift on any state.
+   Hover changes only background / shadow / border-color. No transform,
+   no scale, no width/height change, content stays perfectly centered. */
 .btn {
-  position: relative; display: inline-flex; align-items: center; gap: 0.6rem;
-  padding: 1rem 1.9rem; border-radius: 100px;
-  font-family: var(--font-grotesk); font-weight: 500; font-size: 0.9rem;
-  letter-spacing: 0.02em; overflow: hidden;
-  transition: transform 0.5s var(--ease-lux), color 0.4s var(--ease-lux), border-color 0.4s;
-  will-change: transform;
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 0.55rem;
+  height: 52px; padding: 0 1.75rem; border-radius: 100px;
+  border: 1px solid transparent;              /* reserved so hover border adds no shift */
+  font-family: var(--font-grotesk); font-weight: 600; font-size: 0.9rem;
+  line-height: 1; letter-spacing: 0.01em; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.35s var(--ease-lux), border-color 0.35s var(--ease-lux),
+              box-shadow 0.35s var(--ease-lux), color 0.35s var(--ease-lux);
 }
-.btn svg { transition: transform 0.4s var(--ease-lux); }
-.btn-primary { background: var(--accent); color: #17130a; }
-.btn-primary::before {
-  content: ''; position: absolute; inset: 0; z-index: 0;
-  background: linear-gradient(120deg, var(--accent-soft), #fff3d8);
-  transform: translateY(101%); transition: transform 0.6s var(--ease-lux);
-}
-.btn-primary:hover::before { transform: translateY(0); }
-.btn-primary:hover svg { transform: translateX(4px); }
-.btn-primary > * { position: relative; z-index: 1; }
+.btn svg { flex-shrink: 0; }                   /* icon never jumps or shifts */
 
-/* Glowing gold CTA — for the header "Book Consultation" */
-.btn-glow { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.55), 0 8px 26px -6px rgba(var(--accent-rgb), 0.5); animation: btnGlow 2.8s var(--ease-lux) infinite; }
-.btn-glow:hover { animation-play-state: paused; box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.18), 0 12px 34px -6px rgba(var(--accent-rgb), 0.65); }
-@keyframes btnGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.45), 0 8px 24px -8px rgba(var(--accent-rgb), 0.45); }
-  50% { box-shadow: 0 0 0 6px rgba(var(--accent-rgb), 0), 0 8px 30px -6px rgba(var(--accent-rgb), 0.75); }
-}
+.btn-primary { background-color: var(--accent); color: #fff; box-shadow: 0 6px 18px -10px rgba(var(--accent-rgb), 0.55); }
+.btn-primary:hover { background-color: var(--accent-deep); box-shadow: 0 12px 26px -12px rgba(var(--accent-rgb), 0.55); }
+.btn-primary:active { background-color: #7a1a1a; box-shadow: 0 4px 12px -10px rgba(var(--accent-rgb), 0.6); }
 
-.btn-ghost { border: 1px solid var(--border-strong); color: var(--text); backdrop-filter: blur(8px); }
-.btn-ghost:hover { border-color: var(--accent); color: var(--accent-soft); }
-.btn-ghost:hover svg { transform: translateX(4px); }
+.btn-ghost { color: var(--text); border-color: var(--border-strong); backdrop-filter: blur(8px); }
+.btn-ghost:hover { border-color: var(--accent); background-color: rgba(var(--accent-rgb), 0.06); }
+.btn-ghost:active { background-color: rgba(var(--accent-rgb), 0.1); }
+
+/* Accessible focus + safe disabled state (no motion) */
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.btn:disabled, .btn[aria-disabled='true'] { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
 
 .btn-group { display: flex; flex-wrap: wrap; gap: 1rem; }
 
@@ -265,7 +275,7 @@ input, textarea, select { font-family: inherit; }
 .floater { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; color: #fff; box-shadow: 0 12px 30px -8px rgba(0,0,0,0.5); transition: transform 0.4s var(--ease-lux); position: relative; }
 .floater:hover { transform: translateY(-4px) scale(1.06); }
 .floater--wa { background: #25d366; }
-.floater--call { background: var(--accent); color: #17130a; }
+.floater--call { background: var(--accent); color: #fff; }
 .floater--up { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); backdrop-filter: blur(10px); }
 .floater-pulse { position: absolute; inset: 0; border-radius: 50%; background: #25d366; opacity: 0.6; animation: floaterPulse 2.2s var(--ease-lux) infinite; z-index: -1; }
 @keyframes floaterPulse { 0% { transform: scale(1); opacity: 0.5; } 70%,100% { transform: scale(1.7); opacity: 0; } }

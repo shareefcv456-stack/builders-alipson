@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { CheckCircle2, ArrowUpRight, Download } from 'lucide-react';
 import Modal from './ui/Modal';
-import { MEDIA, HERO_VIDEO, HERO_VIDEO_WEBM } from '../lib/media';
 
 function SimpleForm({
   fields,
@@ -58,18 +57,27 @@ export function QuoteModal({ open, onClose }: { open: boolean; onClose: () => vo
   );
 }
 
+/* Theater-style lightbox — plays the brand story film from YouTube.
+   The iframe mounts only while `open` so it never plays in the background. */
+const STORY_ID = 'LJ0zferSLP8';
+
 export function VideoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <Modal open={open} onClose={onClose} wide>
       <div className="video-modal">
-        <video controls autoPlay muted loop playsInline poster={MEDIA.heroPoster}>
-          <source src={HERO_VIDEO_WEBM} type="video/webm" />
-          <source src={HERO_VIDEO} type="video/mp4" />
-        </video>
+        {open && (
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${STORY_ID}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+            title="Together, We Build The Extraordinary — Alipson Builders x Nunny Recruitment"
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            allowFullScreen
+            loading="lazy"
+          />
+        )}
       </div>
       <div className="video-modal__cap">
-        <h3>Inside Alipson Builders</h3>
-        <p>A cinematic walk-through of our landmark residences and living spaces across Kerala.</p>
+        <h3>Together, We Build The Extraordinary</h3>
+        <p>The story of Alipson Builders &amp; Nunny Recruitment — engineering, craftsmanship and the people who make it real.</p>
       </div>
     </Modal>
   );

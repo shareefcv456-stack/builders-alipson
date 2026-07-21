@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import {
   Building2, Award, Compass, Wrench, ShieldCheck,
-  Clock, Users, Ruler, Sparkles, LineChart, Leaf, type LucideIcon,
+  Clock, Users, Ruler, Sparkles, LineChart, Leaf,
+  HardHat, ClipboardList, Plane, type LucideIcon,
 } from 'lucide-react';
 import type { MediaKey } from '../lib/media';
 
@@ -10,18 +11,19 @@ export const CONTACT = {
   phone: '+91 98765 43210',
   phoneHref: 'tel:+919876543210',
   whatsapp: 'https://wa.me/919876543210',
-  email: 'studio@alipsonbuilders.com',
-  address: 'Calicut Bypass Road, Calicut, Kerala 673001',
+  email: 'hello@alipsonbuilders.com',
+  address: 'Ambalappadi, Wandoor, Malappuram, Kerala — PIN: 679328',
   mapEmbed:
-    'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d125218.42398485253!2d75.7483669145695!3d11.258753066347895!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ba65938563d4747%3A0x321557147d31f483!2sKozhikode%2C%20Kerala!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin',
+    'https://www.google.com/maps?q=Ambalappadi%2C%20Wandoor%2C%20Kerala%20679328&output=embed',
 };
 
 export const NAV = [
   { id: 'hero', label: 'Home' },
   { id: 'work', label: 'Projects' },
-  { id: 'founder', label: 'Founder & Legacy' },
+  { id: 'studio', label: 'Story' },
+  { id: 'nunny', label: 'Nunny' },
   { id: 'services', label: 'Services' },
-  { id: 'contact', label: 'Contact' },
+  { id: 'footer', label: 'Contact' },
 ];
 
 /* ---- STATS -------------------------------------------------------------- */
@@ -31,6 +33,20 @@ export const STATS: Stat[] = [
   { value: 100, suffix: '%', label: 'On-Time Completion' },
   { value: 15, suffix: '+', label: 'Years Combined Expertise' },
   { value: 100, suffix: '%', label: 'Client Satisfaction' },
+];
+
+/* ---- NUNNY RECRUITMENT DIVISION ----------------------------------------- */
+export type NunnyFeature = { num: string; icon: LucideIcon; title: string; desc: string };
+export const NUNNY_FEATURES: NunnyFeature[] = [
+  { num: '01', icon: HardHat, title: 'Skilled Labour Supply', desc: 'Vetted masons, steel fixers, carpenters, electricians and finishers — mobilised to your site on schedule.' },
+  { num: '02', icon: Ruler, title: 'Site Engineering Talent', desc: 'Civil engineers, surveyors, QA/QC and project managers who keep quality and timelines on track.' },
+  { num: '03', icon: Plane, title: 'Overseas Placement', desc: 'Gulf & international deployment with documentation, visa processing and pre-departure orientation handled end-to-end.' },
+  { num: '04', icon: ClipboardList, title: 'Workforce Management', desc: 'Payroll, compliance, rostering and on-site supervision — a fully managed crew, not just a headcount.' },
+];
+export const NUNNY_STATS: Stat[] = [
+  { value: 5000, suffix: '+', label: 'Workers Placed' },
+  { value: 12, suffix: '+', label: 'Countries Served' },
+  { value: 48, suffix: 'h', label: 'Avg. Mobilisation' },
 ];
 
 /* ---- SERVICES ----------------------------------------------------------- */

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, X, Sun, Moon, ArrowUpRight } from 'lucide-react';
 import Logo from './ui/Logo';
-import Magnetic from './ui/Magnetic';
 import { NAV } from '../data/site';
 import { scrollToId } from '../hooks/useLenis';
 import { useTheme } from '../context/ThemeContext';
@@ -74,11 +73,9 @@ export default function Navbar() {
                 </motion.span>
               </AnimatePresence>
             </button>
-            <Magnetic strength={0.35}>
-              <button className="btn btn-primary btn-glow" onClick={openQuote}>
-                Book Consultation <ArrowUpRight size={16} />
-              </button>
-            </Magnetic>
+            <button className="btn btn-primary" onClick={openQuote}>
+              Book Consultation <ArrowUpRight size={16} />
+            </button>
             <button className="nav__toggle" onClick={() => setMenuOpen(true)} aria-label="Open menu">
               <Menu size={22} />
             </button>

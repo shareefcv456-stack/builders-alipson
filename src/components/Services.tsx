@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 import RevealText from './ui/RevealText';
 import Reveal, { Stagger, staggerItem } from './ui/Reveal';
+import AmbientCanvas from './AmbientCanvas';
 import { SERVICES, type Service } from '../data/site';
 import { scrollToId } from '../hooks/useLenis';
 
@@ -25,6 +26,7 @@ function Card({ service }: { service: Service }) {
 export default function Services() {
   return (
     <section id="services" className="section">
+      <AmbientCanvas variant="assembly" />
       <div className="container">
         <div className="section-head">
           <Reveal><span className="eyebrow">Capabilities</span></Reveal>

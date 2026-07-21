@@ -4,6 +4,7 @@ import { ArrowUpRight, Download } from 'lucide-react';
 import Reveal from './ui/Reveal';
 import RevealText from './ui/RevealText';
 import Magnetic from './ui/Magnetic';
+import AmbientCanvas from './AmbientCanvas';
 import { HIGHLIGHTS } from '../data/site';
 import { MEDIA } from '../lib/media';
 import { useUI } from '../context/UIContext';
@@ -16,6 +17,7 @@ export default function Studio() {
 
   return (
     <section id="studio" className="section bg-alt grain">
+      <AmbientCanvas variant="blueprint" />
       <div className="container studio__grid">
         <div className="studio__visual" ref={visualRef}>
           <Reveal dir="scale">

@@ -4,6 +4,7 @@ import { MapPin, Ruler, ArrowUpRight } from 'lucide-react';
 import RevealText from './ui/RevealText';
 import Reveal from './ui/Reveal';
 import BeforeAfter from './BeforeAfter';
+import AmbientCanvas from './AmbientCanvas';
 import { PROJECTS, PROJECT_FILTERS, type Project } from '../data/site';
 import { media } from '../lib/media';
 import { useUI } from '../context/UIContext';
@@ -50,6 +51,7 @@ export default function Projects() {
 
   return (
     <section id="work" className="section bg-alt grain">
+      <AmbientCanvas variant="cranes" />
       <div className="container">
         <div className="projects__head">
           <div>

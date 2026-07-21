@@ -4,16 +4,16 @@ import { ThemeProvider } from './context/ThemeContext';
 import { UIProvider } from './context/UIContext';
 import { useLenis } from './hooks/useLenis';
 
-import Loader from './components/Loader';
-import Cursor from './components/Cursor';
+import CinematicIntro from './components/CinematicIntro';
 import Navbar from './components/Navbar';
 import FloatingActions from './components/FloatingActions';
-import Hero from './components/Hero';
+import StoryScroll from './components/StoryScroll';
 import Ribbon from './components/Ribbon';
 import Studio from './components/Studio';
 import Founder from './components/Founder';
 import Services from './components/Services';
 import Projects from './components/Projects';
+import Nunny from './components/Nunny';
 import WhyUs from './components/WhyUs';
 import Process from './components/Process';
 import Clients from './components/Clients';
@@ -54,19 +54,19 @@ export default function App() {
   return (
     <ThemeProvider>
       <UIProvider value={{ openQuote: () => setQuoteOpen(true), openBrochure: () => setBrochureOpen(true), openVideo: () => setVideoOpen(true) }}>
-        <AnimatePresence>{!loaded && <Loader onDone={() => setLoaded(true)} />}</AnimatePresence>
+        <AnimatePresence>{!loaded && <CinematicIntro onDone={() => setLoaded(true)} />}</AnimatePresence>
 
-        <Cursor />
         <Navbar />
         <FloatingActions />
 
         <main>
-          <Hero />
+          <StoryScroll />
           <Ribbon />
           <Studio />
           <Founder />
           <Services />
           <Projects />
+          <Nunny />
           <WhyUs />
           <Process />
           <Clients />

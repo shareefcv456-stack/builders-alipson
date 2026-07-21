@@ -1,12 +1,14 @@
 import { Quote } from 'lucide-react';
 import RevealText from './ui/RevealText';
 import Reveal from './ui/Reveal';
+import AmbientCanvas from './AmbientCanvas';
 import { FOUNDER } from '../data/site';
 import { media } from '../lib/media';
 
 export default function Founder() {
   return (
     <section id="founder" className="section bg-alt grain">
+      <AmbientCanvas variant="dusk" />
       <div className="container">
         <div className="founder__grid">
           <Reveal>
