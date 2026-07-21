@@ -497,8 +497,8 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .nunny__stats { position: absolute; left: 1rem; right: 1rem; bottom: 1rem; display: flex; justify-content: space-around;
   gap: 0.8rem; padding: 1rem 0.8rem; border-radius: 16px; }
 .nunny__stat { text-align: center; }
-.nunny__stat strong { display: block; font-family: var(--font-display); font-weight: 400; font-size: clamp(1.3rem, 3vw, 1.95rem); color: #fff; }
-.nunny__stat span { font-family: var(--font-grotesk); font-size: 0.64rem; letter-spacing: 0.09em; text-transform: uppercase; color: rgba(248,248,246,0.66); }
+.nunny__stat strong { display: block; font-family: var(--font-display); font-weight: 400; font-size: clamp(1.3rem, 3vw, 1.95rem); color: var(--text); }
+.nunny__stat span { font-family: var(--font-grotesk); font-size: 0.64rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-soft); }
 
 /* Capability cards — glass with crimson glow */
 .nunny__features { display: grid; grid-template-columns: 1fr; gap: 1rem; }
