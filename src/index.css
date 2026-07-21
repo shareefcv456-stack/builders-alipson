@@ -242,6 +242,8 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 .btn-primary:active { background-color: #7a1a1a; box-shadow: 0 4px 12px -10px rgba(var(--accent-rgb), 0.6); }
 
 .btn-ghost { color: var(--text); border-color: var(--border-strong); backdrop-filter: blur(8px); }
+.cta .btn-ghost { color: #f8f8f6; border-color: rgba(248,248,246,0.35); }
+.cta .btn-ghost:hover { border-color: var(--accent); color: #fff; }
 .btn-ghost:hover { border-color: var(--accent); background-color: rgba(var(--accent-rgb), 0.06); }
 .btn-ghost:active { background-color: rgba(var(--accent-rgb), 0.1); }
 
