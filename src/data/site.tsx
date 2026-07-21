@@ -140,7 +140,7 @@ export const FOUNDER = {
     'For over fifteen years, Alipson Builders has grown from a small Kerala practice into one of the region\'s most trusted names in luxury construction — built on relationships, referrals and homes that stand the test of time.',
     'Our leadership pairs deep local expertise in Kerala real estate with a customer-first philosophy: transparent contracts, on-time delivery and a relentless commitment to quality on every site, from foundation to final finish.',
   ],
-  name: 'Alipson & Leadership Team',
+  name: 'Kanunnilal',
   role: 'Founders · Alipson Builders, Kerala',
   values: [
     { k: '15+', v: 'Years of trusted craftsmanship' },
