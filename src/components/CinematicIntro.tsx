@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LogoMark } from './ui/Logo';
+import ParticleNetwork from './ParticleNetwork';
 import { isCapture } from '../lib/capture';
 
 /**
@@ -60,6 +61,8 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 1, ease: EASE }}
     >
+      {/* Deep-purple particle network — the backdrop, strictly below villa + copy */}
+      <ParticleNetwork className="intro__particles" />
       <div className="intro__glow" aria-hidden />
       <div className="intro__rays" aria-hidden />
 
@@ -105,8 +108,10 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
       </motion.svg>
       </div>
 
-      {/* Dialogue / brand — fade through black */}
-      <div className="intro__stage">
+      {/* Dialogue / brand — fade through black.
+          Dialogue lines sit at the TOP of the viewport (clear of the centered
+          villa); the brand reveal stays centered. */}
+      <div className={`intro__stage ${brand ? '' : 'intro__stage--top'}`}>
         <AnimatePresence mode="wait">
           {brand ? (
             <motion.div

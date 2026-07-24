@@ -8,17 +8,18 @@ import { scrollToId } from '../hooks/useLenis';
 import { useUI } from '../context/UIContext';
 import { isCapture } from '../lib/capture';
 import ConstructionCanvas, { type ConstructionHandle } from './ConstructionCanvas';
+import ParticleNetwork from './ParticleNetwork';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// The build completes across exactly 3 scroll increments.
 const PHASES = [
-  { tag: 'Phase A', name: 'Groundwork & Machinery' },
-  { tag: 'Phase B', name: 'Structure Rising' },
-  { tag: 'Phase C', name: 'Facade & Lighting' },
-  { tag: 'Phase D', name: 'The Landmark' },
+  { tag: 'Step 1', name: 'Foundation & Frame' },
+  { tag: 'Step 2', name: 'Structure Rising' },
+  { tag: 'Step 3', name: 'Facade & Finish' },
 ];
 
-const phaseFor = (p: number) => (p < 0.25 ? 0 : p < 0.6 ? 1 : p < 0.9 ? 2 : 3);
+const phaseFor = (p: number) => (p < 1 / 3 ? 0 : p < 2 / 3 ? 1 : 2);
 
 export default function StoryScroll() {
   const root = useRef<HTMLElement>(null);
@@ -29,7 +30,7 @@ export default function StoryScroll() {
   const still = isCapture() || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   useEffect(() => {
-    if (still) { canvas.current?.setProgress(0.94); setPhase(3); return; }
+    if (still) { canvas.current?.setProgress(1); setPhase(2); return; }
     if (!root.current) return;
 
     const lenis = (window as unknown as { lenis?: Lenis }).lenis;
@@ -68,7 +69,9 @@ export default function StoryScroll() {
   return (
     <section id="hero" className={`story ${still ? 'story--static' : ''}`} ref={root} aria-label="Alipson Builders — from foundation to landmark">
       <div className="story__stage">
-        {/* Scroll-driven construction cycle */}
+        {/* Deep-purple particle network — bottom layer, behind everything */}
+        <ParticleNetwork className="story__particles" />
+        {/* Scroll-driven line-art construction, transparent over the particles */}
         <ConstructionCanvas ref={canvas} className="story__canvas" />
         <div className="story__grade" />
 
@@ -76,7 +79,7 @@ export default function StoryScroll() {
         <div className="story__phase" aria-hidden>
           <span className="story__phase-tag">{ph.tag}</span>
           <em className="story__phase-name">{ph.name}</em>
-          <span className="story__phase-track"><i style={{ width: `${(phase + 1) * 25}%` }} /></span>
+          <span className="story__phase-track"><i style={{ width: `${(phase + 1) * (100 / 3)}%` }} /></span>
         </div>
 
         {/* Finale — finished landmark */}

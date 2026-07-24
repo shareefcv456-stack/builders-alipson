@@ -1,14 +1,20 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 
 /**
- * Scroll-driven construction cycle rendered on <canvas>.
- * `setProgress(0..1)` maps scroll position to the build state:
- *   A 0–25%  groundwork + machinery + piling
- *   B 25–60% steel frame rising level-by-level, concrete slabs
- *   C 60–90% glass facade, windows lighting, landscaping
- *   D 90–100% finished luxury landmark glowing at evening
- * An internal RAF adds ambient life (crane sway, machinery, embers); the scene
- * pauses when off-screen and honours reduced-motion by drawing a single frame.
+ * Scroll-driven LINE-ART construction reveal, rendered on a TRANSPARENT <canvas>
+ * so the deep-purple particle network shows through behind it.
+ *
+ * `setProgress(0..1)` maps scroll position to the build, completing across
+ * exactly THREE scroll increments:
+ *   Increment 1  (0 – 1/3)  ground, podium + the full structural frame rises,
+ *                           with diagonal cross-bracing
+ *   Increment 2  (1/3 – 2/3) floor slabs level-by-level, tiered setback frame,
+ *                           tower crane assist
+ *   Increment 3  (2/3 – 1)  facade mullion grid, lit windows, stepped crown,
+ *                           antenna mast, entrance + podium detailing
+ * At progress === 1 the entire, richly-detailed tower is drawn — nothing is
+ * left partial. An internal RAF adds ambient life (crane sway, blinking tip
+ * light, beacon); reduced-motion paints one complete static frame.
  */
 export type ConstructionHandle = { setProgress: (p: number) => void };
 
@@ -18,11 +24,14 @@ const smooth = (edge0: number, edge1: number, x: number) => {
   const t = clamp((x - edge0) / (edge1 - edge0));
   return t * t * (3 - 2 * t);
 };
-type RGB = [number, number, number];
-const mix = (c1: RGB, c2: RGB, t: number): string =>
-  `rgb(${Math.round(lerp(c1[0], c2[0], t))},${Math.round(lerp(c1[1], c2[1], t))},${Math.round(lerp(c1[2], c2[2], t))})`;
 
-const N_FLOORS = 6;
+// Ink + accent for the line work — bright enough to stay crisp on purple.
+const INK = 'rgba(238, 232, 248, ALPHA)';
+const ACCENT = 'rgba(230, 90, 96, ALPHA)';      // crimson-soft, brand accent
+const col = (base: string, a: number) => base.replace('ALPHA', a.toFixed(3));
+
+const N_FLOORS = 11;          // main shaft floors
+const BAYS = 4;               // structural bays across the shaft
 
 const ConstructionCanvas = forwardRef<ConstructionHandle, { className?: string }>(
   function ConstructionCanvas({ className }, ref) {
@@ -39,240 +48,239 @@ const ConstructionCanvas = forwardRef<ConstructionHandle, { className?: string }
 
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      let W = 0, H = 0, ground = 0;
-      let raf = 0;
-      let visible = true;
+      let W = 0, H = 0, ground = 0, raf = 0, visible = true;
 
       const resize = () => {
-        W = canvas.clientWidth; H = canvas.clientHeight; ground = H * 0.82;
+        W = canvas.clientWidth; H = canvas.clientHeight; ground = H * 0.85;
         canvas.width = Math.floor(W * dpr); canvas.height = Math.floor(H * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       };
 
-      // ---- scene pieces -------------------------------------------------
-      const drawSky = (p: number) => {
-        const warm = smooth(0.6, 1, p); // evening warmth grows late
-        const g = ctx.createLinearGradient(0, 0, 0, H);
-        g.addColorStop(0, mix([18, 22, 32], [12, 10, 16], warm));
-        g.addColorStop(0.55, mix([32, 38, 50], [40, 26, 30], warm));
-        g.addColorStop(1, mix([46, 52, 64], [70, 40, 34], warm));
-        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-
-        // sun / evening glow — descends and warms as the build completes
-        const sx = W * 0.76, sy = lerp(H * 0.26, H * 0.6, warm);
-        const r = H * (0.16 + 0.1 * warm);
-        const rg = ctx.createRadialGradient(sx, sy, 0, sx, sy, r * 2.4);
-        rg.addColorStop(0, `rgba(255,${Math.round(lerp(233, 190, warm))},${Math.round(lerp(180, 120, warm))},${0.35 + 0.4 * warm})`);
-        rg.addColorStop(1, 'rgba(255,190,120,0)');
-        ctx.globalCompositeOperation = 'screen';
-        ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(sx, sy, r * 2.4, 0, Math.PI * 2); ctx.fill();
-        ctx.globalCompositeOperation = 'source-over';
-      };
-
-      const drawSkyline = () => {
-        // faint background city for depth
-        ctx.fillStyle = 'rgba(10,12,18,0.55)';
-        let x = -20;
-        let seed = 1;
-        while (x < W + 20) {
-          const rnd = (Math.sin(seed) * 0.5 + 0.5); seed += 1.7;
-          const bw = 30 + rnd * 60;
-          const bh = 40 + ((Math.sin(seed * 2.1) * 0.5 + 0.5)) * H * 0.22;
-          ctx.fillRect(x, ground - bh, bw, bh);
-          x += bw + 10;
-        }
-      };
-
-      const drawGround = () => {
-        ctx.fillStyle = '#0c0f16';
-        ctx.fillRect(0, ground, W, H - ground);
-        ctx.strokeStyle = 'rgba(200, 16, 46,0.18)';
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(0, ground + 0.5); ctx.lineTo(W, ground + 0.5); ctx.stroke();
-      };
-
-      // building metrics
+      // ---- responsive geometry ----------------------------------------------
       const geo = () => {
-        const bw = Math.min(W * 0.3, 380);
-        const bx = W * 0.5 - bw / 2;
-        const fh = Math.min((H * 0.52) / N_FLOORS, 74);
-        return { bw, bx, fh };
+        const bw = Math.min(W * 0.28, 300);
+        const cx = W * 0.5;
+        const bx = cx - bw / 2;
+        const bh = Math.min(H * 0.62, N_FLOORS * 52);
+        const fh = bh / N_FLOORS;
+        const top = ground - bh;
+        const colGap = bw / BAYS;
+        // widened podium at the base
+        const podW = bw * 1.7, podH = fh * 1.6, podX = cx - podW / 2;
+        return { bw, bx, cx, bh, fh, top, colGap, podW, podH, podX };
       };
 
-      const drawExcavator = (t: number, alpha: number) => {
-        if (alpha <= 0.01) return;
-        const { bx } = geo();
-        const ex = Math.max(70, bx - 120), ey = ground;
-        ctx.save(); ctx.globalAlpha = alpha;
-        ctx.fillStyle = '#b9861f';
-        ctx.fillRect(ex - 26, ey - 26, 52, 20); // body
-        ctx.fillStyle = '#14171f';
-        ctx.fillRect(ex - 30, ey - 8, 60, 10); // tracks
-        // arm
-        const sw = Math.sin(t * 1.4) * 0.3;
-        ctx.strokeStyle = '#b9861f'; ctx.lineWidth = 6; ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(ex + 12, ey - 22);
-        const j1x = ex + 12 + Math.cos(-0.9 + sw) * 40, j1y = ey - 22 + Math.sin(-0.9 + sw) * 40;
-        ctx.lineTo(j1x, j1y);
-        const j2x = j1x + Math.cos(0.4 + sw) * 42, j2y = j1y + Math.sin(0.4 + sw) * 42;
-        ctx.lineTo(j2x, j2y);
-        ctx.stroke();
-        ctx.restore();
+      // horizontal half-width of the shaft at floor i (tiered setbacks near top)
+      const bandHalf = (i: number, bw: number) => {
+        if (i >= N_FLOORS - 1) return bw * 0.28;   // slender crown floor
+        if (i >= N_FLOORS - 3) return bw * 0.38;   // upper setback
+        return bw * 0.5;                           // full shaft
       };
 
-      const drawCrane = (t: number, cp: number, alpha: number) => {
-        if (alpha <= 0.01) return;
-        const { bx, bw, fh } = geo();
-        const mx = bx + bw + 46;
-        const topY = ground - (fh * N_FLOORS) * clamp(cp * 1.05) - 30;
-        ctx.save(); ctx.globalAlpha = alpha;
-        ctx.strokeStyle = '#cfd3da'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(mx, ground); ctx.lineTo(mx, topY); ctx.stroke();
-        // lattice
-        ctx.lineWidth = 1;
-        for (let y = topY; y < ground; y += 20) {
-          ctx.beginPath(); ctx.moveTo(mx - 4, y); ctx.lineTo(mx + 4, y + 10);
-          ctx.moveTo(mx + 4, y); ctx.lineTo(mx - 4, y + 10); ctx.stroke();
+      // Draw a straight segment revealed 0..t along its own length.
+      const seg = (x1: number, y1: number, x2: number, y2: number, t: number, style: string, w: number) => {
+        if (t <= 0.001) return;
+        ctx.strokeStyle = style; ctx.lineWidth = w; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(lerp(x1, x2, t), lerp(y1, y2, t)); ctx.stroke();
+      };
+
+      // ---- ground plane ------------------------------------------------------
+      const drawGround = (p: number) => {
+        seg(W * 0.05, ground, W * 0.95, ground, smooth(0, 0.04, p), col(INK, 0.5), 1.4);
+        seg(W * 0.05, ground + 4, W * 0.95, ground + 4, smooth(0.02, 0.08, p), col(ACCENT, 0.75), 1.6);
+        // ground tick marks (survey grid)
+        const gt = smooth(0.02, 0.12, p);
+        if (gt > 0) {
+          ctx.strokeStyle = col(INK, 0.16 * gt); ctx.lineWidth = 1;
+          for (let x = W * 0.08; x < W * 0.93; x += 46) {
+            ctx.beginPath(); ctx.moveTo(x, ground + 2); ctx.lineTo(x + 10, ground + 12); ctx.stroke();
+          }
         }
-        // jib
-        const ang = Math.sin(t * 0.5) * 0.16;
-        ctx.save(); ctx.translate(mx, topY); ctx.rotate(ang);
-        ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(-60, 0); ctx.lineTo(-160, 0); ctx.stroke();
-        ctx.fillStyle = '#14171f'; ctx.fillRect(-70, -5, 14, 14); // counterweight
-        // hook line
-        const hx = -110 - 30 * (Math.sin(t * 0.5) * 0.5 + 0.5);
-        ctx.strokeStyle = 'rgba(207,211,218,0.8)'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(hx, 0); ctx.lineTo(hx, 34 + 10 * Math.sin(t * 0.8)); ctx.stroke();
+      };
+
+      // ---- INCREMENT 1 — structural frame + bracing -------------------------
+      const drawFrame = (p: number) => {
+        const { bw, cx, top, fh, colGap, podW, podH, podX } = geo();
+        const bx = cx - bw / 2;
+
+        // podium footprint
+        const pod = smooth(0.03, 0.12, p);
+        if (pod > 0) {
+          ctx.strokeStyle = col(INK, 0.6); ctx.lineWidth = 1.6;
+          ctx.strokeRect(podX, ground - podH, podW * (pod > 0.5 ? 1 : pod * 2), podH);
+          seg(podX, ground - podH, podX + podW, ground - podH, pod, col(INK, 0.7), 1.6);
+        }
+
+        // main vertical columns rise from podium up (0.08 → 0.32)
+        for (let c = 0; c <= BAYS; c++) {
+          const x = bx + c * colGap;
+          const edge = c === 0 || c === BAYS;
+          const t = smooth(0.08 + c * 0.01, 0.32, p);
+          seg(x, ground - podH * 0.2, x, top, t, col(INK, edge ? 0.85 : 0.4), edge ? 2.4 : 1.1);
+        }
+        // top cap beam closes the frame
+        seg(bx, top, bx + bw, top, smooth(0.28, 0.34, p), col(INK, 0.85), 2.2);
+
+        // diagonal cross-bracing in outer bays (X pattern), rising in pairs
+        const brace = smooth(0.16, 0.33, p);
+        if (brace > 0) {
+          ctx.strokeStyle = col(ACCENT, 0.28 * brace); ctx.lineWidth = 1;
+          for (let i = 0; i < N_FLOORS; i += 2) {
+            const yb = ground - i * fh, yt = ground - Math.min(i + 2, N_FLOORS) * fh;
+            [[bx, bx + colGap], [bx + bw - colGap, bx + bw]].forEach(([l, r]) => {
+              const tb = clamp((brace * N_FLOORS - i) * 0.5);
+              seg(l, yb, r, yt, tb, col(ACCENT, 0.3 * brace), 1);
+              seg(r, yb, l, yt, tb, col(ACCENT, 0.3 * brace), 1);
+            });
+          }
+        }
+      };
+
+      // ---- INCREMENT 2 — floor slabs + setback frame ------------------------
+      const drawFloors = (p: number) => {
+        const { bw, cx, fh } = geo();
+        for (let i = 1; i < N_FLOORS; i++) {
+          const y = ground - i * fh;
+          const hw = bandHalf(i, bw);
+          const s = 0.34 + (i / N_FLOORS) * 0.26;      // stagger bottom → top
+          const t = smooth(s, s + 0.05, p);
+          seg(cx - hw, y, cx + hw, y, t, col(INK, 0.5), 1.3);
+        }
+        // sky-lobby accent band mid-height
+        const midY = ground - Math.round(N_FLOORS * 0.55) * fh;
+        seg(cx - bandHalf(6, bw), midY, cx + bandHalf(6, bw), midY, smooth(0.52, 0.6, p), col(ACCENT, 0.7), 1.8);
+
+        // outline the tiered setback silhouette as floors reach the top
+        const setb = smooth(0.55, 0.66, p);
+        if (setb > 0) {
+          for (let i = N_FLOORS - 3; i < N_FLOORS; i++) {
+            const y = ground - i * fh, hw = bandHalf(i, bw);
+            seg(cx - hw, y, cx - hw, y + fh, setb, col(INK, 0.6), 1.4);
+            seg(cx + hw, y, cx + hw, y + fh, setb, col(INK, 0.6), 1.4);
+          }
+        }
+      };
+
+      // ---- INCREMENT 3 — facade grid, windows, crown, entrance --------------
+      const drawFacade = (p: number) => {
+        const { bw, cx, top, fh, colGap } = geo();
+        const bx = cx - bw / 2;
+
+        // vertical mullions across the shaft (2 sub-mullions per bay = fine grid)
+        const mul = smooth(0.66, 0.82, p);
+        if (mul > 0) {
+          const step = colGap / 2;
+          for (let x = bx + step; x < bx + bw; x += step) {
+            const bottom = ground;
+            const topY = top;
+            seg(x, bottom, x, topY, mul, col(INK, 0.22), 0.9);
+          }
+        }
+
+        // window panes light up floor-by-floor (warm) in the final third
+        const glow = smooth(0.72, 1, p);
+        if (glow > 0) {
+          const panes = BAYS * 2;
+          const paneW = bw / panes;
+          for (let i = 0; i < N_FLOORS; i++) {
+            const hw = bandHalf(i, bw);
+            const y0 = ground - (i + 1) * fh + 4, wh = fh - 8;
+            for (let c = 0; c < panes; c++) {
+              const px = bx + c * paneW + 3;
+              if (px < cx - hw || px + paneW > cx + hw) continue;   // respect setbacks
+              const on = Math.sin(i * 2.3 + c * 1.7) * 0.5 + 0.5;
+              const litT = clamp((glow * N_FLOORS - i) * 0.9);
+              if (litT <= 0 || on < 0.36) continue;
+              ctx.fillStyle = `rgba(255, 206, 140, ${litT * (0.12 + 0.16 * on)})`;
+              ctx.fillRect(px, y0, paneW - 6, wh);
+              ctx.strokeStyle = col(INK, 0.16 * litT); ctx.lineWidth = 0.7;
+              ctx.strokeRect(px, y0, paneW - 6, wh);
+            }
+          }
+        }
+
+        // stepped crown parapet
+        const crown = smooth(0.82, 0.94, p);
+        if (crown > 0) {
+          const hw = bandHalf(N_FLOORS - 1, bw);
+          seg(cx - hw - 6, top - 8, cx + hw + 6, top - 8, crown, col(INK, 0.85), 2);
+          seg(cx - hw - 6, top - 8, cx - hw - 6, top, crown, col(INK, 0.7), 1.4);
+          seg(cx + hw + 6, top - 8, cx + hw + 6, top, crown, col(INK, 0.7), 1.4);
+          // parapet teeth
+          ctx.strokeStyle = col(INK, 0.5 * crown); ctx.lineWidth = 1;
+          for (let x = cx - hw; x < cx + hw; x += 12) {
+            ctx.beginPath(); ctx.moveTo(x, top - 8); ctx.lineTo(x, top - 14); ctx.stroke();
+          }
+        }
+
+        // antenna mast + beacon
+        const mast = smooth(0.9, 1, p);
+        seg(cx, top - 8, cx, top - 8 - fh * 1.4, mast, col(ACCENT, 0.9), 2);
+        // mast cross bars
+        if (mast > 0.4) {
+          ctx.strokeStyle = col(INK, 0.5 * mast); ctx.lineWidth = 1;
+          for (let k = 1; k <= 3; k++) {
+            const my = top - 8 - fh * 1.4 * (k / 4), mw = 6 * k;
+            ctx.beginPath(); ctx.moveTo(cx - mw, my); ctx.lineTo(cx + mw, my); ctx.stroke();
+          }
+        }
+
+        // entrance — canopy, double doors, steps at the podium
+        const ent = smooth(0.86, 1, p);
+        if (ent > 0) {
+          const ew = colGap * 1.5, ex = cx - ew / 2, eh = fh * 1.1;
+          ctx.strokeStyle = col(INK, 0.8); ctx.lineWidth = 1.4;
+          ctx.strokeRect(ex, ground - eh, ew * ent, eh);
+          seg(cx, ground - eh, cx, ground, ent, col(INK, 0.55), 1);
+          seg(ex - 12, ground - eh, ex + ew + 12, ground - eh, ent, col(ACCENT, 0.7), 1.6);   // canopy
+          // steps
+          ctx.strokeStyle = col(INK, 0.4 * ent); ctx.lineWidth = 1;
+          for (let s = 1; s <= 3; s++) {
+            const sy = ground + s * 3, sw = ew / 2 + s * 8;
+            ctx.beginPath(); ctx.moveTo(cx - sw, sy); ctx.lineTo(cx + sw, sy); ctx.stroke();
+          }
+        }
+      };
+
+      // ---- tower crane (line art) — assists, fades at completion ------------
+      const drawCrane = (t: number, p: number) => {
+        const rise = smooth(0.05, 0.6, p);
+        const fade = 1 - smooth(0.9, 1, p);        // gone once the tower is finished
+        if (fade <= 0.01 || rise <= 0.01) return;
+        const { bw, cx, top } = geo();
+        const mx = cx + bw * 0.5 + 60;
+        const mastTop = lerp(ground, top - 46, rise);
+        ctx.save(); ctx.globalAlpha = fade;
+        ctx.strokeStyle = col(INK, 0.5); ctx.lineWidth = 2; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(mx, ground); ctx.lineTo(mx, mastTop); ctx.stroke();
+        ctx.lineWidth = 0.8;
+        for (let y = mastTop; y < ground; y += 22) {
+          ctx.beginPath(); ctx.moveTo(mx - 4, y); ctx.lineTo(mx + 4, y + 11);
+          ctx.moveTo(mx + 4, y); ctx.lineTo(mx - 4, y + 11); ctx.stroke();
+        }
+        const ang = Math.sin(t * 0.5) * 0.12;
+        ctx.save(); ctx.translate(mx, mastTop); ctx.rotate(ang);
+        ctx.lineWidth = 2; ctx.strokeStyle = col(INK, 0.5);
+        ctx.beginPath(); ctx.moveTo(66, 0); ctx.lineTo(-150, 0); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(66, 0); ctx.lineTo(-70, 0); ctx.stroke();
+        const hx = -80 - 30 * (Math.sin(t * 0.5) * 0.5 + 0.5);
+        ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(hx, 0); ctx.lineTo(hx, 30 + 8 * Math.sin(t * 0.9)); ctx.stroke();
         ctx.restore();
-        // blinking tip light
         const blink = 0.5 + 0.5 * Math.sin(t * 3);
-        ctx.fillStyle = `rgba(230,60,60,${0.4 + blink * 0.6})`;
-        ctx.beginPath(); ctx.arc(mx, topY - 4, 2.6, 0, Math.PI * 2); ctx.fill();
-        ctx.restore();
-      };
-
-      const drawBuilding = (t: number, p: number) => {
-        const { bx, bw, fh } = geo();
-        const cp = smooth(0.08, 0.9, p);          // construction fraction
-        const gp = smooth(0.5, 0.92, p);          // glazing fraction
-        const lp = smooth(0.72, 1, p);            // lighting fraction
-        const colGap = bw / 3;
-
-        // foundation slab
-        if (p > 0.05) {
-          ctx.fillStyle = '#191d27';
-          ctx.fillRect(bx - 10, ground - 8, bw + 20, 10);
-        }
-
-        for (let i = 0; i < N_FLOORS; i++) {
-          const fp = clamp(cp * N_FLOORS - i);     // 0..1 this floor's build
-          if (fp <= 0) continue;
-          const floorBottom = ground - i * fh;
-          const colH = fp * fh;
-
-          // steel columns rising (crimson-tinted steel)
-          ctx.strokeStyle = mix([120, 60, 62], [200, 16, 46], 0.5);
-          ctx.lineWidth = 4; ctx.lineCap = 'round';
-          for (let c = 0; c <= 3; c++) {
-            const cx = bx + c * colGap;
-            ctx.beginPath(); ctx.moveTo(cx, floorBottom); ctx.lineTo(cx, floorBottom - colH); ctx.stroke();
-          }
-          // floor slab / beam once columns are up
-          if (fp >= 0.55) {
-            ctx.fillStyle = '#2a2f3a';
-            ctx.fillRect(bx - 4, floorBottom - fh - 4, bw + 8, 8);
-          }
-          // glass facade fills bottom-up during phase C
-          const gFloors = gp * N_FLOORS;
-          if (i < gFloors) {
-            const gAlpha = clamp(gFloors - i) * 0.9;
-            const gg = ctx.createLinearGradient(bx, floorBottom - fh, bx + bw, floorBottom);
-            gg.addColorStop(0, `rgba(150,180,205,${0.16 * gAlpha})`);
-            gg.addColorStop(0.5, `rgba(90,120,150,${0.30 * gAlpha})`);
-            gg.addColorStop(1, `rgba(150,180,205,${0.16 * gAlpha})`);
-            ctx.fillStyle = gg;
-            ctx.fillRect(bx, floorBottom - fh, bw, fh - 2);
-            // mullions
-            ctx.strokeStyle = `rgba(20,24,32,${0.5 * gAlpha})`; ctx.lineWidth = 1;
-            for (let c = 1; c < 3; c++) { const cx = bx + c * colGap; ctx.beginPath(); ctx.moveTo(cx, floorBottom - fh); ctx.lineTo(cx, floorBottom); ctx.stroke(); }
-          }
-          // warm windows light up late
-          if (lp > 0 && i < gFloors) {
-            for (let c = 0; c < 3; c++) {
-              const on = (Math.sin(i * 3.1 + c * 2.3) * 0.5 + 0.5);
-              if (on < 0.4) continue;
-              const wx = bx + c * colGap + 6, wy = floorBottom - fh + 8;
-              ctx.fillStyle = `rgba(255,200,120,${lp * (0.35 + 0.4 * on)})`;
-              ctx.fillRect(wx, wy, colGap - 12, fh - 16);
-            }
-          }
-        }
-
-        // scaffolding during mid construction
-        const scaf = smooth(0.15, 0.28, p) * (1 - smooth(0.62, 0.75, p));
-        if (scaf > 0.02) {
-          ctx.strokeStyle = `rgba(190,150,60,${0.5 * scaf})`; ctx.lineWidth = 1.4;
-          const topFloor = clamp(cp * N_FLOORS) ;
-          const sh = topFloor * fh;
-          [bx - 8, bx + bw + 8].forEach((sx) => {
-            ctx.beginPath(); ctx.moveTo(sx, ground); ctx.lineTo(sx, ground - sh); ctx.stroke();
-            for (let y = ground; y > ground - sh; y -= fh * 0.5) {
-              ctx.beginPath(); ctx.moveTo(sx, y); ctx.lineTo(bx + bw / 2, y); ctx.stroke();
-            }
-          });
-        }
-
-        // welding sparks near the active top floor (phase B)
-        const weldA = smooth(0.2, 0.32, p) * (1 - smooth(0.58, 0.7, p));
-        if (weldA > 0.05 && !reduce) {
-          const topFloor = clamp(cp * N_FLOORS);
-          const wy = ground - topFloor * fh;
-          const wx = bx + (0.2 + 0.6 * (Math.sin(t * 2.3) * 0.5 + 0.5)) * bw;
-          ctx.globalCompositeOperation = 'screen';
-          for (let s = 0; s < 6; s++) {
-            const a = Math.random() * Math.PI * 2, d = Math.random() * 14;
-            ctx.fillStyle = `rgba(255,${200 + Math.random() * 55},150,${weldA})`;
-            ctx.beginPath(); ctx.arc(wx + Math.cos(a) * d, wy + Math.sin(a) * d, 1 + Math.random(), 0, Math.PI * 2); ctx.fill();
-          }
-          ctx.globalCompositeOperation = 'source-over';
-        }
-      };
-
-      const drawLandscape = (p: number) => {
-        const a = smooth(0.82, 0.96, p);
-        if (a <= 0.01) return;
-        const { bx, bw } = geo();
-        ctx.save(); ctx.globalAlpha = a;
-        // pathway glow
-        const pg = ctx.createLinearGradient(0, ground, 0, ground + 40);
-        pg.addColorStop(0, 'rgba(255,190,120,0.25)'); pg.addColorStop(1, 'rgba(255,190,120,0)');
-        ctx.fillStyle = pg; ctx.fillRect(bx, ground, bw, 30);
-        // trees + lamp posts flanking
-        const spots = [bx - 40, bx - 18, bx + bw + 18, bx + bw + 40];
-        spots.forEach((sxx, i) => {
-          if (i % 2 === 0) { // tree
-            ctx.fillStyle = '#12261a'; ctx.beginPath(); ctx.arc(sxx, ground - 22, 14, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#0e1a12'; ctx.fillRect(sxx - 2, ground - 22, 4, 22);
-          } else { // lamp
-            ctx.strokeStyle = '#3a3f4a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sxx, ground); ctx.lineTo(sxx, ground - 30); ctx.stroke();
-            ctx.fillStyle = 'rgba(255,200,130,0.9)'; ctx.beginPath(); ctx.arc(sxx, ground - 32, 3.5, 0, Math.PI * 2); ctx.fill();
-          }
-        });
+        ctx.fillStyle = col(ACCENT, (0.4 + blink * 0.6) * fade);
+        ctx.beginPath(); ctx.arc(mx, mastTop - 3, 2.6, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
       };
 
       const frame = (t: number) => {
         const p = progress.current;
-        ctx.clearRect(0, 0, W, H);
-        drawSky(p);
-        drawSkyline();
-        drawGround();
-        drawExcavator(t, 1 - smooth(0.26, 0.4, p));
-        drawBuilding(t, p);
-        drawCrane(t, smooth(0.08, 0.9, p), 1 - smooth(0.88, 0.98, p));
-        drawLandscape(p);
+        ctx.clearRect(0, 0, W, H);          // transparent — particles show through
+        drawGround(p);
+        drawCrane(t, p);
+        drawFrame(p);
+        drawFloors(p);
+        drawFacade(p);
       };
 
       const loop = () => {
@@ -287,7 +295,7 @@ const ConstructionCanvas = forwardRef<ConstructionHandle, { className?: string }
       const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, { threshold: 0 });
       io.observe(canvas);
 
-      if (reduce) { frame(2); } else { raf = requestAnimationFrame(loop); }
+      if (reduce) { progress.current = 1; frame(2); } else { raf = requestAnimationFrame(loop); }
 
       return () => {
         cancelAnimationFrame(raf);

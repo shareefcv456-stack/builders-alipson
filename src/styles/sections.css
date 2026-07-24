@@ -556,16 +556,19 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 /* ==========================================================================
    STORY SCROLL — GSAP horizontal cinematic hero (gate → scenes → landmark)
    ========================================================================== */
-.story { position: relative; height: 400vh; background: var(--ink-900); --accent-soft: #f16a63; }
+/* Exactly 3 scroll increments (3 screen-heights) to complete the build. */
+.story { position: relative; height: 300vh; background: #08040c; --accent-soft: #f16a63; }
 .story--static { height: 100svh; }
-.story__stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+.story__stage { position: sticky; top: 0; height: 100svh; overflow: hidden; isolation: isolate; }
 
-/* Scroll-driven construction canvas */
-.story__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; will-change: transform; transform: translateZ(0); }
-.story__grade { position: absolute; inset: 0; pointer-events: none;
+/* Deep-purple particle network — the backdrop, strictly below everything */
+.story__particles { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; display: block; pointer-events: none; will-change: transform; transform: translateZ(0); }
+/* Scroll-driven line-art construction — transparent, sits above the particles */
+.story__canvas { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; display: block; will-change: transform; transform: translateZ(0); }
+.story__grade { position: absolute; inset: 0; z-index: 2; pointer-events: none;
   background:
-    radial-gradient(120% 80% at 50% 30%, transparent 55%, rgba(8,10,16,0.55) 100%),
-    linear-gradient(180deg, rgba(8,10,16,0.35) 0%, transparent 26%, transparent 62%, rgba(8,10,16,0.72) 100%); }
+    radial-gradient(120% 80% at 50% 30%, transparent 58%, rgba(8,4,12,0.5) 100%),
+    linear-gradient(180deg, rgba(8,4,12,0.32) 0%, transparent 24%, transparent 66%, rgba(8,4,12,0.62) 100%); }
 
 /* Live phase marker (top-left) */
 .story__phase { position: absolute; z-index: 3; top: clamp(6.5rem, 15vh, 9rem); left: var(--pad-x); display: flex; flex-direction: column; gap: 0.4rem; }
@@ -587,7 +590,7 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 /* Phase 1 — 3D architectural gate */
 .story__gate { position: absolute; inset: 0; z-index: 6; }
 .story__gate-l, .story__gate-r { position: absolute; top: 0; height: 100%; width: 50%; will-change: transform;
-  background: linear-gradient(100deg, #0c1220 0%, #1b2335 60%, #0c1220 100%); }
+  background: linear-gradient(100deg, #150a1a 0%, #2b1633 60%, #150a1a 100%); }
 .story__gate-l { left: 0; box-shadow: inset -55px 0 100px -55px #000; }
 .story__gate-r { right: 0; box-shadow: inset 55px 0 100px -55px #000; }
 /* Elegant seam — a soft crimson light-line that fades top & bottom (so it never
@@ -633,18 +636,22 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 /* ==========================================================================
    CINEMATIC INTRO — silent villa reveal → dialogue → brand
    ========================================================================== */
-.intro { position: fixed; inset: 0; z-index: 10000; background: #0a0a0a; overflow: hidden; }
-.intro__glow { position: absolute; inset: 0; pointer-events: none;
+.intro { position: fixed; inset: 0; z-index: 10000; background: #08040c; overflow: hidden; }
+.intro__particles { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+.intro__glow { position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background:
     radial-gradient(58% 48% at 50% 44%, rgba(var(--accent-rgb), 0.09), transparent 62%),
     radial-gradient(42% 40% at 50% 56%, rgba(248,248,246,0.05), transparent 72%); }
-.intro__rays { position: absolute; inset: 0; pointer-events: none; opacity: 0.35; mix-blend-mode: screen;
+.intro__rays { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0.35; mix-blend-mode: screen;
   background: conic-gradient(from 205deg at 50% -12%, transparent 0deg, rgba(248,248,246,0.06) 14deg, transparent 30deg, rgba(var(--accent-rgb),0.05) 44deg, transparent 60deg); }
 
-.intro__villaWrap { position: absolute; inset: 0; display: grid; place-items: center; z-index: 1; }
+.intro__villaWrap { position: absolute; inset: 0; display: grid; place-items: center; z-index: 2; }
 .intro__villa { width: min(82vw, 900px); height: auto; }
 
 .intro__stage { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; padding: var(--pad-x); text-align: center; pointer-events: none; }
+/* Dialogue variant — copy pinned to the TOP of the viewport, above the
+   centered villa line-art, so "We don't build buildings." reads clearly. */
+.intro__stage--top { align-content: start; padding-top: clamp(3.5rem, 12vh, 8.5rem); }
 .intro__line { font-family: var(--font-display); font-weight: 300; font-size: clamp(1.5rem, 4.4vw, 3.2rem);
   letter-spacing: -0.02em; line-height: 1.2; color: var(--bone-100); max-width: 20ch; text-wrap: balance; }
 
