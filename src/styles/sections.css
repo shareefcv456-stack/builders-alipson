@@ -68,7 +68,7 @@
 /* ==========================================================================
    HERO
    ========================================================================== */
-.hero { position: relative; height: 100svh; min-height: 640px; overflow: hidden; display: flex; align-items: flex-end; background: var(--ink-900); --accent-soft: #f16a63; }
+.hero { position: relative; height: 100svh; min-height: 640px; overflow: hidden; display: flex; align-items: center; background: var(--ink-900); --accent-soft: #f16a63; }
 .hero__media { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
 
 /* ---- Cinematic image montage (cross-dissolving construction chapters) ---- */
@@ -79,8 +79,14 @@
   opacity: 0; transform: scale(1.12);
   transition: opacity 1.6s var(--ease-lux), transform 1.6s var(--ease-lux);
   will-change: opacity, transform;
+  /* Prevent layout shift when image loads */
+  contain: layout;
+  background-attachment: local;
 }
-.hero__frame.is-active { opacity: 1; animation: kenBurns 7s linear forwards; }
+.hero__frame.is-active { 
+  opacity: 1; 
+  animation: kenBurns 7s linear forwards; 
+}
 .hero__frame--alt.is-active { animation-name: kenBurnsAlt; }
 @keyframes kenBurns {
   from { transform: scale(1.05) translate(0, 0); }
@@ -107,9 +113,31 @@
   background: radial-gradient(circle, rgba(var(--accent-rgb), 0.22), rgba(var(--accent-rgb), 0.06) 44%, transparent 70%);
   filter: blur(34px); mix-blend-mode: screen; }
 
-.hero__inner { position: relative; z-index: 3; width: 100%; max-width: var(--container); margin: 0 auto; padding: 0 var(--pad-x) clamp(3.5rem, 10vh, 7rem); }
+.hero__inner { 
+  position: relative; 
+  z-index: 3; 
+  width: 100%; 
+  max-width: var(--container); 
+  margin: 0 auto; 
+  padding: 0 var(--pad-x); 
+  transform: translateY(-50px);
+}
 .hero__eyebrow { margin-bottom: 1.6rem; color: var(--accent-soft); }
-.hero__title { font-family: var(--font-grotesk); font-weight: 800; text-transform: uppercase; font-size: clamp(2.05rem, 6.8vw, 5.8rem); line-height: 0.98; letter-spacing: -0.01em; color: var(--bone-100); text-shadow: 0 2px 44px rgba(0,0,0,0.45); }
+.hero__title { 
+  font-family: var(--font-grotesk); 
+  font-weight: 800; 
+  text-transform: uppercase; 
+  font-size: clamp(2.05rem, 6.8vw, 5.8rem); 
+  line-height: 0.98; 
+  letter-spacing: -0.01em; 
+  color: var(--bone-100); 
+  /* Optimize text rendering for mobile */
+  text-shadow: 0 1px 24px rgba(0,0,0,0.35);
+  /* Prevent paint thrashing during animations */
+  will-change: contents;
+  /* Ensure FOUT doesn't cause layout shift */
+  contain: layout style paint;
+}
 .hero__title em { font-style: normal; color: var(--accent-soft); }
 .split-line { display: block; overflow: hidden; padding-bottom: 0.05em; }
 .hero__title .hl { display: block; will-change: transform; }
@@ -131,10 +159,10 @@
   0%, 100% { box-shadow: 0 0 16px -3px rgba(var(--accent-rgb), 0.7); }
   50%      { box-shadow: 0 0 26px 0 rgba(var(--accent-rgb), 0.95); }
 }
-.hero__sub { margin-top: 1.9rem; display: flex; flex-wrap: wrap; gap: 0.45rem 1.15rem; color: rgba(248,248,246,0.9); font-family: var(--font-grotesk); font-size: clamp(0.92rem, 1.25vw, 1.12rem); letter-spacing: 0.01em; }
+.hero__sub { margin-top: 1.2rem; display: flex; flex-wrap: wrap; gap: 0.45rem 1.15rem; color: rgba(248,248,246,0.9); font-family: var(--font-grotesk); font-size: clamp(0.92rem, 1.25vw, 1.12rem); letter-spacing: 0.01em; }
 .hero__sub span { position: relative; }
 .hero__sub span:not(:last-child)::after { content: '·'; position: absolute; right: -0.72rem; color: var(--accent-soft); }
-.hero__cta { margin-top: 2.5rem; display: flex; flex-wrap: wrap; gap: 1rem; }
+.hero__cta { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; }
 .hero__trust { margin-top: 2rem; display: inline-flex; align-items: center; gap: 0.6rem; color: rgba(248,248,246,0.62); font-family: var(--font-grotesk); font-size: 0.8rem; letter-spacing: 0.04em; }
 .hero__trust svg { color: var(--accent-soft); }
 
@@ -556,19 +584,16 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 /* ==========================================================================
    STORY SCROLL — GSAP horizontal cinematic hero (gate → scenes → landmark)
    ========================================================================== */
-/* Exactly 3 scroll increments (3 screen-heights) to complete the build. */
-.story { position: relative; height: 300vh; background: #08040c; --accent-soft: #f16a63; }
+.story { position: relative; height: 400vh; background: var(--ink-900); --accent-soft: #f16a63; }
 .story--static { height: 100svh; }
-.story__stage { position: sticky; top: 0; height: 100svh; overflow: hidden; isolation: isolate; }
+.story__stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
 
-/* Deep-purple particle network — the backdrop, strictly below everything */
-.story__particles { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; display: block; pointer-events: none; will-change: transform; transform: translateZ(0); }
-/* Scroll-driven line-art construction — transparent, sits above the particles */
-.story__canvas { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; display: block; will-change: transform; transform: translateZ(0); }
-.story__grade { position: absolute; inset: 0; z-index: 2; pointer-events: none;
+/* Scroll-driven construction canvas */
+.story__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; will-change: transform; transform: translateZ(0); }
+.story__grade { position: absolute; inset: 0; pointer-events: none;
   background:
-    radial-gradient(120% 80% at 50% 30%, transparent 58%, rgba(8,4,12,0.5) 100%),
-    linear-gradient(180deg, rgba(8,4,12,0.32) 0%, transparent 24%, transparent 66%, rgba(8,4,12,0.62) 100%); }
+    radial-gradient(120% 80% at 50% 30%, transparent 55%, rgba(8,10,16,0.55) 100%),
+    linear-gradient(180deg, rgba(8,10,16,0.35) 0%, transparent 26%, transparent 62%, rgba(8,10,16,0.72) 100%); }
 
 /* Live phase marker (top-left) */
 .story__phase { position: absolute; z-index: 3; top: clamp(6.5rem, 15vh, 9rem); left: var(--pad-x); display: flex; flex-direction: column; gap: 0.4rem; }
@@ -590,7 +615,7 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 /* Phase 1 — 3D architectural gate */
 .story__gate { position: absolute; inset: 0; z-index: 6; }
 .story__gate-l, .story__gate-r { position: absolute; top: 0; height: 100%; width: 50%; will-change: transform;
-  background: linear-gradient(100deg, #150a1a 0%, #2b1633 60%, #150a1a 100%); }
+  background: linear-gradient(100deg, #0c1220 0%, #1b2335 60%, #0c1220 100%); }
 .story__gate-l { left: 0; box-shadow: inset -55px 0 100px -55px #000; }
 .story__gate-r { right: 0; box-shadow: inset 55px 0 100px -55px #000; }
 /* Elegant seam — a soft crimson light-line that fades top & bottom (so it never
@@ -636,24 +661,45 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 /* ==========================================================================
    CINEMATIC INTRO — silent villa reveal → dialogue → brand
    ========================================================================== */
-.intro { position: fixed; inset: 0; z-index: 10000; background: #08040c; overflow: hidden; }
-.intro__particles { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
-.intro__glow { position: absolute; inset: 0; z-index: 1; pointer-events: none;
+.intro { position: fixed; inset: 0; z-index: 10000; background: #0a0a0a; overflow: hidden; }
+.intro__glow { position: absolute; inset: 0; pointer-events: none;
   background:
     radial-gradient(58% 48% at 50% 44%, rgba(var(--accent-rgb), 0.09), transparent 62%),
     radial-gradient(42% 40% at 50% 56%, rgba(248,248,246,0.05), transparent 72%); }
-.intro__rays { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0.35; mix-blend-mode: screen;
+.intro__rays { position: absolute; inset: 0; pointer-events: none; opacity: 0.35; mix-blend-mode: screen;
   background: conic-gradient(from 205deg at 50% -12%, transparent 0deg, rgba(248,248,246,0.06) 14deg, transparent 30deg, rgba(var(--accent-rgb),0.05) 44deg, transparent 60deg); }
 
-.intro__villaWrap { position: absolute; inset: 0; display: grid; place-items: center; z-index: 2; }
+.intro__villaWrap { position: absolute; inset: 0; display: grid; place-items: center; z-index: 1; }
 .intro__villa { width: min(82vw, 900px); height: auto; }
 
-.intro__stage { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; padding: var(--pad-x); text-align: center; pointer-events: none; }
-/* Dialogue variant — copy pinned to the TOP of the viewport, above the
-   centered villa line-art, so "We don't build buildings." reads clearly. */
-.intro__stage--top { align-content: start; padding-top: clamp(3.5rem, 12vh, 8.5rem); }
-.intro__line { font-family: var(--font-display); font-weight: 300; font-size: clamp(1.5rem, 4.4vw, 3.2rem);
-  letter-spacing: -0.02em; line-height: 1.2; color: var(--bone-100); max-width: 20ch; text-wrap: balance; }
+/* Copy layer sits strictly ABOVE the villa line-art (z-index 1) so dialogue
+   always reads in front of the sketch + tree. */
+.intro__stage { 
+  position: absolute; 
+  inset: 0; 
+  z-index: 4; 
+  display: grid; 
+  place-items: center; 
+  padding: var(--pad-x); 
+  text-align: center; 
+  pointer-events: none; 
+  transform: translateY(-100px);
+}
+@media (max-width: 768px) {
+  .intro__stage {
+    transform: translateY(-80px);
+  }
+}
+.intro__line { position: relative; z-index: 1;
+  font-family: var(--font-display); font-weight: 300; font-size: clamp(1.5rem, 4.4vw, 3.2rem);
+  letter-spacing: -0.02em; line-height: 1.2; color: var(--bone-100); max-width: 20ch; text-wrap: balance;
+  /* crisp on top of the sketch lines — white text stays untouched */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.75), 0 6px 34px rgba(0,0,0,0.9); }
+/* Soft, localized dark halo behind the words only — lifts the copy off the
+   line-art for perfect legibility while leaving the rest of the drawing intact. */
+.intro__line::before { content: ''; position: absolute; inset: -22% -10%; z-index: -1; pointer-events: none;
+  background: radial-gradient(58% 120% at 50% 50%, rgba(8,8,10,0.86) 0%, rgba(8,8,10,0.5) 52%, rgba(8,8,10,0) 78%);
+  filter: blur(6px); }
 
 .intro__brand { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
 .intro__wordmark { font-family: var(--font-display); font-weight: 600; letter-spacing: 0.24em;

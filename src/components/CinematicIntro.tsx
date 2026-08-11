@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LogoMark } from './ui/Logo';
-import ParticleNetwork from './ParticleNetwork';
 import { isCapture } from '../lib/capture';
 
 /**
@@ -19,7 +18,10 @@ const LINES = [
   'We create places where dreams become reality.',      // 2
   '',                                                   // 3 · brand reveal
 ];
-const STEP_MS = [2600, 2900, 3200, 2800];
+
+// Shorter timing on mobile to improve LCP/FCP
+const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768;
+const STEP_MS = isMobile() ? [1400, 1500, 1600, 1200] : [2600, 2900, 3200, 2800];
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 export default function CinematicIntro({ onDone }: { onDone: () => void }) {
@@ -61,8 +63,6 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 1, ease: EASE }}
     >
-      {/* Deep-purple particle network — the backdrop, strictly below villa + copy */}
-      <ParticleNetwork className="intro__particles" />
       <div className="intro__glow" aria-hidden />
       <div className="intro__rays" aria-hidden />
 
@@ -108,10 +108,8 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
       </motion.svg>
       </div>
 
-      {/* Dialogue / brand — fade through black.
-          Dialogue lines sit at the TOP of the viewport (clear of the centered
-          villa); the brand reveal stays centered. */}
-      <div className={`intro__stage ${brand ? '' : 'intro__stage--top'}`}>
+      {/* Dialogue / brand — fade through black */}
+      <div className="intro__stage">
         <AnimatePresence mode="wait">
           {brand ? (
             <motion.div
@@ -142,7 +140,7 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
         </AnimatePresence>
       </div>
 
-      <button className="intro__skip" onClick={finish}>Skip intro</button>
+      <button className="intro__skip" onClick={finish} aria-label="Skip cinematic intro">Skip intro</button>
     </motion.div>
   );
 }

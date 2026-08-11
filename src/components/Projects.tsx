@@ -25,7 +25,7 @@ function Card({ project }: { project: Project }) {
       data-cursor="View"
     >
       <div className="proj__img relative">
-        <img src={media(project.image)} alt={project.title} loading="lazy" className="w-full h-auto object-cover" />
+        <img src={media(project.image)} alt={`${project.title} - ${project.category} in ${project.location}`} loading="lazy" className="w-full h-auto object-cover" />
         <div className="proj__scrim absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
       </div>
       <span className="proj__tag absolute top-4 left-4 bg-black/75 backdrop-blur-md text-white font-semibold text-xs px-3 py-1 rounded-full border border-white/20">{project.category}</span>

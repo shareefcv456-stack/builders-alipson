@@ -3,7 +3,7 @@
    Dark + warm-white theme · glassmorphism · architectural typography
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@200;300;400;500;600;700;800&display=swap');
+/* Google Fonts now preloaded in index.html for performance */
 
 /* --------------------------------------------------------------------------
    1. DESIGN TOKENS
@@ -117,6 +117,9 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   transition: color 0.5s ease-in-out;
+  /* Optimize painting performance */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ---- FPV drone fly-through: fixed full-viewport video behind all content ---- */
@@ -328,12 +331,51 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 .modal-x:hover { color: var(--text); border-color: var(--accent); transform: rotate(90deg); }
 .success-note { display: flex; gap: 0.8rem; align-items: center; padding: 1.2rem; border-radius: 14px; background: rgba(var(--accent-rgb), 0.1); border: 1px solid rgba(var(--accent-rgb), 0.3); color: var(--accent-soft); }
 
-/* --------------------------------------------------------------------------
-   12. REDUCED MOTION
-   -------------------------------------------------------------------------- */
+/* ---- MOBILE OPTIMIZATION ------------------------------------------------- */
+@media (max-width: 768px) {
+  /* Skip expensive text-shadows on mobile to reduce paint time */
+  .hero__title {
+    text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+    font-size: clamp(1.75rem, 5vw, 3rem);
+  }
+  
+  /* Reduce animation complexity on mobile */
+  .hero__frame {
+    transition: opacity 1s ease-out, transform 1s ease-out;
+  }
+  
+  /* Disable expensive decorative elements on mobile */
+  .hero__glow {
+    display: none;
+  }
+  
+  /* Optimize vignette for mobile */
+  .hero__vignette {
+    opacity: 0.7;
+  }
+  
+  /* Reduce button complexity */
+  .btn-watch {
+    height: 48px;
+    font-size: 0.85rem;
+  }
+  
+  .btn-watch__play {
+    width: 34px;
+    height: 34px;
+    animation: watchGlow 1.8s ease-in-out infinite;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
-  .marquee__track { animation: none; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Custom UI Fix Utilities */

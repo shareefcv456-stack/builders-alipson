@@ -22,6 +22,15 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Preload critical hero image (LCP) with high priority -->
+    <link rel="preload" as="image" href="/images/hero_background.png" fetchpriority="high" imagesrcset="/images/hero_background.png 1920w" />
+    
+    <!-- Preload critical Google Fonts (subset: only weights actually used) -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Inter:wght@400;500;600;800&display=swap" />
+    
+    <!-- Load Google Fonts stylesheet (subset + optimized with display=swap for FOUT handling) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Inter:wght@400;500;600;800&display=swap" />
 
     <script type="application/ld+json">
     {

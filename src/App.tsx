@@ -26,9 +26,16 @@ import Contact from './components/Contact';
 import Footer from './components/Footer';
 import { QuoteModal, BrochureModal, VideoModal } from './components/Modals';
 
+// Check if mobile (viewport < 768px)
+const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768;
+
 export default function App() {
+  // On mobile, skip intro by default for faster hero render (can still watch via button)
   const [loaded, setLoaded] = useState(
-    () => typeof window !== 'undefined' && window.location.search.includes('noloader')
+    () => typeof window !== 'undefined' && (
+      window.location.search.includes('noloader') || 
+      isMobile()
+    )
   );
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [brochureOpen, setBrochureOpen] = useState(false);

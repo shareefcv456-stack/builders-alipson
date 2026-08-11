@@ -83,7 +83,12 @@ export default function Hero() {
             <div
               key={i}
               className={`hero__frame ${i === active ? 'is-active' : ''} ${i % 2 ? 'hero__frame--alt' : ''}`}
-              style={{ backgroundImage: `url(${media(s.image)})` }}
+              style={{ 
+                backgroundImage: `url(${media(s.image)})`,
+                /* Explicit aspect ratio to prevent CLS when image loads */
+                aspectRatio: '16 / 9',
+              }}
+              data-priority={i === 0 ? 'high' : 'low'}
             />
           ))}
         </div>
@@ -98,7 +103,7 @@ export default function Hero() {
             muted
             loop
             playsInline
-            preload="metadata"
+            preload="none"
             poster={media('team')}
             onCanPlay={() => setVideoReady(true)}
             onError={() => setVideoReady(false)}

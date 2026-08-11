@@ -16,7 +16,7 @@ export default function DroneBackground() {
     video.pause();
 
     const onMeta = () => {
-      const duration = video.duration || 1; // Fallback to 1s to prevent errors if duration is 0
+      const duration = video.duration || 1;
       
       // Clear previous triggers if re-running
       ScrollTrigger.getAll().forEach((t) => t.kill());
@@ -29,7 +29,7 @@ export default function DroneBackground() {
           trigger: document.documentElement,
           start: 'top top',
           end: 'bottom bottom',
-          scrub: 1, // Smooth scrubbing (1 second lag)
+          scrub: 1,
         }
       });
     };
@@ -49,7 +49,7 @@ export default function DroneBackground() {
 
   return (
     <div className="fixed inset-0 z-[-1] w-full h-full pointer-events-none bg-[#0D1117]" aria-hidden>
-      {/* 1. Background Video Setup */}
+      {/* Background Video — deferred loading to not block hero */}
       <video
         ref={videoRef}
         className="absolute inset-0 w-full h-full object-cover z-0"
@@ -58,8 +58,9 @@ export default function DroneBackground() {
         loop
         muted
         playsInline
+        preload="none"
       />
-      {/* 2. Deep charcoal overlay so structures + crimson accents stay crisp */}
+      {/* Deep charcoal overlay */}
       <div className="absolute inset-0 z-0 bg-black/70 backdrop-blur-sm" />
     </div>
   );
