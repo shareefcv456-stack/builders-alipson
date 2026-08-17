@@ -51,13 +51,12 @@ export default function Projects() {
 
   return (
     <section id="work" className="section bg-alt grain">
-      <div className="absolute inset-0 bg-[#0D1117] z-0" aria-hidden />
       <AmbientCanvas variant="cranes" className="z-10" />
       <div className="container relative z-20">
         <div className="projects__head">
           <div>
-            <Reveal><span className="eyebrow !text-[#C8102E]">Selected Work</span></Reveal>
-            <RevealText className="title text-white" lines={[<>Landmark</>, <><em className="!text-[#C8102E]">masterpieces.</em></>]} />
+            <Reveal><span className="eyebrow !text-[#D32F2F]">Selected Work</span></Reveal>
+            <RevealText className="title" lines={[<>Landmark</>, <><em className="!text-[#D32F2F]">masterpieces.</em></>]} />
           </div>
           <Reveal dir="left" delay={0.1}>
             <div className="filters">
@@ -85,7 +84,12 @@ export default function Projects() {
         <Reveal dir="up" delay={0.1}>
           <div style={{ marginTop: '2rem' }}>
             <div className="eyebrow" style={{ marginBottom: '1.2rem' }}>Transformation · Drag to compare</div>
-            <BeforeAfter before="heroPoster" after="villa" beforeAlt="Site at foundation stage" afterAlt="Completed villa" />
+            <BeforeAfter
+              before="stageStructure"
+              after="stageDelivered"
+              beforeAlt="Site under active construction — framing and scaffolding"
+              afterAlt="The same project, fully delivered"
+            />
           </div>
         </Reveal>
       </div>

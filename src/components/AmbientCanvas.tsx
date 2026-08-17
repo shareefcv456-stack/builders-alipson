@@ -32,11 +32,11 @@ export default function AmbientCanvas({ variant, className }: { variant: Variant
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    // These backgrounds render over a deep charcoal (#0D1117) section overlay,
-    // so structural line-work is always drawn in light ink to stay visible;
-    // crimson accents (#C8102E) carry the brand highlight.
-    const ink = (a: number) => `rgba(226,232,240,${a})`;
-    const crimson = (a: number) => `rgba(200, 16, 46,${a})`;
+    // These render behind WHITE sections, so the line-work is charcoal ink —
+    // it reads as a faint architectural watermark. (It was light ink back when
+    // the sections carried a #0D1117 overlay; that overlay is gone.)
+    const ink = (a: number) => `rgba(26,29,32,${a})`;
+    const crimson = (a: number) => `rgba(211, 47, 47,${a})`;
     // Cinematic slow-down: ease the global clock so motion stays subtle & calm
     // (keeps every drawing routine untouched — only the tempo changes).
     const SPEED = 0.6;

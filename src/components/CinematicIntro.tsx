@@ -4,44 +4,63 @@ import { LogoMark } from './ui/Logo';
 import { isCapture } from '../lib/capture';
 
 /**
- * Cinematic opening — begins in near-silence: a luxury villa outline draws
- * itself under soft volumetric light, then a movie-style line of dialogue fades
- * through black, resolving on the brand. Skippable, plays on every load/refresh
- * (no persistence), and collapses to an instant reveal for reduced-motion / capture.
+ * Cinematic opening — four photographic frames, each with its own camera move,
+ * a light sweep and word-by-word copy, resolving on the brand.
  *
- *   silence (villa forms) → "We don't build buildings."
- *   → "We create places where dreams become reality." → ALIPSON BUILDERS → hero
+ *   1 · cranes & skyline    "Building Ideas Into Reality"
+ *   2 · wireframe engineer  "Precision Engineering & Modern Design"
+ *   3 · handshake skyline   "Partnerships That Outlast The Build"
+ *   4 · red paper-cut       ALIPSON BUILDERS · "We Build Trust"  → homepage
+ *
+ * Skippable, plays on every load/refresh (no persistence), collapses to an
+ * instant reveal for reduced-motion / capture.
+ *
+ * `zoom` picks the Ken Burns move so no two consecutive frames drift the same
+ * way — that alternation is what reads as a camera rather than a slideshow.
+ *
+ * `keyed` frames are the `-keyed.png` cutouts built by
+ * scripts/key-intro-frames.py: the paper ground is already transparent in the
+ * file, so the subject sits on the dark stage with nothing to blend away. The
+ * red paper-cut is full colour, so it keeps its own treatment instead.
  */
-const LINES = [
-  '',                                                   // 0 · silence, villa forming
-  "We don't build buildings.",                          // 1
-  'We create places where dreams become reality.',      // 2
-  '',                                                   // 3 · brand reveal
+const SLIDES = [
+  { img: '/images/intro/intro-1-keyed.png', eyebrow: 'Foundations & Vision', title: 'Building Ideas Into Reality', zoom: { from: 1.16, to: 1, x: [-22, 12] }, keyed: true },
+  { img: '/images/intro/intro-2-keyed.png', eyebrow: 'Engineering Precision', title: 'Precision Engineering & Modern Design', zoom: { from: 1.04, to: 1.18, x: [18, -14] }, keyed: true },
+  { img: '/images/intro/intro-3-keyed.png', eyebrow: 'The Legacy', title: 'Partnerships That Outlast The Build', zoom: { from: 1.2, to: 1.02, x: [16, -10] }, keyed: true },
+  { img: '/images/intro/intro-4.jpg', eyebrow: '', title: '', zoom: { from: 1.12, to: 1, x: [14, -10] }, keyed: false }, // brand reveal
 ];
 
 // Shorter timing on mobile to improve LCP/FCP
 const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768;
-const STEP_MS = isMobile() ? [1400, 1500, 1600, 1200] : [2600, 2900, 3200, 2800];
+const STEP_MS = isMobile() ? [1300, 1300, 1300, 2100] : [2100, 2100, 2100, 3400];
 const EASE = [0.16, 1, 0.3, 1] as const;
+
+/** `?introstep=2` freezes the intro on one frame — for screenshots/QA. */
+const pinnedStep = () => {
+  if (typeof window === 'undefined') return null;
+  const v = new URLSearchParams(window.location.search).get('introstep');
+  return v === null ? null : Math.min(Math.max(+v, 0), SLIDES.length - 1);
+};
 
 export default function CinematicIntro({ onDone }: { onDone: () => void }) {
   const reduce = useReducedMotion();
-  // Always play the intro on every load/refresh — no sessionStorage/localStorage
-  // persistence. Only skip for capture (screenshots) or reduced-motion users.
   const skip = isCapture() || !!reduce;
-  const [step, setStep] = useState(0);
+  const pinned = pinnedStep();
+  const [step, setStep] = useState(pinned ?? 0);
 
-  const finish = useCallback(() => {
-    onDone();
-  }, [onDone]);
+  const finish = useCallback(() => { onDone(); }, [onDone]);
 
   useEffect(() => {
     if (skip) { finish(); return; }
+    if (pinned !== null) return;
+    // Preload the later frames so every transition is seamless.
+    SLIDES.slice(1).forEach((s) => { const i = new Image(); i.src = s.img; });
+
     const timers: number[] = [];
     let i = 0;
     const advance = () => {
       i += 1;
-      if (i >= LINES.length) { finish(); return; }
+      if (i >= SLIDES.length) { finish(); return; }
       setStep(i);
       timers.push(window.setTimeout(advance, STEP_MS[i]));
     };
@@ -50,94 +69,122 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
     const onKey = (e: KeyboardEvent) => { if (['Escape', 'Enter', ' '].includes(e.key)) finish(); };
     window.addEventListener('keydown', onKey);
     return () => { timers.forEach(clearTimeout); window.removeEventListener('keydown', onKey); };
-  }, [skip, finish]);
+  }, [skip, finish, pinned]);
 
   if (skip) return null;
 
-  const brand = step === LINES.length - 1;
+  const slide = SLIDES[step];
+  const brand = step === SLIDES.length - 1;
+  const hold = STEP_MS[step] / 1000;
+  const { from, to, x } = slide.zoom;
 
   return (
     <motion.div
       className="intro"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 1, ease: EASE }}
+      transition={{ duration: 0.9, ease: EASE }}
     >
-      <div className="intro__glow" aria-hidden />
-      <div className="intro__rays" aria-hidden />
-
-      {/* Villa outline — draws itself, then a slow camera push-in */}
-      <div className="intro__villaWrap" aria-hidden>
-      <motion.svg
-        className="intro__villa"
-        viewBox="0 0 1000 460"
-        preserveAspectRatio="xMidYMid meet"
-        initial={{ scale: 1.08, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 9, ease: 'linear' }}
-      >
-        {[
-          'M60 360 L940 360',                                                   // ground
-          'M170 360 L170 232 L520 232 L520 360',                                 // main volume
-          'M520 300 L820 300 L820 360',                                          // lower wing
-          'M170 232 L170 200 L430 200 L520 232',                                 // upper cantilever
-          'M250 360 L250 232 M330 360 L330 232 M410 360 L410 232 M600 360 L600 300 M690 360 L690 300 M770 360 L770 300', // mullions
-          'M120 360 L120 300 M120 300 Q150 250 120 300',                         // slim tree trunk
-        ].map((d, i) => (
-          <motion.path
-            key={i}
-            d={d}
-            fill="none"
-            stroke="rgba(248,248,246,0.55)"
-            strokeWidth={1.4}
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 0.7 }}
-            transition={{ duration: 2.4, ease: 'easeInOut', delay: 0.2 + i * 0.28 }}
-          />
-        ))}
-        <motion.circle
-          cx="120" cy="300" r="26" fill="none" stroke="rgba(248,248,246,0.4)" strokeWidth={1.2}
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.6, delay: 1.8, ease: 'easeInOut' }}
+      {/* Backdrop — crossfades while the camera keeps moving through the cut */}
+      <AnimatePresence>
+        <motion.div
+          key={step}
+          className={`intro__bg${slide.keyed ? ' intro__bg--keyed' : ' intro__bg--film'}`}
+          style={{ backgroundImage: `url(${slide.img})` }}
+          initial={{ opacity: 0, scale: from, x: x[0] }}
+          animate={{ opacity: 1, scale: to, x: x[1] }}
+          exit={{ opacity: 0 }}
+          transition={{
+            opacity: { duration: 1.1, ease: EASE },
+            scale: { duration: hold + 1.4, ease: 'linear' },
+            x: { duration: hold + 1.4, ease: 'linear' },
+          }}
+          aria-hidden
         />
-        {/* crimson horizon accent */}
-        <motion.path
-          d="M60 360 L940 360" fill="none" stroke="var(--accent)" strokeWidth={1.6}
-          initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.9 }}
-          transition={{ duration: 2.6, delay: 0.4, ease: 'easeInOut' }}
-        />
-      </motion.svg>
-      </div>
+      </AnimatePresence>
+      <div className={`intro__scrim${brand ? ' intro__scrim--film' : ''}`} aria-hidden />
+      <div className="intro__grain" aria-hidden />
 
-      {/* Dialogue / brand — fade through black */}
+      {/* One light sweep per frame */}
+      <motion.div
+        key={`sweep-${step}`}
+        className="intro__sweep"
+        initial={{ x: '-120%' }}
+        animate={{ x: '120%' }}
+        transition={{ duration: 2.2, delay: 0.5, ease: EASE }}
+        aria-hidden
+      />
+
+      {/* Letterbox bars hold across the whole intro */}
+      <motion.div className="intro__bar intro__bar--t" aria-hidden
+        initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ duration: 0.9, ease: EASE }} />
+      <motion.div className="intro__bar intro__bar--b" aria-hidden
+        initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ duration: 0.9, ease: EASE }} />
+
+      {/* Copy layer */}
       <div className="intro__stage">
         <AnimatePresence mode="wait">
           {brand ? (
             <motion.div
               key="brand"
               className="intro__brand"
-              initial={{ opacity: 0, y: 14 }}
+              initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1, ease: EASE }}
             >
-              <LogoMark size={54} />
+              <motion.div
+                initial={{ scale: 0.7, opacity: 0, rotate: -8 }}
+                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                transition={{ duration: 1.1, ease: EASE }}
+              >
+                <LogoMark size={58} />
+              </motion.div>
               <h1 className="intro__wordmark">ALIPSON BUILDERS</h1>
-              <span className="intro__rule" />
-              <p className="intro__tagline">Dream It. Build It. Own It.</p>
+              <motion.span
+                className="intro__rule"
+                initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
+                transition={{ duration: 0.9, delay: 0.5, ease: EASE }}
+              />
+              <motion.p
+                className="intro__tagline"
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.7, ease: EASE }}
+              >
+                We Build Trust
+              </motion.p>
             </motion.div>
-          ) : LINES[step] ? (
-            <motion.p
-              key={step}
-              className="intro__line"
-              initial={{ opacity: 0, filter: 'blur(6px)' }}
-              animate={{ opacity: 1, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, filter: 'blur(6px)' }}
-              transition={{ duration: 1.1, ease: EASE }}
-            >
-              {LINES[step]}
-            </motion.p>
-          ) : null}
+          ) : (
+            <motion.div key={step} className="intro__slide">
+              <motion.span
+                className="intro__eyebrow"
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                transition={{ duration: 0.7, ease: EASE }}
+              >
+                {slide.eyebrow}
+              </motion.span>
+              {/* Word-by-word rise — the line assembles instead of simply fading */}
+              <p className="intro__line">
+                {slide.title.split(' ').map((w, i) => (
+                  <motion.span
+                    key={w + i}
+                    className="intro__word"
+                    initial={{ opacity: 0, y: '0.6em', filter: 'blur(8px)' }}
+                    animate={{ opacity: 1, y: '0em', filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, y: '-0.3em', transition: { duration: 0.3, delay: i * 0.02 } }}
+                    transition={{ duration: 0.75, delay: 0.12 + i * 0.07, ease: EASE }}
+                  >
+                    {w}
+                  </motion.span>
+                ))}
+              </p>
+            </motion.div>
+          )}
         </AnimatePresence>
+      </div>
+
+      <div className="intro__dots" aria-hidden>
+        {SLIDES.map((_, i) => <span key={i} className={i === step ? 'is-on' : ''} />)}
       </div>
 
       <button className="intro__skip" onClick={finish} aria-label="Skip cinematic intro">Skip intro</button>

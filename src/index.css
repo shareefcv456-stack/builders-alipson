@@ -1,6 +1,6 @@
 /* ==========================================================================
    ALIPSON BUILDERS — CINEMATIC LUXURY DESIGN SYSTEM 2026
-   Dark + warm-white theme · glassmorphism · architectural typography
+   White & Red theme · crisp white surfaces · Alipson logo red (#D32F2F)
    ========================================================================== */
 
 /* Google Fonts now preloaded in index.html for performance */
@@ -20,14 +20,14 @@
   --bone-200: #ececec;
   --bone-300: #d9d9d9;   /* concrete grey */
 
-  --accent:      #c8102e;   /* brand crimson red */
-  --accent-soft: #f16a63;   /* lighter crimson — text accents on slate */
-  --accent-deep: #800000;   /* deep brick red */
-  --ember:       #800000;   /* maroon */
-  --ember-soft:  #c8102e;
+  --accent:      #d32f2f;   /* Alipson logo red */
+  --accent-soft: #e8615b;   /* lighter red — accents on dark surfaces */
+  --accent-deep: #9a0007;   /* deep red */
+  --ember:       #9a0007;
+  --ember-soft:  #d32f2f;
 
-  --accent-rgb: 200, 16, 46;
-  --ember-rgb:  128, 0, 0;
+  --accent-rgb: 211, 47, 47;
+  --ember-rgb:  154, 0, 7;
 
   --gold:      #d4af37;   /* champagne gold — secondary highlight */
   --gold-soft: #e6c964;   /* lighter gold for text on dark */
@@ -43,13 +43,13 @@
   --bg-alt:      var(--ink-850);
   --surface:     rgba(248, 248, 246, 0.035);
   --surface-2:   rgba(248, 248, 246, 0.055);
-  --border:      rgba(200, 16, 46, 0.14);         /* subtle red borders */
-  --border-strong: rgba(200, 16, 46, 0.28);
+  --border:      rgba(211, 47, 47, 0.14);         /* subtle red borders */
+  --border-strong: rgba(211, 47, 47, 0.28);
   --text:        #f8f8f6;
   --text-soft:   rgba(248, 248, 246, 0.72);
   --text-mute:   rgba(248, 248, 246, 0.46);
   --glass:       rgba(11, 13, 15, 0.6);           /* ultra-dark glassmorphism */
-  --glass-brd:   rgba(200, 16, 46, 0.2);
+  --glass-brd:   rgba(211, 47, 47, 0.2);
   --shadow:      0 30px 80px -20px rgba(0, 0, 0, 0.8);
 
   /* Fonts — modern editorial sans (no decorative faces) */
@@ -70,30 +70,39 @@
   --radius-lg: 28px;
 }
 
-/* Light theme — clean minimalist elite (the single unified theme) */
+/* WHITE & RED — the single unified theme.
+   Crisp white page, light-grey section alternates, deep-charcoal body text and
+   the logo red used only where it means something: primary actions, active
+   states, hovers and key stats. Everything below is driven from these tokens —
+   re-theming the site means editing this block, not the components. */
 :root,
 :root[data-theme='light'] {
-  --bg:          #faf9f6;   /* pure ivory / soft alabaster */
-  --bg-rgb:      250, 249, 246;
-  --bg-elev:     #ffffff;
-  --bg-alt:      #f3f1ec;
-  --bg-alt-rgb:  243, 241, 236;
-  --surface:     rgba(21, 21, 21, 0.028);
-  --surface-2:   rgba(21, 21, 21, 0.05);
-  --border:      rgba(200, 16, 46, 0.16);         /* light crimson borders */
-  --border-strong: rgba(200, 16, 46, 0.32);
-  --text:        #111827;   /* deep charcoal black */
-  --text-soft:   rgba(17, 24, 39, 0.74);
-  --text-mute:   rgba(17, 24, 39, 0.54);
-  --accent:      #c8102e;   /* brand red */
-  --accent-soft: #a8231f;   /* deeper red — readable on light */
-  --accent-deep: #800000;
-  --ember:       #800000;
-  --accent-rgb:  200, 16, 46;
-  --ember-rgb:   128, 0, 0;
-  --glass:       rgba(255, 255, 255, 0.7);        /* milk glassmorphism */
-  --glass-brd:   rgba(200, 16, 46, 0.15);
-  --shadow:      0 30px 70px -28px rgba(80, 12, 10, 0.18);
+  --bg:          #ffffff;   /* crisp ultra-clean white */
+  --bg-rgb:      255, 255, 255;
+  --bg-elev:     #ffffff;   /* raised cards — separated by shadow, not fill */
+  --bg-alt:      #f8f9fa;   /* section alternate */
+  --bg-alt-rgb:  248, 249, 250;
+  --bg-alt-2:    #f1f3f5;   /* deeper alternate / inset wells */
+  --surface:     #ffffff;   /* card fill */
+  --surface-2:   #f8f9fa;   /* icon chips, inputs, insets */
+  --border:      #eceef1;   /* neutral hairline — the resting card border */
+  --border-strong: rgba(211, 47, 47, 0.30);       /* red — hover / active only */
+  --text:        #1a1d20;   /* deep charcoal, never pitch black */
+  --text-soft:   rgba(26, 29, 32, 0.72);
+  --text-mute:   rgba(26, 29, 32, 0.52);
+  --accent:      #d32f2f;   /* Alipson logo red */
+  --accent-soft: #b3261e;   /* deeper red — readable as text on white */
+  --accent-deep: #9a0007;   /* pressed / gradient end */
+  --ember:       #9a0007;
+  --accent-rgb:  211, 47, 47;
+  --ember-rgb:   154, 0, 7;
+  --tint:        rgba(211, 47, 47, 0.08);         /* soft red glass overlay */
+  --glass:       rgba(255, 255, 255, 0.80);       /* frosted white */
+  --glass-brd:   rgba(211, 47, 47, 0.18);
+  /* Elevation: cards rest on shadow-sm and lift to shadow-xl on hover. */
+  --shadow-sm:   0 1px 2px rgba(26, 29, 32, 0.04), 0 6px 16px -12px rgba(26, 29, 32, 0.16);
+  --shadow-xl:   0 2px 4px rgba(26, 29, 32, 0.04), 0 26px 50px -22px rgba(26, 29, 32, 0.26);
+  --shadow:      var(--shadow-xl);
 }
 
 /* --------------------------------------------------------------------------
@@ -173,23 +182,21 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 .container { width: 100%; max-width: 80rem; margin: 0 auto; padding-left: 1rem; padding-right: 1rem; }
 @media (min-width: 640px) { .container { padding-left: 1.5rem; padding-right: 1.5rem; } }
 @media (min-width: 1024px) { .container { padding-left: 2rem; padding-right: 2rem; } }
-/* Translucent glass surfaces — the fixed drone fly-through reads through every
-   section while a frosted ivory wash + blur keep text 100% readable. */
+/* Opaque white — a crisp page, not a frosted one. This also drops a
+   backdrop-filter that was compositing on every section during scroll. */
 .section { padding-block: var(--section-py); position: relative; isolation: isolate;
-  background: rgba(var(--bg-rgb), 0.68); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); }
+  background: var(--bg); }
 
-/* Ambient scroll-linked construction backgrounds behind body sections.
-   These sit over the deep charcoal (#0D1117) section overlay, so the light
-   structural line-work + crimson accents read clearly but stay subtle. */
+/* Ambient scroll-linked construction line-work behind body sections. On a white
+   page these are a faint watermark, not a backdrop — hence the low opacity and
+   the WHITE scrim (a charcoal veil here would grey out every clean section). */
 .ambient-bg { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; display: block; pointer-events: none;
-  opacity: 0.6; will-change: transform; transform: translateZ(0); }
-/* Readability scrim — a whisper-thin charcoal veil that unifies the tone over
-   the animation without lightening the dark backdrop (GPU-cheap, no blur). */
+  opacity: 0.16; will-change: transform; transform: translateZ(0); }
 .ambient-mask { position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  background: rgba(13, 17, 23, 0.28); }
+  background: rgba(255, 255, 255, 0.62); }
 .section > .container { position: relative; z-index: 1; }
 .section--tight { padding-block: clamp(2rem, 4vw, 3rem); }
-.bg-alt { background: rgba(var(--bg-alt-rgb), 0.66); }
+.bg-alt { background: var(--bg-alt); }
 .bg-elev { background: var(--bg-elev); }
 
 .eyebrow {
@@ -235,14 +242,18 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
   font-family: var(--font-grotesk); font-weight: 600; font-size: 0.9rem;
   line-height: 1; letter-spacing: 0.01em; white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color 0.35s var(--ease-lux), border-color 0.35s var(--ease-lux),
+  transition: background 0.35s var(--ease-lux), border-color 0.35s var(--ease-lux),
               box-shadow 0.35s var(--ease-lux), color 0.35s var(--ease-lux);
 }
 .btn svg { flex-shrink: 0; }                   /* icon never jumps or shifts */
 
-.btn-primary { background-color: var(--accent); color: #fff; box-shadow: 0 6px 18px -10px rgba(var(--accent-rgb), 0.55); }
-.btn-primary:hover { background-color: var(--accent-deep); box-shadow: 0 12px 26px -12px rgba(var(--accent-rgb), 0.55); }
-.btn-primary:active { background-color: #7a1a1a; box-shadow: 0 4px 12px -10px rgba(var(--accent-rgb), 0.6); }
+/* Solid logo red → deeper red on hover, white text throughout. `background`
+   (not -color) so the gradient and the hover fill animate as one property. */
+.btn-primary { background: linear-gradient(180deg, #e03a34 0%, var(--accent) 100%); color: #fff;
+  box-shadow: 0 8px 20px -10px rgba(var(--accent-rgb), 0.65); }
+.btn-primary:hover { background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%); color: #fff;
+  box-shadow: 0 14px 28px -12px rgba(var(--accent-rgb), 0.6); }
+.btn-primary:active { background: var(--accent-deep); box-shadow: 0 4px 12px -10px rgba(var(--accent-rgb), 0.7); }
 
 .btn-ghost { color: var(--text); border-color: var(--border-strong); backdrop-filter: blur(8px); }
 .cta .btn-ghost { color: #f8f8f6; border-color: rgba(248,248,246,0.35); }
@@ -289,7 +300,19 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 .marquee__track { display: flex; flex-shrink: 0; gap: clamp(2rem, 5vw, 4.5rem); align-items: center; padding-right: clamp(2rem, 5vw, 4.5rem); animation: marquee 38s linear infinite; }
 .marquee--rev .marquee__track { animation-direction: reverse; gap: clamp(4rem, 8vw, 8rem); padding-right: clamp(4rem, 8vw, 8rem); }
 .marquee:hover .marquee__track { animation-play-state: paused; }
-@keyframes marquee { to { transform: translateX(-100%); } }
+/* The track holds the list TWICE, so one loop is half its width. At -100% the
+   whole track slid off and the right-hand side went blank for the back half of
+   every cycle — that was the "empty white space". Keep this in sync with the
+   duplication factor in the components (`[...LIST, ...LIST]`). */
+@keyframes marquee { to { transform: translateX(-50%); } }
+
+/* Reduced motion: the global "animation-duration: 0.001ms" rule would snap the
+   track straight to its end frame, i.e. off-screen. Park it and let the user
+   swipe through the cards instead. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee { overflow-x: auto; }
+  .marquee__track { animation: none !important; transform: none !important; }
+}
 
 /* --------------------------------------------------------------------------
    9. FLOATING ACTIONS
@@ -392,16 +415,16 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
   background-color: #0D1117 !important; 
   --bg: #0D1117;
   --bg-alt: #0D1117;
-  --accent: #C8102E;
-  --accent-soft: #C8102E;
+  --accent: #D32F2F;
+  --accent-soft: #D32F2F;
   --text: #ffffff;
   --text-soft: #ffffff;
   --text-mute: rgba(255, 255, 255, 0.8);
   color: #ffffff !important;
 }
-.text-\[\#C8102E\] { color: #C8102E !important; }
+.text-\[\#D32F2F\] { color: #D32F2F !important; }
 
-.text-gray-900\/10 { color: rgba(17, 24, 39, 0.1) !important; }
+.text-gray-900\/10 { color: rgba(26, 29, 32, 0.10) !important; }
 .font-black { font-weight: 900 !important; }
 .text-\[12vw\] { font-size: 12vw !important; }
 .tracking-widest { letter-spacing: 0.1em !important; }
@@ -443,9 +466,9 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 .text-3xl { font-size: 1.875rem !important; line-height: 2.25rem !important; }
 
 /* Readability Colors */
-.text-gray-900 { color: #111827 !important; }
-.text-\[\#111827\] { color: #111827 !important; }
-.bg-\[\#FAF9F6\] { background-color: #FAF9F6 !important; }
+.text-gray-900 { color: #1A1D20 !important; }
+.text-\[\#1A1D20\] { color: #1A1D20 !important; }
+.bg-\[\#FFFFFF\] { background-color: #FFFFFF !important; }
 .bg-\[\#0D1117\] { background-color: #0D1117 !important; }
 .bg-black\/75 { background-color: rgba(0, 0, 0, 0.75) !important; }
 .text-xs { font-size: 0.75rem !important; line-height: 1rem !important; }
@@ -538,15 +561,15 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 .text-gray-700 { color: #374151 !important; }
 .text-gray-800 { color: #1f2937 !important; }
 .\!text-white { color: #ffffff !important; }
-.\!text-\[\#111827\] { color: #111827 !important; }
-.\!text-\[\#C8102E\] { color: #C8102E !important; }
+.\!text-\[\#1A1D20\] { color: #1A1D20 !important; }
+.\!text-\[\#D32F2F\] { color: #D32F2F !important; }
 .\!text-gray-700 { color: #374151 !important; }
 .\!text-gray-800 { color: #1f2937 !important; }
-.hover\:\!text-\[\#111827\]:hover { color: #111827 !important; }
+.hover\:\!text-\[\#1A1D20\]:hover { color: #1A1D20 !important; }
 
 /* ---- Borders, radius, shadow -------------------------------------------- */
 .border-l-4 { border-left-width: 4px !important; border-left-style: solid !important; }
-.border-\[\#C8102E\] { border-color: #C8102E !important; }
+.border-\[\#D32F2F\] { border-color: #D32F2F !important; }
 .border-gray-100 { border-color: #f3f4f6 !important; }
 .border-gray-200 { border-color: #e5e7eb !important; }
 .rounded-xl { border-radius: 0.75rem !important; }
@@ -557,7 +580,7 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 /* ---- Backgrounds with opacity ------------------------------------------- */
 .bg-black\/70 { background-color: rgba(0, 0, 0, 0.7) !important; }
 .bg-white\/50 { background-color: rgba(255, 255, 255, 0.5) !important; }
-.bg-\[\#FAF9F6\]\/90 { background-color: rgba(250, 249, 246, 0.9) !important; }
+.bg-\[\#FFFFFF\]\/90 { background-color: rgba(255, 255, 255, 0.92) !important; }
 
 /* ---- Responsive overrides ----------------------------------------------- */
 @media (min-width: 640px) {

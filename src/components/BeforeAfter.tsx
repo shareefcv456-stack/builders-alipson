@@ -26,8 +26,8 @@ export default function BeforeAfter({
         style={{ clipPath: `inset(0 0 0 ${split}%)` }}
         loading="lazy"
       />
-      <span className="ba__before-lbl glass">Foundation</span>
-      <span className="ba__after-lbl glass">Delivered</span>
+      <span className="ba__before-lbl glass">Before: Under Construction</span>
+      <span className="ba__after-lbl glass">After: Fully Delivered</span>
       <div className="ba__handle" style={{ left: `${split}%` }}>
         <span className="ba__grip"><MoveHorizontal size={18} /></span>
       </div>

@@ -14,7 +14,7 @@ function Card({ service }: { service: Service }) {
     e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`);
   };
   return (
-    <motion.article className="svc cursor-target bg-[#FAF9F6] text-[#111827] rounded-xl p-6 shadow-xl border border-gray-100" variants={staggerItem} onMouseMove={onMove}>
+    <motion.article className="svc cursor-target bg-[#FFFFFF] text-[#1A1D20] rounded-xl p-6 shadow-xl border border-gray-100" variants={staggerItem} onMouseMove={onMove}>
       <span className="svc__num text-gray-400">{service.num}</span>
       <div className="svc__icon"><Icon size={22} /></div>
       <h3 className="svc__title font-bold text-xl mb-2">{service.title}</h3>
@@ -26,12 +26,11 @@ function Card({ service }: { service: Service }) {
 export default function Services() {
   return (
     <section id="services" className="section">
-      <div className="absolute inset-0 bg-[#0D1117] z-0" aria-hidden />
       <AmbientCanvas variant="assembly" className="z-10" />
       <div className="container relative z-20">
         <div className="section-head">
-          <Reveal><span className="eyebrow !text-[#C8102E]">Capabilities</span></Reveal>
-          <RevealText className="title text-white" lines={[<>Every discipline,</>, <>under <em className="!text-[#C8102E]">one roof.</em></>]} />
+          <Reveal><span className="eyebrow !text-[#D32F2F]">Capabilities</span></Reveal>
+          <RevealText className="title" lines={[<>Every discipline,</>, <>under <em className="!text-[#D32F2F]">one roof.</em></>]} />
         </div>
         <Stagger className="services__grid">
           {SERVICES.map((s) => (
@@ -40,7 +39,7 @@ export default function Services() {
         </Stagger>
         <Reveal delay={0.1}>
           <div style={{ marginTop: '2.5rem' }}>
-            <button className="ul-link text-white" onClick={() => scrollToId('contact')}>
+            <button className="ul-link" onClick={() => scrollToId('contact')}>
               Discuss your requirement <ArrowUpRight size={15} />
             </button>
           </div>

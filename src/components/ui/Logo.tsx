@@ -8,9 +8,9 @@ export function LogoMark({ size = 34 }: { size?: number }) {
     <svg viewBox="0 0 100 100" width={size} height={size} style={{ display: 'block' }} aria-hidden>
       <defs>
         <linearGradient id="lg-brand" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#f16a63" />
-          <stop offset="0.5" stopColor="#c8102e" />
-          <stop offset="1" stopColor="#800000" />
+          <stop offset="0" stopColor="#e8615b" />
+          <stop offset="0.5" stopColor="#d32f2f" />
+          <stop offset="1" stopColor="#9a0007" />
         </linearGradient>
       </defs>
       {/* A silhouette = roof + upward arrow */}

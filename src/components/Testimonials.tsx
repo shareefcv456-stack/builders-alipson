@@ -5,7 +5,18 @@ import { TESTIMONIALS, type Testimonial } from '../data/site';
 import { media, type MediaKey } from '../lib/media';
 import { useUI } from '../context/UIContext';
 
-const THUMBS: MediaKey[] = ['villa', 'interior', 'heights', 'residency'];
+/* One per testimonial, index-aligned — keep this at least as long as
+   TESTIMONIALS or thumbs repeat. Quotes about a DELIVERED home get the
+   completed-project photos; quotes about the build process get site photos.
+   (`interior`/`heights`/`residency` are all mid-construction shots — showing
+   rubble under "our interior detailing is premium" is why they are gone.) */
+const THUMBS: MediaKey[] = [
+  'villa',          // Anand — "site updates were phenomenal" → an active site fits
+  'team',           // Shreya — premium interior → completed, landscaped project
+  'stageDelivered', // Rahul & Anjali — luxury villa handover → finished, lit at dusk
+  'hub',            // K. M. Mathew — commercial
+  'riverside',      // Fathima — apartment, soil test to handover
+];
 
 function TCard({ t, thumb }: { t: Testimonial; thumb: MediaKey }) {
   const { openVideo } = useUI();

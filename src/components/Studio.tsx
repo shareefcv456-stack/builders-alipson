@@ -17,39 +17,38 @@ export default function Studio() {
 
   return (
     <section id="studio" className="section bg-alt grain">
-      <div className="absolute inset-0 bg-[#0D1117] z-0" aria-hidden />
       <AmbientCanvas variant="blueprint" className="z-10" />
       <div className="container studio__grid relative z-20">
         <div className="studio__visual" ref={visualRef}>
           <Reveal dir="scale">
             <div className="studio__frame rounded-2xl overflow-hidden shadow-2xl" style={{ overflow: 'hidden' }}>
               <motion.img
-                src={MEDIA.team}
-                alt="The Alipson Builders studio team reviewing architectural plans on site"
+                src={MEDIA.studio}
+                alt="An Alipson architect drafting a building elevation at the studio desk"
                 style={{ y: imgY, scale: 1.12 }}
                 loading="lazy"
-                className="w-full h-auto object-cover"
+                className="w-full h-full object-cover"
               />
             </div>
           </Reveal>
           <Reveal dir="up" delay={0.2}>
-            <div className="studio__badge glass !text-[#111827] bg-[#FAF9F6]/90 backdrop-blur-md">
-              <b className="text-[#C8102E]">15+</b>
+            <div className="studio__badge glass !text-[#1A1D20] bg-[#FFFFFF]/90 backdrop-blur-md">
+              <b className="text-[#D32F2F]">15+</b>
               <span>Years of<br />Excellence</span>
             </div>
           </Reveal>
         </div>
 
-        <div className="studio__details bg-[#FAF9F6] text-[#111827] rounded-2xl p-6 sm:p-10 shadow-2xl">
-          <Reveal><span className="eyebrow !text-[#C8102E]">The Studio</span></Reveal>
+        <div className="studio__details bg-[#FFFFFF] text-[#1A1D20] rounded-2xl p-6 sm:p-10 shadow-2xl">
+          <Reveal><span className="eyebrow !text-[#D32F2F]">The Studio</span></Reveal>
           <RevealText
-            className="title !text-[#111827]"
-            lines={[<>Architecture with</>, <>a sense of <em className="!text-[#C8102E]">permanence.</em></>]}
+            className="title !text-[#1A1D20]"
+            lines={[<>Architecture with</>, <>a sense of <em className="!text-[#D32F2F]">permanence.</em></>]}
           />
           <Reveal delay={0.1}>
-            <p className="studio__quote !text-gray-800 text-lg sm:text-xl font-medium my-6 border-l-4 border-[#C8102E] pl-6">
+            <p className="studio__quote !text-gray-800 text-lg sm:text-xl font-medium my-6 border-l-4 border-[#D32F2F] pl-6">
               "We believe architecture has the power to inspire, shape cultures and{' '}
-              <span className="text-[#C8102E]">build lasting legacies.</span>"
+              <span className="text-[#D32F2F]">build lasting legacies.</span>"
             </p>
           </Reveal>
           <Reveal delay={0.15}>
@@ -65,9 +64,9 @@ export default function Studio() {
             {HIGHLIGHTS.map((h, i) => (
               <Reveal key={h.title} delay={0.1 + i * 0.08}>
                 <div className="studio__hl flex gap-4 items-start mb-4">
-                  <div className="studio__hl-icon text-[#C8102E] mt-1"><h.icon size={20} /></div>
+                  <div className="studio__hl-icon text-[#D32F2F] mt-1"><h.icon size={20} /></div>
                   <div>
-                    <h4 className="font-bold text-[#111827]">{h.title}</h4>
+                    <h4 className="font-bold text-[#1A1D20]">{h.title}</h4>
                     <p className="text-gray-600 text-sm">{h.desc}</p>
                   </div>
                 </div>
@@ -82,7 +81,7 @@ export default function Studio() {
                   Start a Project <ArrowUpRight size={16} />
                 </button>
               </Magnetic>
-              <button className="btn btn-ghost !text-gray-700 hover:!text-[#111827]" onClick={openBrochure}>
+              <button className="btn btn-ghost !text-gray-700 hover:!text-[#1A1D20]" onClick={openBrochure}>
                 <Download size={15} /> Brochure
               </button>
             </div>

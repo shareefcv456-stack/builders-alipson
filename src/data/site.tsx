@@ -70,7 +70,7 @@ export const PROJECTS: Project[] = [
   { title: 'Alipson Business Hub', category: 'Commercial', location: 'Ernakulam', year: '2025', image: 'hub', area: '96,000 sq.ft', desc: 'An iconic glass-facade workplace built to green-building standards around open courtyards.', tags: ['Commercial Buildings'] },
   { title: 'The Bronze Residence', category: 'Modern Villa', location: 'Malappuram', year: '2024', image: 'interior', area: '6,200 sq.ft', desc: 'A warm, tactile interior of travertine, bronze and hand-finished plaster across three levels.', tags: ['Modern Villas'] },
   { title: 'Alipson Residency', category: 'Apartments', location: 'Malappuram', year: '2026', image: 'residency', area: '132,000 sq.ft', desc: 'Family-centric residences blending sustainable layouts with premium interior finishes.', tags: ['Apartments'] },
-  { title: 'Riverside Commercial Park', category: 'Commercial', location: 'Kozhikode', year: '2023', image: 'hub', area: '84,000 sq.ft', desc: 'A landmark retail-and-office park anchoring the riverfront with a naturally-lit central atrium.', tags: ['Commercial Buildings'] },
+  { title: 'Riverside Commercial Park', category: 'Commercial', location: 'Kozhikode', year: '2023', image: 'riverside', area: '84,000 sq.ft', desc: 'A landmark retail-and-office park anchoring the riverfront with a naturally-lit central atrium.', tags: ['Commercial Buildings'] },
 ];
 
 /* ---- WHY US (bento) ----------------------------------------------------- */
@@ -97,6 +97,7 @@ export type Testimonial = { initials: string; name: string; role: string; quote:
 export const TESTIMONIALS: Testimonial[] = [
   { initials: 'AM', name: 'Anand Madhavan', role: 'Villa Owner · Kochi', quote: 'Alipson turned our plot into an absolute masterpiece. The transparency and site updates were phenomenal from day one.' },
   { initials: 'SR', name: 'Shreya Ramachandran', role: 'Home Owner · Calicut', quote: 'Professional, punctual and deeply artistic. The interior detailing in our double-height lounge is simply premium.' },
+  { initials: 'RA', name: 'Rahul & Anjali', role: 'Luxury Villa Owner · Calicut', quote: 'The transparency in budgeting and quality of materials used was top-notch. Delivered our dream home exactly on schedule!' },
   { initials: 'KM', name: 'K. M. Mathew', role: 'Mathew Commercials', quote: 'Their layout maximised our usable space by 20% and they still finished ahead of the deadline. Remarkable.' },
   { initials: 'FP', name: 'Fathima P.', role: 'Apartment Owner · Kozhikode', quote: 'From soil test to handover, one accountable team. It felt less like construction and more like collaboration.' },
 ];

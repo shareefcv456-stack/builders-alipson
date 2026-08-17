@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ArrowUpRight, Play } from 'lucide-react';
@@ -7,30 +7,135 @@ import { LogoMark } from './ui/Logo';
 import { scrollToId } from '../hooks/useLenis';
 import { useUI } from '../context/UIContext';
 import { isCapture } from '../lib/capture';
-import ConstructionCanvas, { type ConstructionHandle } from './ConstructionCanvas';
+import HeroWireframe, { type WireHandle } from './HeroWireframe';
+import { HERO_FRAMES } from '../lib/media';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const PHASES = [
-  { tag: 'Phase A', name: 'Groundwork & Machinery' },
-  { tag: 'Phase B', name: 'Structure Rising' },
-  { tag: 'Phase C', name: 'Facade & Lighting' },
-  { tag: 'Phase D', name: 'The Landmark' },
-];
+const N = HERO_FRAMES.length;
+/* Scroll map. Gate parts → the drawing assembles over a darkened plate → the
+   drawing dissolves as the photographic film takes over and scrubs to the end. */
+const GATE_END = 0.12;    // doors finished parting
+const WIRE_DRAWN = 0.28;  // line drawing complete, holds
+const WIRE_END = 0.34;    // drawing fully dissolved
+const FILM_START = 0.30;  // construction film starts advancing
+/** Easing toward the scroll target — lower is smoother/heavier. */
+const EASE = 0.14;
 
-const phaseFor = (p: number) => (p < 0.25 ? 0 : p < 0.6 ? 1 : p < 0.9 ? 2 : 3);
+const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+const span = (a: number, b: number, v: number) => clamp01((v - a) / (b - a));
 
 export default function StoryScroll() {
   const root = useRef<HTMLElement>(null);
-  const canvas = useRef<ConstructionHandle>(null);
-  const phaseRef = useRef(0);
-  const [phase, setPhase] = useState(0);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const wire = useRef<WireHandle>(null);
+  const plate = useRef<HTMLDivElement>(null);
+  const target = useRef(0);   // where scroll wants the playhead
+  const cur = useRef(-1);     // where it actually is (eased toward target)
   const { openVideo } = useUI();
   const still = isCapture() || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
+  /**
+   * Scroll-driven frame-sequence player.
+   *
+   * One <canvas>, not N stacked <img> — the DOM cost of a 500+ frame sequence
+   * is what kills this technique, so frames live in a plain array and only the
+   * two straddling the playhead are ever drawn. Scroll sets a TARGET playhead;
+   * a rAF loop eases the real playhead toward it, so the film keeps rolling for
+   * a beat after the wheel stops instead of snapping. Scrolling up runs it
+   * backwards for free — the playhead is just a number.
+   *
+   * Sub-frame blending (frame i drawn under frame i+1 at the fractional alpha)
+   * is what turns a sparse sequence into continuous motion. With a dense
+   * sequence it is a no-op; with a sparse one it is the whole trick.
+   */
   useEffect(() => {
-    if (still) { canvas.current?.setProgress(0.94); setPhase(3); return; }
-    if (!root.current) return;
+    const cv = canvas.current;
+    if (!cv) return;
+    const ctx = cv.getContext('2d', { alpha: false });
+    if (!ctx) return;
+
+    // ---- decode every frame up front; they are the film ---------------------
+    const imgs: HTMLImageElement[] = HERO_FRAMES.map((src) => {
+      const im = new Image();
+      im.decoding = 'async';
+      im.src = src;
+      return im;
+    });
+
+    let w = 0, h = 0, raf = 0, visible = true;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    const resize = () => {
+      w = cv.clientWidth; h = cv.clientHeight;
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cur.current = -1;            // force a redraw at the new size
+    };
+
+    /** Cover-fit, biased low so the horizon sits where the CSS crop had it. */
+    const paint = (im: HTMLImageElement, alpha: number) => {
+      if (!im.complete || !im.naturalWidth) return;
+      const s = Math.max(w / im.naturalWidth, h / im.naturalHeight);
+      const dw = im.naturalWidth * s, dh = im.naturalHeight * s;
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(im, (w - dw) / 2, (h - dh) * 0.62, dw, dh);
+      ctx.globalAlpha = 1;
+    };
+
+    const draw = (raw: number) => {
+      // One eased playhead drives all three layers, so they can never drift.
+      const wireAlpha = 1 - span(WIRE_DRAWN, WIRE_END, raw);
+      wire.current?.draw(span(GATE_END, WIRE_DRAWN, raw), wireAlpha);
+      if (plate.current) plate.current.style.opacity = String(wireAlpha * 0.82);
+
+      const p = span(FILM_START, 1, raw);
+      const f = p * (N - 1);
+      const i = Math.min(N - 1, Math.floor(f));
+      const frac = f - i;
+      ctx.fillStyle = '#0b0d13';
+      ctx.fillRect(0, 0, w, h);
+      paint(imgs[i], 1);
+      if (frac > 0 && i + 1 < N) paint(imgs[i + 1], frac);
+      // Slow push-in across the whole film, on the compositor.
+      cv.style.transform = `scale(${1.07 - 0.07 * p})`;
+    };
+
+    const loop = () => {
+      raf = requestAnimationFrame(loop);
+      if (!visible) return;
+      const t = target.current;
+      if (cur.current < 0) cur.current = t;
+      else cur.current += (t - cur.current) * EASE;
+      if (Math.abs(t - cur.current) < 0.0002) cur.current = t;
+      draw(cur.current);
+    };
+
+    resize();
+    window.addEventListener('resize', resize);
+    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, { threshold: 0 });
+    io.observe(cv);
+
+    if (still) {
+      target.current = 1;
+      const last = imgs[N - 1];
+      if (last.complete) draw(1); else last.onload = () => draw(1);
+    } else {
+      // Repaint as each frame lands so the opening shot is never a blank plate.
+      imgs.forEach((im) => { im.onload = () => { cur.current = -1; }; });
+      raf = requestAnimationFrame(loop);
+    }
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', resize);
+      io.disconnect();
+    };
+  }, [still]);
+
+  useEffect(() => {
+    if (still || !root.current) return;
 
     const lenis = (window as unknown as { lenis?: Lenis }).lenis;
     const onScroll = () => ScrollTrigger.update();
@@ -40,19 +145,20 @@ export default function StoryScroll() {
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: root.current, start: 'top top', end: 'bottom bottom', scrub: 1,
-          onUpdate: (self) => {
-            canvas.current?.setProgress(self.progress);
-            const idx = phaseFor(self.progress);
-            if (idx !== phaseRef.current) { phaseRef.current = idx; setPhase(idx); }
-          },
+          onUpdate: (self) => { target.current = self.progress; },
         },
       });
-      // Phase 1 — the gate splits open, revealing the live construction site.
-      tl.to('.story__gate-l', { xPercent: -104, ease: 'power2.inOut', duration: 0.7 }, 0)
+      // A scrubbed timeline maps its OWN duration across the whole scroll, so
+      // this empty tween fixes the length at 6 — keeping the gate a quick
+      // opening beat (first ~12% of scroll) rather than stretching it over the
+      // section. Remove the spacer and the doors take 60% of the scroll to part.
+      tl.to({}, { duration: 6 }, 0)
+        // The doors part left/right and the brand mark fades with them.
+        .to('.story__gate-l', { xPercent: -104, ease: 'power2.inOut', duration: 0.7 }, 0)
         .to('.story__gate-r', { xPercent: 104, ease: 'power2.inOut', duration: 0.7 }, 0)
         .to('.story__gate-brand', { autoAlpha: 0, scale: 0.9, ease: 'power1.in', duration: 0.55 }, 0)
-        // Finale — the finished-landmark headline resolves.
-        .fromTo('.story__finale-copy', { autoAlpha: 0, yPercent: 24 }, { autoAlpha: 1, yPercent: 0, ease: 'power2.out', duration: 1 }, 4.4);
+        // Headline and CTAs resolve in behind the opening doors.
+        .fromTo('.story__finale-copy', { autoAlpha: 0, yPercent: 18 }, { autoAlpha: 1, yPercent: 0, ease: 'power2.out', duration: 0.8 }, 0.35);
     }, root);
 
     const t = window.setTimeout(() => ScrollTrigger.refresh(), 350);
@@ -63,23 +169,21 @@ export default function StoryScroll() {
     };
   }, [still]);
 
-  const ph = PHASES[phase];
-
   return (
-    <section id="hero" className={`story ${still ? 'story--static' : ''}`} ref={root} aria-label="Alipson Builders — from foundation to landmark">
+    <section id="hero" className={`story ${still ? 'story--static' : ''}`} ref={root} aria-label="Alipson Builders — a project from excavation to handover">
       <div className="story__stage">
-        {/* Scroll-driven construction cycle */}
-        <ConstructionCanvas ref={canvas} className="story__canvas" />
+        {/* Scroll-scrubbed construction film */}
+        <canvas
+          ref={canvas}
+          className="story__canvas"
+          role="img"
+          aria-label="A single Alipson project filmed from empty site through excavation, structure and facade to the finished, illuminated building"
+        />
+        <div className="story__plate" ref={plate} />
+        <HeroWireframe ref={wire} className="story__wire" />
         <div className="story__grade" />
 
-        {/* Live phase marker */}
-        <div className="story__phase" aria-hidden>
-          <span className="story__phase-tag">{ph.tag}</span>
-          <em className="story__phase-name">{ph.name}</em>
-          <span className="story__phase-track"><i style={{ width: `${(phase + 1) * 25}%` }} /></span>
-        </div>
-
-        {/* Finale — finished landmark */}
+        {/* Headline + CTAs — the only overlay */}
         <div className="story__finale-copy">
           <span className="eyebrow story__eyebrow">Alipson Builders Pvt Ltd</span>
           <h1 className="story__headline text-left sm:text-center text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white">
@@ -96,7 +200,7 @@ export default function StoryScroll() {
           </div>
         </div>
 
-        {/* Phase 1 — cinematic split-gate */}
+        {/* Split gate — parts left/right on the first beat of scroll */}
         <div className="story__gate" aria-hidden>
           <div className="story__gate-l" />
           <div className="story__gate-r" />

@@ -8,16 +8,15 @@ import { media } from '../lib/media';
 export default function Founder() {
   return (
     <section id="founder" className="section bg-alt grain">
-      <div className="absolute inset-0 bg-[#0D1117] z-0" aria-hidden />
       <AmbientCanvas variant="dusk" className="z-10" />
       
       <div className="container relative z-20">
         <div className="founder__grid">
           <Reveal>
-            <div className="founder__visual bg-[#FAF9F6] text-[#111827] rounded-2xl overflow-hidden shadow-2xl p-4 sm:p-8">
+            <div className="founder__visual bg-[#FFFFFF] text-[#1A1D20] rounded-2xl overflow-hidden shadow-2xl p-4 sm:p-8">
               <div className="founder__frame rounded-xl overflow-hidden mb-8">
-                <img src={media('team')} alt="The leadership team of Alipson Builders" loading="lazy" className="w-full h-auto object-cover" />
-                <div className="founder__caption glass !text-white">
+                <img src={media('founder')} alt={`${FOUNDER.name} — ${FOUNDER.role}`} loading="lazy" className="w-full h-full object-cover" />
+                <div className="founder__caption">
                   <b>{FOUNDER.name}</b>
                   <span>{FOUNDER.role}</span>
                 </div>
@@ -33,13 +32,13 @@ export default function Founder() {
             </div>
           </Reveal>
 
-          <div className="founder__body bg-[#FAF9F6] text-[#111827] rounded-2xl shadow-2xl p-6 sm:p-10 lg:p-12">
+          <div className="founder__body bg-[#FFFFFF] text-[#1A1D20] rounded-2xl shadow-2xl p-6 sm:p-10 lg:p-12">
             <Reveal><span className="eyebrow">{FOUNDER.eyebrow}</span></Reveal>
-            <RevealText className="title founder__title !text-[#111827]" lines={[<>{FOUNDER.title}</>, <em>{FOUNDER.titleEm}</em>]} />
+            <RevealText className="title founder__title !text-[#1A1D20]" lines={[<>{FOUNDER.title}</>, <em>{FOUNDER.titleEm}</em>]} />
 
             <Reveal dir="up" delay={0.1}>
-              <blockquote className="founder__quote !text-gray-800 border-l-4 border-[#C8102E] pl-6 my-8 font-medium italic text-lg sm:text-xl">
-                <Quote size={26} className="founder__quote-mark text-[#C8102E] mb-2" />
+              <blockquote className="founder__quote !text-gray-800 border-l-4 border-[#D32F2F] pl-6 my-8 font-medium italic text-lg sm:text-xl">
+                <Quote size={26} className="founder__quote-mark text-[#D32F2F] mb-2" />
                 {FOUNDER.quote}
               </blockquote>
             </Reveal>

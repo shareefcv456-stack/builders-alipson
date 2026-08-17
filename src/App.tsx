@@ -10,6 +10,8 @@ import Navbar from './components/Navbar';
 import FloatingActions from './components/FloatingActions';
 import StoryScroll from './components/StoryScroll';
 import Ribbon from './components/Ribbon';
+import Intro from './components/Intro';
+import AlipsonGate from './components/AlipsonGate';
 import Studio from './components/Studio';
 import Founder from './components/Founder';
 import Services from './components/Services';
@@ -30,10 +32,13 @@ import { QuoteModal, BrochureModal, VideoModal } from './components/Modals';
 const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768;
 
 export default function App() {
-  // On mobile, skip intro by default for faster hero render (can still watch via button)
+  /* CinematicIntro plays first: blueprint line-draw → "We don't build
+     buildings." → brand mark, with a Skip intro button. It is skipped on mobile
+     (slow first paint reads as a broken black page) and under `?noloader`.
+     Set the initial value to `true` to turn the intro off site-wide. */
   const [loaded, setLoaded] = useState(
     () => typeof window !== 'undefined' && (
-      window.location.search.includes('noloader') || 
+      window.location.search.includes('noloader') ||
       isMobile()
     )
   );
@@ -78,6 +83,8 @@ export default function App() {
         <main>
           <StoryScroll />
           <Ribbon />
+          <Intro />
+          <AlipsonGate />
           <Studio />
           <Founder />
           <Services />

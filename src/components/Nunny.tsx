@@ -46,7 +46,7 @@ export default function Nunny() {
         <div className="nunny__split">
           {/* Split-screen visual — global workforce placement */}
           <Reveal dir="right" className="nunny__visual">
-            <img src={media('team')} alt="Skilled construction workforce on an active site" loading="lazy" />
+            <img src={media('workforce')} alt="Skilled construction workforce on an active site" loading="lazy" />
             <div className="nunny__visual-glow" aria-hidden />
             <div className="nunny__globe" aria-hidden><Globe2 size={18} /> <span>Global placement</span></div>
             <div className="nunny__stats glass">

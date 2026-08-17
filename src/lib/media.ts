@@ -11,41 +11,55 @@
 const img = (name: string) => `/images/${name}`;
 
 /* ---- IMAGE SLOTS -------------------------------------------------------- */
-/* Replace the fallback path by placing a file at the `preferred` path.       */
+/* EVERY KEY MUST POINT AT A DIFFERENT FILE. Two keys sharing one path is how
+   the same sunset site photo ended up in three sections at once — if you add a
+   slot, give it its own photo rather than aliasing an existing one.           */
 export const MEDIA = {
-  heroPoster:   img('hero_background.png'),
+  heroPoster:   img('hero_background.png'),                       // Gallery — golden-hour site
   villa:        img('project_grandeur.png'),
   heights:      img('project_heights.png'),
   hub:          img('project_hub.png'),
   interior:     img('interior_living.png'),
   residency:    img('project_residency.png'),
-  team:         img('hero_background.png'),
+  riverside:    img('construction/07-exterior-finishing.webp'),   // Projects — riverside park
+  gateway:      img('construction/08-landscaping.webp'),          // Alipson Gate — lit portico + step-lit approach
+  studio:       img('studio_desk.jpg'),                           // Studio — architect drafting an elevation
+  founder:      img('founder_portrait.jpg'),                      // Founder — leadership portrait
+  team:         img('construction/04-structure.webp'),            // Testimonials thumb — a site at dusk
+  workforce:    img('construction/06-glass-installation.webp'),   // Nunny — crews on an active site
+  /* Drag-to-compare slider — two genuinely different states of the same site. */
+  stageStructure: img('construction/05-multi-floor.webp'),        // frame, scaffolding, cranes
+  stageDelivered: img('construction/09-completed-building.webp'), // handover, blue hour
 } as const;
 
 export type MediaKey = keyof typeof MEDIA;
 
-/* ---- HERO VIDEO --------------------------------------------------------- */
-/* OPTIONAL upgrade: drop a real cinematic construction film at                */
-/* `public/media/hero-construction.mp4` (+ .webm) and it auto-plays over the   */
-/* image montage below. Until then the montage is the hero — nothing 404s.     */
-export const HERO_VIDEO = '/media/hero-construction.mp4';
-export const HERO_VIDEO_WEBM = '/media/hero-construction.webm';
-
-/* ---- HERO CINEMATIC MONTAGE --------------------------------------------- */
-/* An 8-chapter construction documentary told as a slow cross-dissolve of      */
-/* real site imagery. Swap any `image` key for a better-matched photo by       */
-/* dropping the file into public/images/ and pointing MEDIA at it.             */
-export type HeroScene = { image: MediaKey; idx: string; title: string; caption: string };
-
-export const HERO_SCENES: HeroScene[] = [
-  { image: 'team',      idx: '01', title: 'Mobilization',      caption: 'Crews arrive at first light — helmets on, site alive.' },
-  { image: 'hub',       idx: '02', title: 'Survey & Design',   caption: 'Engineers set the level, blueprint meets ground.' },
-  { image: 'heights',   idx: '03', title: 'Groundworks',       caption: 'Earth moves, machinery carves the foundation.' },
-  { image: 'residency', idx: '04', title: 'Reinforcement',     caption: 'Steel is tied, columns rise from the footing.' },
-  { image: 'hub',       idx: '05', title: 'The Pour',          caption: 'Concrete flows — the structure takes hold.' },
-  { image: 'heights',   idx: '06', title: 'The Rise',          caption: 'Cranes lift the frame, floor upon floor.' },
-  { image: 'interior',  idx: '07', title: 'Finishing',         caption: 'Facades, glass and craft bring it to life.' },
-  { image: 'villa',     idx: '08', title: 'Delivered',         caption: 'A landmark, handed over. Built to last.' },
-];
+/* ---- HERO SCRUB FILM ----------------------------------------------------- */
+/* The hero is a scroll-scrubbed frame sequence rendered to a single <canvas>.  */
+/* THIS ARRAY IS THE FILM. Order is the timeline; length is the frame rate.     */
+/*                                                                             */
+/* It currently holds 9 stills, so the player leans on sub-frame cross-blending */
+/* to read as continuous motion. That is a stopgap — the effect is only truly   */
+/* cinematic with a DENSE sequence rendered from ONE fixed camera:              */
+/*                                                                             */
+/*   public/images/construction/seq/frame-0001.webp … frame-0600.webp          */
+/*   export const HERO_FRAMES = Array.from({ length: 600 }, (_, i) =>          */
+/*     img(`construction/seq/frame-${String(i + 1).padStart(4, '0')}.webp`));  */
+/*                                                                             */
+/* Nothing else needs to change — the player already handles any frame count.   */
+/* Keep every frame on the same camera, lens and light direction, or the scrub  */
+/* reads as cuts instead of a time-lapse.                                       */
+export const HERO_FRAMES = [
+  '01-empty-site', '02-foundation', '03-ground-floor', '04-structure', '05-multi-floor',
+  '06-glass-installation', '07-exterior-finishing', '08-landscaping', '09-completed-building',
+].map((n) => img(`construction/${n}.webp`));
 
 export const media = (key: MediaKey) => MEDIA[key];
+
+/* The same photo showing up in three sections is invisible in code review and
+   obvious on the page. Catch it in dev instead of in a screenshot. */
+if (import.meta.env.DEV) {
+  const paths = Object.values(MEDIA);
+  const dupes = paths.filter((p, i) => paths.indexOf(p) !== i);
+  if (dupes.length) console.warn('[media] two keys share one image:', [...new Set(dupes)]);
+}

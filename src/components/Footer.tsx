@@ -71,19 +71,15 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Dedicated watermark band — its own unblocked row, above the copyright bar */}
-      <div className="footer__watermark" aria-hidden>
-        <div className="text-gray-900/10 font-black text-[12vw] leading-none uppercase text-center select-none pointer-events-none my-4">
-          ALIPSON
-        </div>
-      </div>
-
-      {/* Bottom bar */}
-      <div className="container footer__bottom">
-        <p>© {new Date().getFullYear()} Alipson Builders Pvt Ltd. All rights reserved.</p>
-        <div style={{ display: 'flex', gap: '1.8rem' }}>
-          <a href="#">Privacy</a>
-          <a href="#">Terms</a>
+      {/* Bottom bar — copyright floating over a half-cropped ALIPSON watermark */}
+      <div className="footer__bottom">
+        <span className="footer__watermark-word" aria-hidden>ALIPSON</span>
+        <div className="container footer__bottom-inner">
+          <p>© {new Date().getFullYear()} Alipson Builders Pvt Ltd. All rights reserved.</p>
+          <div style={{ display: 'flex', gap: '1.8rem' }}>
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms &amp; Conditions</a>
+          </div>
         </div>
       </div>
     </footer>
