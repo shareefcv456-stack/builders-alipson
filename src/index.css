@@ -179,7 +179,23 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 /* --------------------------------------------------------------------------
    3. LAYOUT UTILITIES
    -------------------------------------------------------------------------- */
-.container { width: 100%; max-width: 80rem; margin: 0 auto; padding-left: 1rem; padding-right: 1rem; }
+/* max-width 80rem == Tailwind's max-w-7xl; padding 1.5rem == px-6. Every
+   content block below the hero runs through this one rule, which is what
+   keeps their left edges identical down the page. */
+.container { width: 100%; max-width: 80rem; margin: 0 auto; padding-left: 1.5rem; padding-right: 1.5rem; }
+
+/* Reveal animations start their off-screen elements at translateX(±44px)
+   (see ui/Reveal.tsx `left`/`right`), which pushed them past the viewport and
+   produced a 28px horizontal scroll on a 390px phone before those sections were
+   ever revealed.
+
+   Scoped to `.section`, NOT to body or main. Two reasons: overflow on body is
+   subject to viewport propagation and did not actually clip here; and `main`
+   is an ancestor of the GSAP-pinned hero, where an overflow value risks
+   clipping the pinned (position: fixed) stage. `.section` is every content
+   block BELOW the hero and nothing else — `.story` does not carry it.
+   `clip` rather than `hidden` so no scroll container is created. */
+.section, .section--tight { overflow-x: clip; }
 @media (min-width: 640px) { .container { padding-left: 1.5rem; padding-right: 1.5rem; } }
 @media (min-width: 1024px) { .container { padding-left: 2rem; padding-right: 2rem; } }
 /* Opaque white — a crisp page, not a frosted one. This also drops a

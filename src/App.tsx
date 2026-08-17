@@ -9,7 +9,6 @@ import DroneBackground from './components/DroneBackground';
 import Navbar from './components/Navbar';
 import FloatingActions from './components/FloatingActions';
 import StoryScroll from './components/StoryScroll';
-import Ribbon from './components/Ribbon';
 import Intro from './components/Intro';
 import AlipsonGate from './components/AlipsonGate';
 import Studio from './components/Studio';
@@ -81,8 +80,9 @@ export default function App() {
         <FloatingActions />
 
         <main>
+          {/* Ribbon is rendered INSIDE StoryScroll now — it has to slide up
+              over the still-pinned 3D canvas, which it cannot do from here. */}
           <StoryScroll />
-          <Ribbon />
           <Intro />
           <AlipsonGate />
           <Studio />
