@@ -666,54 +666,33 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .story--static .story__gate { display: none; }
 
 /* ==========================================================================
-   CINEMATIC INTRO — 3-frame photographic slider → brand reveal
+   CINEMATIC INTRO — house line-art + dialogue → brand reveal
    ========================================================================== */
-/* Mid-dark base, not pure black — the photo composites over it, so a black
-   ground was swallowing the image. */
-.intro { position: fixed; inset: 0; z-index: 10000; background: #1b1b21; overflow: hidden; }
-.intro__bg { position: absolute; inset: 0; z-index: 0; opacity: 0.4;
-  background-size: cover; background-position: center; will-change: transform, opacity; }
-/* Line-art frames are pre-keyed transparent PNGs (white ink, paper alpha 0 —
-   regenerate with scripts/key-intro-frames.py), so they need no blend trick.
-   `contain` keeps the whole cutout in frame instead of cropping it. */
-.intro__bg--keyed { opacity: 0.9; background-size: contain; background-repeat: no-repeat; }
-/* The red paper-cut is full colour — no keying. Its paper ground is bright, so
-   it is dimmed here and gets a heavier centre vignette (below) to hold the
-   wordmark. */
-.intro__bg--film { opacity: 0.5; background-position: center; filter: saturate(1.15) brightness(0.72); }
-
-/* Fine film grain over everything */
-.intro__grain { position: absolute; inset: 0; z-index: 11; pointer-events: none; opacity: 0.5;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.35'/></svg>");
-  mix-blend-mode: overlay; }
-
-/* Letterbox bars + light sweep */
-.intro__bar { position: absolute; left: 0; right: 0; height: clamp(34px, 7vh, 74px); z-index: 15;
-  background: #000; pointer-events: none; }
-.intro__bar--t { top: 0; transform-origin: top; }
-.intro__bar--b { bottom: 0; transform-origin: bottom; }
-.intro__sweep { position: absolute; inset: -20% -60%; z-index: 12; pointer-events: none;
-  background: linear-gradient(105deg, transparent 42%, rgba(255,255,255,0.16) 50%, transparent 58%);
-  mix-blend-mode: screen; }
-
-/* Gradient scrim (dark top+bottom, lighter middle) instead of a solid block —
-   the photo stays readable while the copy keeps its contrast. */
+.intro { position: fixed; inset: 0; z-index: 10000; background: #0a0a0a; overflow: hidden; }
+/* Gradient scrim over the black ground — keeps the copy off a flat field. */
 .intro__scrim { position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background:
-    linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0.26) 50%, rgba(0,0,0,0.5)),
+    linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.7)),
     radial-gradient(58% 48% at 50% 44%, rgba(var(--accent-rgb), 0.10), transparent 64%); }
-/* Brand frame sits on bright paper — pull the centre down so the wordmark reads. */
-.intro__scrim--film { background:
-  radial-gradient(62% 52% at 50% 50%, rgba(0,0,0,0.82), rgba(0,0,0,0.5) 62%, rgba(0,0,0,0.72)); }
+.intro__glow { position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(58% 48% at 50% 44%, rgba(var(--accent-rgb), 0.09), transparent 62%),
+    radial-gradient(42% 40% at 50% 56%, rgba(248,248,246,0.05), transparent 72%); }
+.intro__rays { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0.35; mix-blend-mode: screen;
+  background: conic-gradient(from 205deg at 50% -12%, transparent 0deg, rgba(248,248,246,0.06) 14deg, transparent 30deg, rgba(var(--accent-rgb),0.05) 44deg, transparent 60deg); }
 
+.intro__villaWrap { position: absolute; inset: 0; display: grid; place-items: center; z-index: 2; pointer-events: none; }
+.intro__villa { width: min(82vw, 900px); height: auto; }
+
+/* Copy layer sits strictly ABOVE the line-art so dialogue always reads in
+   front of the sketch + tree, and clears its roofline. */
 .intro__stage {
-  position: absolute; inset: 0; z-index: 20;
+  position: absolute; inset: 0; z-index: 4;
   display: grid; place-items: center;
   padding: var(--pad-x); text-align: center; pointer-events: none;
+  transform: translateY(-100px);
 }
-.intro__slide { display: flex; flex-direction: column; align-items: center; gap: 1.1rem; }
-.intro__eyebrow { font-family: var(--font-grotesk); font-size: 0.72rem; letter-spacing: 0.34em;
-  text-transform: uppercase; color: var(--accent); }
+@media (max-width: 768px) { .intro__stage { transform: translateY(-80px); } }
 .intro__line {
   font-family: var(--font-display); font-weight: 300; font-size: clamp(1.7rem, 5vw, 3.5rem);
   letter-spacing: -0.02em; line-height: 1.16; color: #fff; max-width: 18ch; text-wrap: balance;
@@ -727,7 +706,8 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   transition: background 0.5s var(--ease-lux); }
 .intro__dots span.is-on { background: var(--accent); }
 
-.intro__brand { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+/* margin lifts the brand block clear of the house roofline below it */
+.intro__brand { display: flex; flex-direction: column; align-items: center; gap: 1rem; margin-bottom: 3.5rem; }
 .intro__wordmark { font-family: var(--font-display); font-weight: 600; letter-spacing: 0.24em;
   font-size: clamp(1.5rem, 4.6vw, 3rem); color: #fff; padding-left: 0.24em;
   text-shadow: 0 1px 2px rgba(0,0,0,0.75), 0 6px 34px rgba(0,0,0,0.9); }
@@ -735,11 +715,14 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .intro__tagline { font-family: var(--font-grotesk); font-size: 0.82rem; letter-spacing: 0.34em;
   text-transform: uppercase; color: rgba(255,255,255,0.82); text-shadow: 0 2px 12px rgba(0,0,0,0.8); }
 
-.intro__skip { position: absolute; z-index: 5; bottom: clamp(1.4rem, 4vh, 2.4rem); right: clamp(1.4rem, 4vw, 2.6rem);
+/* Fixed pill, clear of the letterbox bar, with a red glow on hover. */
+.intro__skip { position: fixed; z-index: 30; bottom: clamp(2.2rem, 9vh, 5rem); right: clamp(1.4rem, 4vw, 2.6rem);
   font-family: var(--font-grotesk); font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase;
-  color: rgba(248,248,246,0.5); padding: 0.6rem 0.9rem; border: 1px solid rgba(248,248,246,0.16); border-radius: 100px;
-  transition: color 0.3s var(--ease-lux), border-color 0.3s var(--ease-lux); }
-.intro__skip:hover { color: var(--bone-100); border-color: rgba(248,248,246,0.4); }
+  color: rgba(248,248,246,0.6); padding: 0.6rem 1.1rem; border: 1px solid rgba(248,248,246,0.16); border-radius: 100px;
+  background: rgba(0,0,0,0.35); backdrop-filter: blur(6px);
+  transition: color 0.3s var(--ease-lux), border-color 0.3s var(--ease-lux), box-shadow 0.3s var(--ease-lux); }
+.intro__skip:hover { color: #fff; border-color: rgba(var(--accent-rgb), 0.7);
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.25), 0 0 22px rgba(var(--accent-rgb), 0.45); }
 
 /* ==========================================================================
    WHITE & RED — CARD ELEVATION
