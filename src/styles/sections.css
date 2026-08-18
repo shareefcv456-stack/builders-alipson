@@ -979,3 +979,27 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   hyphens: auto;
 }
 .gate__card h3, .nunny__intro h3 { font-size: clamp(1.05rem, 2.2vw, 1.35rem); }
+
+/* ==========================================================================
+   HERO 3D LOADER — shown while the lazy three.js chunk downloads
+   --------------------------------------------------------------------------
+   Pure CSS on purpose: it must paint from the INITIAL bundle, so it cannot
+   depend on anything that ships in the chunk it is waiting for.
+   ========================================================================== */
+.hero-loader { position: absolute; inset: 0; z-index: 2; display: grid;
+  place-content: center; justify-items: center; gap: 1.15rem;
+  background: var(--ink-900); pointer-events: none; }
+.hero-loader__ring { width: 46px; height: 46px; border-radius: 50%;
+  border: 2px solid rgba(var(--accent-rgb), 0.16);
+  border-top-color: var(--accent);
+  box-shadow: 0 0 26px rgba(var(--accent-rgb), 0.45), inset 0 0 14px rgba(var(--accent-rgb), 0.18);
+  animation: heroLoaderSpin 0.9s linear infinite; }
+.hero-loader__label { font-family: var(--font-grotesk); font-weight: 600;
+  font-size: 0.66rem; letter-spacing: 0.32em; text-transform: uppercase;
+  color: rgba(248,248,246,0.55); }
+@keyframes heroLoaderSpin { to { transform: rotate(360deg); } }
+/* A spinner is decoration; if motion is unwelcome, hold a steady glow instead
+   of removing the only signal that something is loading. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-loader__ring { animation: none; border-top-color: rgba(var(--accent-rgb), 0.7); }
+}

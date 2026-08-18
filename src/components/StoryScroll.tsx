@@ -9,6 +9,7 @@ import { scrollToId } from '../hooks/useLenis';
 import { useUI } from '../context/UIContext';
 import { isCapture } from '../lib/capture';
 import Ribbon from './Ribbon';
+import HeroLoader from './HeroLoader';
 import HeroWireframe, { P1_T, P2_T, type WireHandle } from './HeroWireframe';
 import type { ThreeHandle } from './HeroThree';
 import { HERO_FRAMES } from '../lib/media';
@@ -411,7 +412,7 @@ export default function StoryScroll() {
           /* Real 3D — one WebGL canvas, camera cranes and orbits as it builds.
              No fallback element behind it: the ink-900 section colour already
              shows through while the chunk loads, so there is nothing to flash. */
-          <Suspense fallback={null}>
+          <Suspense fallback={<HeroLoader />}>
             <HeroThree ref={three} className="story__three" />
           </Suspense>
         ) : (
