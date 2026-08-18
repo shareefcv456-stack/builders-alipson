@@ -225,7 +225,8 @@
 @keyframes cueBob { 0%, 100% { transform: translateY(-3px); opacity: 0.55; } 50% { transform: translateY(4px); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .story__cue svg { animation: none; } }
 
-.ribbon { border-block: 1px solid var(--border); }
+/* No border-block: the stats are separate floating cards now, not one ruled bar. */
+.ribbon { border-block: none; }
 /* Brand underline under each metric — a red gradient that fades out at both
    ends, plus a soft glow. Sized to the number, not the cell, so it reads as an
    underline rather than a divider. */
@@ -234,13 +235,97 @@
   width: 58px; height: 2px; transform: translateX(-50%); border-radius: 2px;
   background: linear-gradient(90deg, transparent, var(--accent) 35%, var(--accent) 65%, transparent);
   box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.65); }
-.ribbon__grid { display: grid; grid-template-columns: repeat(4, 1fr); }
-.ribbon__cell { padding: clamp(2rem, 4vw, 3.4rem) 1.5rem; text-align: center; border-left: 1px solid var(--border); }
-.ribbon__cell:first-child { border-left: none; }
-.ribbon__num { font-family: var(--font-display); font-weight: 300; font-size: clamp(2.2rem, 5vw, 3.6rem); color: #f8f8f6; letter-spacing: -0.02em; }
-.ribbon__num em { font-style: normal; color: var(--accent-soft); }
+.ribbon__grid { display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: clamp(0.7rem, 1.6vw, 1.15rem); padding-inline: clamp(0.9rem, 3vw, 2rem); }
+/* ARCHITECTURAL CHAMFERED STAT CARD
+   --------------------------------------------------------------------------
+   Three nested layers, and the nesting is not decorative — it is forced by two
+   facts about clip-path:
+
+     1. clip-path clips the element's ENTIRE rendering, including its `border`
+        AND its `box-shadow`. A chamfered card therefore cannot draw its edge
+        with `border`, and cannot glow with `box-shadow`.
+     2. An ancestor carrying `filter` establishes a backdrop root, which makes a
+        descendant's `backdrop-filter` sample nothing and silently do nothing.
+
+   So: the glow is a BLURRED SIBLING (::before) inside an unclipped wrapper, the
+   1px crimson edge is a clipped layer whose 1px padding reveals itself around
+   the face, and the face carries the glass. Collapse these and you lose the
+   bevel, the edge, or the blur — pick any one.                                */
+.ribbon__cell {
+  --chamfer: 20px;
+  position: relative;                     /* unclipped: the glow needs to escape */
+  transition: transform 0.45s var(--ease-lux);
+}
+/* Outer crimson glow. A sibling of the edge, never an ancestor of the face, so
+   its `filter` cannot kill the backdrop blur. */
+.ribbon__cell::before {
+  content: ''; position: absolute; inset: 2px; z-index: 0;
+  clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
+  background: rgba(var(--accent-rgb), 0.5);
+  filter: blur(16px);
+  opacity: 0;
+  transition: opacity 0.45s var(--ease-lux);
+  pointer-events: none;
+}
+/* No transform here — see the whileHover note in Ribbon.tsx. */
+.ribbon__cell:hover::before { opacity: 1; }
+
+/* The 1px crimson edge: a clipped block whose padding is the edge thickness. */
+.ribbon__cell-edge {
+  position: relative; z-index: 1; height: 100%; padding: 1px;
+  clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
+  background: linear-gradient(150deg,
+    rgba(var(--accent-rgb), 0.55) 0%,
+    rgba(var(--accent-rgb), 0.22) 42%,
+    rgba(255, 255, 255, 0.1) 100%);
+  transition: background 0.45s var(--ease-lux);
+}
+.ribbon__cell:hover .ribbon__cell-edge {
+  background: linear-gradient(150deg,
+    rgba(var(--accent-rgb), 0.95) 0%,
+    rgba(var(--accent-rgb), 0.45) 46%,
+    rgba(255, 255, 255, 0.16) 100%);
+}
+
+.ribbon__cell-face {
+  position: relative; height: 100%;
+  padding: clamp(1.5rem, 3vw, 2rem) clamp(1rem, 2.2vw, 1.6rem);
+  text-align: center;
+  /* Chamfer inset by the 1px edge, so the bevel stays parallel. */
+  clip-path: polygon(0 0, calc(100% - var(--chamfer) + 1px) 0, 100% calc(var(--chamfer) - 1px), 100% 100%, 0 100%);
+  background: rgba(15, 16, 22, 0.75);
+  backdrop-filter: blur(16px) saturate(115%);
+  -webkit-backdrop-filter: blur(16px) saturate(115%);
+}
+/* Blueprint grid inside the card at 5% — drawn with gradients, no asset. */
+.ribbon__cell-face::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  opacity: 0.05;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.9) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.9) 0 1px, transparent 1px 22px);
+}
+/* Inner top light: the highlight `inset 0 1px 0 0 rgba(255,255,255,0.1)` would
+   give, done as a gradient because inset shadows are clipped too. It stops
+   short of the bevel so it never crosses the cut corner. */
+.ribbon__cell-face::after {
+  content: ''; position: absolute; top: 0; left: 0;
+  width: calc(100% - var(--chamfer)); height: 1px; z-index: 1; pointer-events: none;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.16) 45%, rgba(255,255,255,0.05));
+}
+.ribbon__cell-face > * { position: relative; z-index: 2; }
+
+@media (prefers-reduced-transparency: reduce) {
+  .ribbon__cell-face { backdrop-filter: none; -webkit-backdrop-filter: none;
+    background: rgba(15, 16, 22, 0.96); }
+}
+.ribbon__num { font-family: var(--font-display); font-weight: 800; font-size: clamp(2.2rem, 5vw, 3.6rem); color: #f8f8f6; letter-spacing: -0.02em; }
+.ribbon__num em { font-style: normal; color: var(--accent); font-weight: 700; }
 .ribbon__label { margin-top: 0.4rem; font-size: 0.74rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(248,248,246,0.62); }
-@media (max-width: 720px) { .ribbon__grid { grid-template-columns: repeat(2, 1fr); } .ribbon__cell:nth-child(3) { border-left: none; } .ribbon__cell:nth-child(odd) { border-left: none; } .ribbon__cell:nth-child(n+3) { border-top: 1px solid var(--border); } }
+/* Two-up on narrow screens. The old border resets here are gone with the
+   rules they reset — these cards have no borders to clear. */
+@media (max-width: 720px) { .ribbon__grid { grid-template-columns: repeat(2, 1fr); } }
 
 /* ==========================================================================
    ABOUT / STUDIO
@@ -652,11 +737,21 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   padding: 0 var(--pad-x) clamp(3.5rem, 13vh, 9rem); max-width: 900px; pointer-events: none; }
 .story--static .story__finale-copy { opacity: 1; visibility: visible; }
 .story__eyebrow { color: var(--accent-soft); margin-bottom: 1rem; }
-.story__headline { font-family: var(--font-display); font-weight: 300; font-size: clamp(2rem, 5.8vw, 4.6rem); line-height: 1.05; color: #fafafa; text-shadow: 0 2px 40px rgba(0,0,0,0.4); }
+/* Heading and subtext are deliberately separated on THREE axes at once —
+   weight (800 vs 400), colour (near-white vs muted grey) and measure (600px vs
+   480px). Changing only the size gives a bigger heading, not a hierarchy. */
+.story__headline { font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(1.5rem, 3.2vw, 1.95rem); line-height: 1.08; letter-spacing: -0.015em;
+  color: #fafafa; max-width: 600px;
+  /* `balance` evens the two lines instead of leaving a one-word orphan. */
+  text-wrap: balance;
+  text-shadow: 0 2px 40px rgba(0,0,0,0.4); }
 .story__headline em { font-style: italic; color: var(--accent-soft); }
 /* Phase subtitle. `max-width` in ch, not px — it has to hold a 12-word line and
    a 5-word one without the block visibly changing shape between beats. */
-.story__sub { margin-top: 1rem; max-width: 46ch; font-size: clamp(0.95rem, 1.5vw, 1.12rem);
+.story__sub { margin-top: 1.05rem; max-width: 480px; font-weight: 400;
+  font-family: var(--font-grotesk); text-wrap: balance;
+  font-size: clamp(0.95rem, 1.4vw, 1.08rem);
   line-height: 1.6; color: rgba(248,248,246,0.78); }
 .story__cta { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; pointer-events: auto; }
 /* The copy block is absolutely positioned and its height changes with each
@@ -674,7 +769,12 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 
 /* Phase 1 — 3D architectural gate. Above the copy (z-30): the doors are the
    outermost layer and everything resolves out from behind them. */
-.story__gate { position: absolute; inset: 0; z-index: 40; }
+/* z-40 keeps the shutter above the copy, but the container spans the whole
+   stage and never shrinks — its children just translate away. Without this it
+   goes on intercepting every pointer event underneath it for the rest of the
+   scroll, which silently killed the "Watch Story" button and the stat cards'
+   hover. The gate is decoration; it never needs a click. */
+.story__gate { position: absolute; inset: 0; z-index: 40; pointer-events: none; }
 .story__gate-l, .story__gate-r { position: absolute; top: 0; height: 100%; width: 50%; will-change: transform;
   background: linear-gradient(100deg, #0c1220 0%, #1b2335 60%, #0c1220 100%); }
 .story__gate-l { left: 0; box-shadow: inset -55px 0 100px -55px #000; }
@@ -881,7 +981,7 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .story--3d .story__headline { color: #f6f8fb; }
 .story--3d .story__headline em { color: var(--accent); }
 .story--3d .story__eyebrow { color: var(--accent-soft); }
-.story--3d .story__sub { color: rgba(232,238,246,0.82); }
+.story--3d .story__sub { color: #a0a5b5; }
 .story--3d .story__eyebrow::before { background: var(--accent-soft); }
 /* NO CARD. The copy floats directly on the render — no panel, no border, no
    backdrop-filter. (The glass card that lived here was removed at the client's

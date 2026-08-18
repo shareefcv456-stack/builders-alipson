@@ -586,6 +586,14 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     sign.position.set(0, TOP - 0.62, BD / 2 + 0.1);
     sign.visible = false;
     world.add(sign);
+    /* A dedicated wash on the signage. Emissive alone makes the letters bright
+       but leaves them flat against the facade; a light in FRONT of them lifts
+       the band they sit on, which is what reads as premium illuminated signage.
+       Short range (4.5) on purpose — it must not spill onto the whole elevation
+       and wash out the glazing. */
+    const signLight = new THREE.PointLight(0xc8102e, 0, 4.5, 2);
+    signLight.position.set(0, TOP - 0.62, BD / 2 + 1.15);
+    world.add(signLight);
 
     const canopy = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 1.3), steelDark);
     canopy.position.set(0, 1.05, BD / 2 + 0.55);
@@ -1492,7 +1500,8 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       sign.visible = brandIn > 0.02;
       sign.scale.set(brandIn, brandIn, 1);
       brandMat.opacity = brandIn;
-      brandMat.emissiveIntensity = brandIn * (0.22 + ease(span(0.68, 0.9, t)) * 0.38);
+      brandMat.emissiveIntensity = brandIn * (0.3 + ease(span(0.68, 0.9, t)) * 0.5);
+      signLight.intensity = brandIn * ease(span(0.66, 0.9, t)) * 1.2;
       plates.forEach((m, k) => {
         const s = s0(stagger(t, 0.26, 0.42, k, plates.length));
         m.scale.set(s, 1, s);

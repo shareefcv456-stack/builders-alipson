@@ -465,7 +465,11 @@ export default function StoryScroll() {
               {/* No `text-white` utility here — colour belongs to .story__headline,
                   which the daylight theme overrides. A Tailwind colour utility on
                   the element wins the cascade and pins it white on a white sky. */}
-              <h1 className="story__headline text-left text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+              {/* Sizing and weight belong to .story__headline, NOT Tailwind utilities.
+                  `text-3xl` was winning the cascade and pinning this to 30px/700,
+                  which killed both the clamp() and the 800 weight — the same trap
+                  `text-white` caused here before. */}
+              <h1 className="story__headline text-left">
                 {PHASES[phase].title}<em>{PHASES[phase].accent}</em>
               </h1>
               <p className="story__sub">{PHASES[phase].sub}</p>
