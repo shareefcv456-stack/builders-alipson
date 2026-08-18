@@ -405,7 +405,7 @@ export default function StoryScroll() {
   }, [still, pinned]);
 
   return (
-    <section id="hero" className={`story ${still ? 'story--static' : ''} ${is3D ? 'story--day' : ''}`} ref={root} aria-label="Alipson Builders — a project from excavation to handover">
+    <section id="hero" className={`story ${still ? 'story--static' : ''} ${is3D ? 'story--3d' : ''}`} ref={root} aria-label="Alipson Builders — a project from excavation to handover">
       <div className="story__stage">
         {is3D ? (
           /* Real 3D — one WebGL canvas, camera cranes and orbits as it builds.

@@ -7,7 +7,7 @@
 .logo-text { display: flex; flex-direction: column; line-height: 1; }
 .logo-name {
   font-family: var(--font-grotesk); font-weight: 800; font-size: 1.25rem; letter-spacing: 0.05em;
-  background: linear-gradient(120deg, #e8615b 0%, #d32f2f 48%, #9a0007 74%, #9a0007 100%);
+  background: linear-gradient(120deg, #e8615b 0%, #c8102e 48%, #9a0007 74%, #9a0007 100%);
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
 }
 .logo-name, .logo-sub { white-space: nowrap; }
@@ -856,11 +856,11 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .story__three canvas { display: block; width: 100%; height: 100%; }
 
 /* ==========================================================================
-   DAYLIGHT STUDIO — 3D hero only (.story--day). Scoped, because ?flat runs
+   DAYLIGHT STUDIO — 3D hero only (.story--3d). Scoped, because ?flat runs
    white copy over dark photography and every rule here would invert it.
    ========================================================================== */
-/* Matches the WebGL sky ramp, so there is no dark flash before the chunk loads. */
-.story--day { background: linear-gradient(to bottom, #f8fafc, #e2e8f0); }
+/* Matches the WebGL sky ramp, so there is no flash before the chunk loads. */
+.story--3d { background: linear-gradient(to bottom, #0f1115, #2b2029); }
 
 /* The copy moves OFF the bottom edge in daylight. It has to: the bottom of the
    hero still fades to --ink-900 to hand off to the dark stats ribbon, and dark
@@ -871,59 +871,44 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
    off-screen — so it lost its radius and read as a bar across the viewport.
    Here the element itself is offset and width-limited, so all four corners of
    the glass are visible. */
-.story--day .story__finale-copy {
+.story--3d .story__finale-copy {
   top: clamp(7rem, 17vh, 11rem); bottom: auto;
   left: var(--pad-x); right: auto;
   width: min(38rem, 52vw); padding: 0; }
 @media (max-width: 760px) {
-  .story--day .story__finale-copy { width: calc(100% - var(--pad-x) * 2); }
+  .story--3d .story__finale-copy { width: calc(100% - var(--pad-x) * 2); }
 }
-.story--day .story__headline { color: #0f172a; text-shadow: 0 1px 2px rgba(255,255,255,0.55); }
-.story--day .story__headline em { color: var(--accent); }
-.story--day .story__eyebrow { color: var(--accent); }
-.story--day .story__sub { color: #33415a; }
-.story--day .story__eyebrow::before { background: var(--accent); }
-/* GLASS CARD, not a scrim.
-   `backdrop-filter` is normally banned here — it blurs its box uniformly and
-   stops dead at the edge, which drew a hard seam across the render (the phase-C
-   bug). It is safe in THIS form and only this form: the panel has a visible
-   border and a radius, so the blur boundary is an intentional card edge rather
-   than a mystery line across a photograph. Remove the border or the radius and
-   the seam is back.
-   Ultra-light on purpose — the point is to lift the copy off a moving 3D
-   background, not to put a white box over it. */
-.story--day .story__finale-copy::before {
-  /* Fixed rems, not percentages — the copy block's height changes with each
-     phase's line count, and a percentage inset made the card's padding breathe
-     in and out as the text swapped. */
-  inset: -1.6rem -1.9rem -1.8rem -1.9rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px) saturate(115%);
-  -webkit-backdrop-filter: blur(10px) saturate(115%);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 8px 40px rgba(15, 23, 42, 0.07); }
+.story--3d .story__headline { color: #f6f8fb; }
+.story--3d .story__headline em { color: var(--accent); }
+.story--3d .story__eyebrow { color: var(--accent-soft); }
+.story--3d .story__sub { color: rgba(232,238,246,0.82); }
+.story--3d .story__eyebrow::before { background: var(--accent-soft); }
+/* NO CARD. The copy floats directly on the render — no panel, no border, no
+   backdrop-filter. (The glass card that lived here was removed at the client's
+   request; if it ever comes back it must keep its border AND radius, or the
+   blur boundary reads as a seam across the render — see backdrop-filter-seam.) */
+.story--3d .story__finale-copy::before { content: none; }
 
-/* Dark type on a bright, MOVING background needs both halves: the dark drop
-   shadow gives weight over pale sky and concrete, the light halo keeps it
-   readable when the hoarding or the building's own glass slides underneath. */
-.story--day .story__headline {
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3), 0 0 22px rgba(248, 250, 252, 0.9); }
-.story--day .story__sub {
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.22), 0 0 14px rgba(248, 250, 252, 0.85); }
-.story--day .story__eyebrow { text-shadow: 0 1px 8px rgba(248, 250, 252, 0.95); }
-
-@media (prefers-reduced-transparency: reduce) {
-  .story--day .story__finale-copy::before {
-    backdrop-filter: none; -webkit-backdrop-filter: none;
-    background: rgba(248, 250, 252, 0.78); }
-}
+/* With no panel behind it, every bit of legibility now comes from the type
+   itself. `filter: drop-shadow` on the wrapper follows the glyph outlines
+   rather than the box, so it stays a shadow on letterforms and never draws an
+   edge. The per-element `text-shadow` halos underneath do the heavy lifting
+   where the render goes dark (hoarding, glazing, asphalt) — a dark drop shadow
+   alone cannot rescue dark text sliding over a dark object. */
+.story--3d .story__finale-copy > div {
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.55)); }
+.story--3d .story__headline {
+  text-shadow: 0 2px 18px rgba(6,8,12,0.9), 0 0 44px rgba(6,8,12,0.7); }
+.story--3d .story__sub {
+  text-shadow: 0 2px 14px rgba(6,8,12,0.9), 0 0 30px rgba(6,8,12,0.65); }
+.story--3d .story__eyebrow {
+  text-shadow: 0 2px 12px rgba(6,8,12,0.95); }
 /* Vignette only at the bottom, and only to carry the eye into the dark ribbon. */
-.story--day .story__grade {
+.story--3d .story__grade {
   background: linear-gradient(180deg, transparent 0%, transparent 62%, rgba(15,23,42,0.28) 84%, var(--ink-900) 100%); }
 /* The watch button is a light-on-dark ghost by default — invert it on daylight. */
-.story--day .btn-watch { color: #0f172a; border-color: rgba(15,23,42,0.22); background: rgba(255,255,255,0.62); }
-.story--day .btn-watch:hover { background: #fff; border-color: rgba(var(--accent-rgb), 0.5); }
+.story--3d .btn-watch { color: #f2f5f9; border-color: rgba(255,255,255,0.26); background: rgba(255,255,255,0.07); }
+.story--3d .btn-watch:hover { background: rgba(255,255,255,0.14); border-color: rgba(var(--accent-rgb), 0.6); }
 
 /* Phase 4 — interior lights coming on. `screen` so it adds light to the glass
    rather than laying a warm film over the whole frame; centred on the volume,
@@ -934,3 +919,63 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   background:
     radial-gradient(34% 26% at 50% 46%, rgba(255,196,124,0.5) 0%, rgba(255,168,92,0.2) 45%, transparent 76%),
     radial-gradient(52% 40% at 50% 52%, rgba(255,150,80,0.14) 0%, transparent 72%); }
+
+
+/* ==========================================================================
+   GLASSMORPHISM SURFACES — lower sections
+   --------------------------------------------------------------------------
+   One rule set, applied to every card that used to be an opaque panel. The
+   crimson border at 0.2 alpha is what ties them to the brand without painting
+   anything red; at full strength it reads as a warning box, not a card.
+
+   NOTE ON backdrop-filter: these are CARDS — they have a border AND a radius,
+   so the blur boundary is an intentional edge. That is the one safe form (see
+   the hero: a borderless blurred scrim over the render draws a seam). Do not
+   strip the border or the radius from these.
+   ========================================================================== */
+.gate__card,
+.nunny__stat,
+.intro__copy,
+.contact__form,
+.faq__item,
+.testimonial__card,
+.process__step {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(200, 16, 46, 0.2);
+  border-radius: var(--radius);
+}
+.gate__card:hover,
+.faq__item:hover,
+.testimonial__card:hover {
+  border-color: rgba(200, 16, 46, 0.42);
+  background: rgba(255, 255, 255, 0.055);
+}
+/* The blur is decoration; if the OS asks for less transparency, drop to a flat
+   tint rather than leaving unreadable text over a busy background. */
+@media (prefers-reduced-transparency: reduce) {
+  .gate__card, .nunny__stat, .intro__copy, .contact__form,
+  .faq__item, .testimonial__card, .process__step {
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+    background: rgba(18, 20, 26, 0.92);
+  }
+}
+
+/* ==========================================================================
+   FLUID TYPOGRAPHY
+   --------------------------------------------------------------------------
+   clamp() on every title, so long words stop breaking the layout on narrow
+   screens. The middle term is vw-based, which is what makes it fluid rather
+   than stepping at breakpoints.
+   ========================================================================== */
+.section__title, .intro__title, .founder__name, .studio__title,
+.gate__card h3, .cta__title, .nunny__intro h3 {
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+  line-height: 1.12;
+  /* Long compound words (ARCHITECTURAL, INFRASTRUCTURE) overflow narrow
+     columns otherwise — this breaks them instead of the layout. */
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+.gate__card h3, .nunny__intro h3 { font-size: clamp(1.05rem, 2.2vw, 1.35rem); }

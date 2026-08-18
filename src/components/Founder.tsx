@@ -37,8 +37,8 @@ export default function Founder() {
             <RevealText className="title founder__title !text-[#1A1D20]" lines={[<>{FOUNDER.title}</>, <em>{FOUNDER.titleEm}</em>]} />
 
             <Reveal dir="up" delay={0.1}>
-              <blockquote className="founder__quote !text-gray-800 border-l-4 border-[#D32F2F] pl-6 my-8 font-medium italic text-lg sm:text-xl">
-                <Quote size={26} className="founder__quote-mark text-[#D32F2F] mb-2" />
+              <blockquote className="founder__quote !text-gray-800 border-l-4 border-[#C8102E] pl-6 my-8 font-medium italic text-lg sm:text-xl">
+                <Quote size={26} className="founder__quote-mark text-[#C8102E] mb-2" />
                 {FOUNDER.quote}
               </blockquote>
             </Reveal>

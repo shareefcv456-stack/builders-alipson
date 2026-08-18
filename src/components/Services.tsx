@@ -29,8 +29,8 @@ export default function Services() {
       <AmbientCanvas variant="assembly" className="z-10" />
       <div className="container relative z-20">
         <div className="section-head">
-          <Reveal><span className="eyebrow !text-[#D32F2F]">Capabilities</span></Reveal>
-          <RevealText className="title" lines={[<>Every discipline,</>, <>under <em className="!text-[#D32F2F]">one roof.</em></>]} />
+          <Reveal><span className="eyebrow !text-[#C8102E]">Capabilities</span></Reveal>
+          <RevealText className="title" lines={[<>Every discipline,</>, <>under <em className="!text-[#C8102E]">one roof.</em></>]} />
         </div>
         <Stagger className="services__grid">
           {SERVICES.map((s) => (

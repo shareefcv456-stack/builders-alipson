@@ -184,6 +184,115 @@ export function dirtMaps(size = 256): SurfaceMaps {
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 
 /**
+ * Asphalt: dark bitumen with visible aggregate. The aggregate is the whole
+ * point — a flat dark plane reads as a shadow, not a road surface.
+ */
+export function asphaltMaps(size = 256): SurfaceMaps {
+  const height = new Float32Array(size * size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = y * size + x;
+      // Fine chip texture plus a low-frequency wear pattern.
+      const chip = h2(x >> 1, y >> 1, 313);
+      height[i] = fbm(x / size, y / size, 4, 22, 5) * 0.5
+        + fbm(x / size, y / size, 2, 3, 77) * 0.2
+        + (chip > 0.965 ? 0.5 : chip > 0.93 ? 0.24 : 0);
+    }
+  }
+  const mk = () => {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    return { c, d: c.getContext('2d')!.createImageData(size, size) };
+  };
+  const albedo = mk(), rough = mk(), norm = mk();
+  const at = (x: number, y: number) => height[((y + size) % size) * size + ((x + size) % size)];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4, h = height[y * size + x];
+      const v = 42 + h * 78;
+      albedo.d.data[i] = v; albedo.d.data[i + 1] = v * 1.02; albedo.d.data[i + 2] = v * 1.08;
+      albedo.d.data[i + 3] = 255;
+      const r = Math.max(0, Math.min(1, 0.94 - h * 0.3));
+      rough.d.data[i] = rough.d.data[i + 1] = rough.d.data[i + 2] = r * 255;
+      rough.d.data[i + 3] = 255;
+      const dx = (at(x + 1, y) - at(x - 1, y)) * 2.6, dy = (at(x, y + 1) - at(x, y - 1)) * 2.6;
+      const len = Math.hypot(dx, dy, 1);
+      norm.d.data[i] = ((-dx / len) * 0.5 + 0.5) * 255;
+      norm.d.data[i + 1] = ((-dy / len) * 0.5 + 0.5) * 255;
+      norm.d.data[i + 2] = (1 / len * 0.5 + 0.5) * 255;
+      norm.d.data[i + 3] = 255;
+    }
+  }
+  const tex = (o: { c: HTMLCanvasElement; d: ImageData }, srgb: boolean) => {
+    o.c.getContext('2d')!.putImageData(o.d, 0, 0);
+    const t = new THREE.CanvasTexture(o.c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  };
+  return { map: tex(albedo, true), normalMap: tex(norm, false), roughnessMap: tex(rough, false) };
+}
+
+/**
+ * Paving: concrete slabs on a grid, with recessed joints. One tile of the
+ * texture is one 2×2 slab block, so the repeat controls slab size directly.
+ */
+export function pavingMaps(size = 256): SurfaceMaps {
+  const c1 = document.createElement('canvas'); c1.width = c1.height = size;
+  const g = c1.getContext('2d')!;
+  const half = size / 2;
+  // Slab faces, each very slightly different in value so the grid is not a
+  // repeating stamp.
+  for (let sy = 0; sy < 2; sy++) {
+    for (let sx = 0; sx < 2; sx++) {
+      const v = 196 + (h2(sx, sy, 41) - 0.5) * 18;
+      g.fillStyle = `rgb(${v},${v + 2},${v + 5})`;
+      g.fillRect(sx * half, sy * half, half, half);
+    }
+  }
+  // Joints.
+  g.fillStyle = 'rgba(120,124,130,0.85)';
+  const j = Math.max(2, size / 90);
+  g.fillRect(half - j / 2, 0, j, size);
+  g.fillRect(0, half - j / 2, size, j);
+  g.fillRect(0, 0, j / 2, size); g.fillRect(size - j / 2, 0, j / 2, size);
+  g.fillRect(0, 0, size, j / 2); g.fillRect(0, size - j / 2, size, j / 2);
+
+  // Normal + roughness derived from the joint mask, so joints read as recessed.
+  const src = g.getImageData(0, 0, size, size);
+  const nrm = document.createElement('canvas'); nrm.width = nrm.height = size;
+  const rgh = document.createElement('canvas'); rgh.width = rgh.height = size;
+  const nd = nrm.getContext('2d')!.createImageData(size, size);
+  const rd = rgh.getContext('2d')!.createImageData(size, size);
+  const lum = (x: number, y: number) => src.data[(((y + size) % size) * size + ((x + size) % size)) * 4] / 255;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4;
+      const dx = (lum(x + 1, y) - lum(x - 1, y)) * 3.5, dy = (lum(x, y + 1) - lum(x, y - 1)) * 3.5;
+      const len = Math.hypot(dx, dy, 1);
+      nd.data[i] = ((-dx / len) * 0.5 + 0.5) * 255;
+      nd.data[i + 1] = ((-dy / len) * 0.5 + 0.5) * 255;
+      nd.data[i + 2] = (1 / len * 0.5 + 0.5) * 255;
+      nd.data[i + 3] = 255;
+      const r = (0.96 - lum(x, y) * 0.16) * 255;
+      rd.data[i] = rd.data[i + 1] = rd.data[i + 2] = r;
+      rd.data[i + 3] = 255;
+    }
+  }
+  nrm.getContext('2d')!.putImageData(nd, 0, 0);
+  rgh.getContext('2d')!.putImageData(rd, 0, 0);
+  const wrap = (cv: HTMLCanvasElement, srgb: boolean) => {
+    const t = new THREE.CanvasTexture(cv);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  };
+  return { map: wrap(c1, true), normalMap: wrap(nrm, false), roughnessMap: wrap(rgh, false) };
+}
+
+/**
  * Distant city skyline as an alpha silhouette strip, for a backdrop cylinder.
  * Deliberately flat and hazy — it sits ~90 units out and only has to give the
  * horizon something other than empty sky.
@@ -370,4 +479,89 @@ export function cityEnvironment(sunDir: THREE.Vector3): THREE.Scene {
   }
 
   return env;
+}
+
+/** Mown lawn — fine blade noise, no large-scale structure (that reads as moss). */
+export function grassMaps(size = 256): SurfaceMaps {
+  const height = new Float32Array(size * size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      // Stretched vertically so the grain reads as blades, plus a faint
+      // low-frequency band for mower stripes.
+      height[y * size + x] = fbm(x / size * 2.2, y / size * 0.4, 4, 26, 13) * 0.8
+        + Math.sin((y / size) * Math.PI * 6) * 0.06;
+    }
+  }
+  const mk = () => {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    return { c, d: c.getContext('2d')!.createImageData(size, size) };
+  };
+  const albedo = mk(), rough = mk(), norm = mk();
+  const at = (x: number, y: number) => height[((y + size) % size) * size + ((x + size) % size)];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4, h = height[y * size + x];
+      albedo.d.data[i] = 58 + h * 46;
+      albedo.d.data[i + 1] = 96 + h * 62;
+      albedo.d.data[i + 2] = 48 + h * 38;
+      albedo.d.data[i + 3] = 255;
+      const r = Math.max(0, Math.min(1, 0.93 - h * 0.12));
+      rough.d.data[i] = rough.d.data[i + 1] = rough.d.data[i + 2] = r * 255;
+      rough.d.data[i + 3] = 255;
+      const dx = (at(x + 1, y) - at(x - 1, y)) * 3.4, dy = (at(x, y + 1) - at(x, y - 1)) * 3.4;
+      const len = Math.hypot(dx, dy, 1);
+      norm.d.data[i] = ((-dx / len) * 0.5 + 0.5) * 255;
+      norm.d.data[i + 1] = ((-dy / len) * 0.5 + 0.5) * 255;
+      norm.d.data[i + 2] = (1 / len * 0.5 + 0.5) * 255;
+      norm.d.data[i + 3] = 255;
+    }
+  }
+  const tex = (o: { c: HTMLCanvasElement; d: ImageData }, srgb: boolean) => {
+    o.c.getContext('2d')!.putImageData(o.d, 0, 0);
+    const t = new THREE.CanvasTexture(o.c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  };
+  return { map: tex(albedo, true), normalMap: tex(norm, false), roughnessMap: tex(rough, false) };
+}
+
+/**
+ * Curtain-wall façade for the background towers: a grid of tinted glass panes
+ * with mullions between them. One tile = one floor of bays, so the repeat sets
+ * the storey height directly.
+ */
+export function facadeTexture(size = 256): { map: THREE.Texture; emissive: THREE.Texture } {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d')!;
+  const e = document.createElement('canvas'); e.width = e.height = size;
+  const ge = e.getContext('2d')!;
+  g.fillStyle = '#8d97a6'; g.fillRect(0, 0, size, size);      // spandrel / frame
+  ge.fillStyle = '#000000'; ge.fillRect(0, 0, size, size);
+  const COLS = 6, ROWS = 4;
+  const cw = size / COLS, rh = size / ROWS;
+  for (let r = 0; r < ROWS; r++) {
+    for (let cx = 0; cx < COLS; cx++) {
+      const k = h2(cx, r, 17);
+      // Tinted glass, varying pane to pane — a uniform grid reads as a texture,
+      // a varied one reads as a building.
+      const b = 96 + k * 58;
+      g.fillStyle = `rgb(${Math.round(b * 0.78)},${Math.round(b * 0.9)},${Math.round(b)})`;
+      g.fillRect(cx * cw + cw * 0.1, r * rh + rh * 0.14, cw * 0.8, rh * 0.62);
+      // A minority of panes are lit from inside.
+      if (k > 0.82) {
+        ge.fillStyle = `rgba(255,214,150,${0.35 + k * 0.4})`;
+        ge.fillRect(cx * cw + cw * 0.1, r * rh + rh * 0.14, cw * 0.8, rh * 0.62);
+      }
+    }
+  }
+  const wrap = (cv: HTMLCanvasElement) => {
+    const t = new THREE.CanvasTexture(cv);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  };
+  return { map: wrap(c), emissive: wrap(e) };
 }

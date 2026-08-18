@@ -1,0 +1,12 @@
+sky_1k.hdr
+  Poly Haven — "Autumn Field Pure Sky", 1K HDR (~1.0 MB)
+  https://polyhaven.com/a/autumn_field_puresky
+  Licence: CC0 (public domain). No attribution required; recorded here anyway.
+
+Used by src/components/HeroThree.tsx as the scene environment map (RGBELoader →
+PMREMGenerator). If this file is absent the component falls back to the
+procedural cityEnvironment() in src/lib/procTex.ts, so the hero never breaks.
+
+To swap: drop any equirectangular .hdr in here under the same name. 1K is
+deliberate — it is only ever convolved into an environment map, so 2K/4K costs
+megabytes for no visible gain.

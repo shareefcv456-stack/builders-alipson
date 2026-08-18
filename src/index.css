@@ -1,6 +1,6 @@
 /* ==========================================================================
    ALIPSON BUILDERS — CINEMATIC LUXURY DESIGN SYSTEM 2026
-   White & Red theme · crisp white surfaces · Alipson logo red (#D32F2F)
+   White & Red theme · crisp white surfaces · Alipson logo red (#C8102E)
    ========================================================================== */
 
 /* Google Fonts now preloaded in index.html for performance */
@@ -10,7 +10,7 @@
    -------------------------------------------------------------------------- */
 :root {
   /* Alipson brand · premium near-black + brand red · warm white text */
-  --ink-900: #0a0a0a;    /* premium dark */
+  --ink-900: #0b0c10;    /* matte obsidian — matches the 3D canvas ground */
   --ink-850: #0d0d0d;
   --ink-800: #111111;
   --ink-700: #181818;
@@ -20,13 +20,13 @@
   --bone-200: #ececec;
   --bone-300: #d9d9d9;   /* concrete grey */
 
-  --accent:      #d32f2f;   /* Alipson logo red */
-  --accent-soft: #e8615b;   /* lighter red — accents on dark surfaces */
+  --accent:      #c8102e;   /* Alipson crimson */
+  --accent-soft: #e8455f;   /* lighter crimson — accents on dark surfaces */
   --accent-deep: #9a0007;   /* deep red */
   --ember:       #9a0007;
-  --ember-soft:  #d32f2f;
+  --ember-soft:  #c8102e;
 
-  --accent-rgb: 211, 47, 47;
+  --accent-rgb: 200, 16, 46;
   --ember-rgb:  154, 0, 7;
 
   --gold:      #d4af37;   /* champagne gold — secondary highlight */
@@ -53,9 +53,13 @@
   --shadow:      0 30px 80px -20px rgba(0, 0, 0, 0.8);
 
   /* Fonts — modern editorial sans (no decorative faces) */
-  --font-sans:    'Inter', system-ui, -apple-system, sans-serif;
-  --font-display: 'Manrope', 'Inter', system-ui, sans-serif;
-  --font-grotesk: 'Inter', system-ui, sans-serif;
+  /* Body copy. `body` reads --font-sans, NOT --font-grotesk — changing only
+     the grotesk token leaves every paragraph on the old face. */
+  --font-sans:    'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  /* Syne for display: high-contrast geometric, reads as architectural.
+     Plus Jakarta Sans for body: neutral, wide language coverage. */
+  --font-display: 'Syne', 'Manrope', system-ui, sans-serif;
+  --font-grotesk: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
 
   /* Motion */
   --ease-lux:  cubic-bezier(0.16, 1, 0.3, 1);
@@ -90,11 +94,11 @@
   --text:        #1a1d20;   /* deep charcoal, never pitch black */
   --text-soft:   rgba(26, 29, 32, 0.72);
   --text-mute:   rgba(26, 29, 32, 0.52);
-  --accent:      #d32f2f;   /* Alipson logo red */
-  --accent-soft: #b3261e;   /* deeper red — readable as text on white */
+  --accent:      #c8102e;   /* Alipson crimson */
+  --accent-soft: #9c0d24;   /* deeper crimson — readable as text on white */
   --accent-deep: #9a0007;   /* pressed / gradient end */
   --ember:       #9a0007;
-  --accent-rgb:  211, 47, 47;
+  --accent-rgb:  200, 16, 46;
   --ember-rgb:   154, 0, 7;
   --tint:        rgba(211, 47, 47, 0.08);         /* soft red glass overlay */
   --glass:       rgba(255, 255, 255, 0.80);       /* frosted white */
@@ -431,14 +435,14 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
   background-color: #0D1117 !important; 
   --bg: #0D1117;
   --bg-alt: #0D1117;
-  --accent: #D32F2F;
-  --accent-soft: #D32F2F;
+  --accent: #C8102E;
+  --accent-soft: #C8102E;
   --text: #ffffff;
   --text-soft: #ffffff;
   --text-mute: rgba(255, 255, 255, 0.8);
   color: #ffffff !important;
 }
-.text-\[\#D32F2F\] { color: #D32F2F !important; }
+.text-\[\#C8102E\] { color: #C8102E !important; }
 
 .text-gray-900\/10 { color: rgba(26, 29, 32, 0.10) !important; }
 .font-black { font-weight: 900 !important; }
@@ -578,14 +582,14 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 .text-gray-800 { color: #1f2937 !important; }
 .\!text-white { color: #ffffff !important; }
 .\!text-\[\#1A1D20\] { color: #1A1D20 !important; }
-.\!text-\[\#D32F2F\] { color: #D32F2F !important; }
+.\!text-\[\#C8102E\] { color: #C8102E !important; }
 .\!text-gray-700 { color: #374151 !important; }
 .\!text-gray-800 { color: #1f2937 !important; }
 .hover\:\!text-\[\#1A1D20\]:hover { color: #1A1D20 !important; }
 
 /* ---- Borders, radius, shadow -------------------------------------------- */
 .border-l-4 { border-left-width: 4px !important; border-left-style: solid !important; }
-.border-\[\#D32F2F\] { border-color: #D32F2F !important; }
+.border-\[\#C8102E\] { border-color: #C8102E !important; }
 .border-gray-100 { border-color: #f3f4f6 !important; }
 .border-gray-200 { border-color: #e5e7eb !important; }
 .rounded-xl { border-radius: 0.75rem !important; }

@@ -33,22 +33,22 @@ export default function Studio() {
           </Reveal>
           <Reveal dir="up" delay={0.2}>
             <div className="studio__badge glass !text-[#1A1D20] bg-[#FFFFFF]/90 backdrop-blur-md">
-              <b className="text-[#D32F2F]">15+</b>
+              <b className="text-[#C8102E]">15+</b>
               <span>Years of<br />Excellence</span>
             </div>
           </Reveal>
         </div>
 
         <div className="studio__details bg-[#FFFFFF] text-[#1A1D20] rounded-2xl p-6 sm:p-10 shadow-2xl">
-          <Reveal><span className="eyebrow !text-[#D32F2F]">The Studio</span></Reveal>
+          <Reveal><span className="eyebrow !text-[#C8102E]">The Studio</span></Reveal>
           <RevealText
             className="title !text-[#1A1D20]"
-            lines={[<>Architecture with</>, <>a sense of <em className="!text-[#D32F2F]">permanence.</em></>]}
+            lines={[<>Architecture with</>, <>a sense of <em className="!text-[#C8102E]">permanence.</em></>]}
           />
           <Reveal delay={0.1}>
-            <p className="studio__quote !text-gray-800 text-lg sm:text-xl font-medium my-6 border-l-4 border-[#D32F2F] pl-6">
+            <p className="studio__quote !text-gray-800 text-lg sm:text-xl font-medium my-6 border-l-4 border-[#C8102E] pl-6">
               "We believe architecture has the power to inspire, shape cultures and{' '}
-              <span className="text-[#D32F2F]">build lasting legacies.</span>"
+              <span className="text-[#C8102E]">build lasting legacies.</span>"
             </p>
           </Reveal>
           <Reveal delay={0.15}>
@@ -64,7 +64,7 @@ export default function Studio() {
             {HIGHLIGHTS.map((h, i) => (
               <Reveal key={h.title} delay={0.1 + i * 0.08}>
                 <div className="studio__hl flex gap-4 items-start mb-4">
-                  <div className="studio__hl-icon text-[#D32F2F] mt-1"><h.icon size={20} /></div>
+                  <div className="studio__hl-icon text-[#C8102E] mt-1"><h.icon size={20} /></div>
                   <div>
                     <h4 className="font-bold text-[#1A1D20]">{h.title}</h4>
                     <p className="text-gray-600 text-sm">{h.desc}</p>
