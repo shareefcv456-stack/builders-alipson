@@ -181,7 +181,16 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
 
       <button
         className="intro__skip"
-        onClick={(e) => { e.stopPropagation(); finish(); }}
+        /* SKIP is not the same as letting the intro run out: skipping drops you
+           straight onto the site, so the hero camera swings to the entrance gate
+           to give you something to land on. A window event rather than a prop —
+           StoryScroll owns the 3D handle and is a sibling of this component, so
+           the alternative is threading a callback through App for one cue. */
+        onClick={(e) => {
+          e.stopPropagation();
+          window.dispatchEvent(new Event('alipson:skip-intro'));
+          finish();
+        }}
         aria-label="Skip cinematic intro"
       >
         Skip intro

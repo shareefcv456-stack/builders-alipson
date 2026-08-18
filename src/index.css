@@ -10,9 +10,9 @@
    -------------------------------------------------------------------------- */
 :root {
   /* Alipson brand · premium near-black + brand red · warm white text */
-  --ink-900: #0b0c10;    /* matte obsidian — matches the 3D canvas ground */
-  --ink-850: #0d0d0d;
-  --ink-800: #111111;
+  --ink-900: #0F172A;    /* slate — every dark section on the page */
+  --ink-850: #111C33;
+  --ink-800: #16203A;
   --ink-700: #181818;
   --ink-600: #232323;
 
@@ -84,11 +84,11 @@
   --bg:          #ffffff;   /* crisp ultra-clean white */
   --bg-rgb:      255, 255, 255;
   --bg-elev:     #ffffff;   /* raised cards — separated by shadow, not fill */
-  --bg-alt:      #f8f9fa;   /* section alternate */
+  --bg-alt:      #F8FAFC;   /* section alternate */
   --bg-alt-rgb:  248, 249, 250;
-  --bg-alt-2:    #f1f3f5;   /* deeper alternate / inset wells */
+  --bg-alt-2:    #F1F5F9;   /* deeper alternate / inset wells */
   --surface:     #ffffff;   /* card fill */
-  --surface-2:   #f8f9fa;   /* icon chips, inputs, insets */
+  --surface-2:   #F8FAFC;   /* icon chips, inputs, insets */
   --border:      #eceef1;   /* neutral hairline — the resting card border */
   --border-strong: rgba(211, 47, 47, 0.30);       /* red — hover / active only */
   --text:        #1a1d20;   /* deep charcoal, never pitch black */

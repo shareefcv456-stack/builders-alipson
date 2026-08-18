@@ -3,10 +3,9 @@ import * as THREE from 'three';
 import { N8AOPass } from 'n8ao';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { concreteMaps, dirtMaps, asphaltMaps, pavingMaps, grassMaps, facadeTexture, metalRoughness, softDot, blueprintTexture, brandTexture, cityEnvironment } from '../lib/procTex';
+import { concreteMaps, asphaltMaps, pavingMaps, grassMaps, facadeTexture, metalRoughness, softDot, blueprintTexture, brandTexture, cityEnvironment } from '../lib/procTex';
 
 /**
  * The construction timeline as an architectural-visualisation render: daylight,
@@ -23,7 +22,17 @@ import { concreteMaps, dirtMaps, asphaltMaps, pavingMaps, grassMaps, facadeTextu
  *   0.60 → 0.85  P4  glass panes slide in bay by bay, interiors light warmly
  *   0.85 → 1.00  P5  site clears, landscaping resolves the finished landmark
  */
-export type ThreeHandle = { update: (t: number, tail?: number) => void };
+export type ThreeHandle = {
+  update: (t: number, tail?: number) => void;
+  /** Ease the camera onto the entrance gate. Released as soon as the user
+   *  scrolls, so it never fights the playhead for control. */
+  focusGate: () => void;
+};
+
+/** Gate framing, in WORLD-GROUP units — `world` is scaled down on phones, so
+ *  these get multiplied by that scale before the camera uses them. */
+const GATE_CAM = new THREE.Vector3(0, 2.5, 9);
+const GATE_LOOK = new THREE.Vector3(0, 1.2, 0);
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const span = (a: number, b: number, v: number) => clamp01((v - a) / (b - a));
@@ -40,8 +49,8 @@ const stagger = (t: number, a: number, b: number, i: number, n: number, overlap 
 const s0 = (v: number) => Math.max(0.0001, v);
 
 const ACCENT = 0xc8102e;   // Alipson crimson
-const SKY_TOP = '#0b0c10', SKY_BOT = '#2a1f27';   // obsidian zenith, warm horizon   // twilight: cool zenith, warm horizon
-const BW = 6.4, BD = 4.2, FLOORS = 5, FH = 1.02;
+const SKY_TOP = '#F8FAFC', SKY_BOT = '#E2E8F0';   // soft light shade — the whole page reads as one bright surface
+const BW = 6.4, BD = 4.2, FLOORS = 7, FH = 1.02;
 const TOP = FLOORS * FH;
 const PIT = 0.9;
 /** Carriageway centreline and half-width. The hoarding front sits at
@@ -81,13 +90,17 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     const el = host.current;
     if (!el) return;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    /* 1.5, not 2. Four post passes over a 2× buffer on a 1440-wide hero is
-       ~8 megapixels a frame; at 1.5 it is half that, and the difference does not
-       survive bloom and depth of field anyway. */
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true, alpha: true, powerPreference: 'high-performance',
+    });
+    /* Capped at 2 (the dpr={[1, 2]} ceiling), raised from 1.5. That cap was set
+       when bloom and depth of field each cost a full-res pass; with both gone
+       the only post pass left is N8AO at half res, so the extra pixels buy
+       genuinely sharper edges instead of being smeared away. Still a min() —
+       a 3× phone would otherwise render 9 megapixels a frame. */
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 0.9;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     /* The sun never moves and the geometry only changes while the playhead does.
@@ -105,7 +118,11 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
 
     const scene = new THREE.Scene();
     scene.background = skyTexture();
-    scene.fog = new THREE.Fog(new THREE.Color('#0b0c10'), 50, 350);
+    /* Clear colour only — still NO FOG. You asked twice for the volumetric haze
+       gone ("crystal clear view", "no heavy smoke"), so the off-white is the
+       backdrop rather than a fog volume; the skyline's own haze tint (the
+       SKY_BOT lerp on the tower instance colours) carries depth. */
+    renderer.setClearColor(0xF1F5F9, 1);
 
     /* Environment map — a REAL HDRI (public/hdr/sky_1k.hdr, Poly Haven CC0).
        The procedural cityEnvironment goes in first so the scene is never unlit
@@ -117,20 +134,17 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     const envScene = cityEnvironment(SUN);
     const envRT = pmrem.fromScene(envScene, 0.02);
     scene.environment = envRT.texture;
-    scene.environmentIntensity = 0.2;
+    scene.environmentIntensity = 0.6;
     let hdrRT: THREE.WebGLRenderTarget | null = null;
     new RGBELoader().load(
       '/hdr/sky_1k.hdr',
       (hdr) => {
         hdr.mapping = THREE.EquirectangularReflectionMapping;
         hdrRT = pmrem.fromEquirectangular(hdr);
-        // REFLECTIONS ONLY. The file is a daylight sky; using it as
-        // `scene.background` (as this did while the scene was daytime) paints a
-        // pale blue horizon behind the towers, which is the one thing a
-        // twilight theme cannot have. The dark gradient stays the sky, and the
-        // HDRI is kept purely so glass and steel have something real to mirror.
+        // REFLECTIONS ONLY — the flat gradient stays the visible sky so the
+        // backdrop is an even studio field rather than a photographic horizon.
         scene.environment = hdrRT.texture;
-        scene.environmentIntensity = 0.2;
+        scene.environmentIntensity = 0.6;
         hdr.dispose();
       },
       undefined,
@@ -149,44 +163,29 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     scene.add(world);
 
     /* ---- daylight ---------------------------------------------------------- */
-    // Cool, dim sky fill — the blue half of a warm/cool dusk split.
-    scene.add(new THREE.AmbientLight(0x33415f, 0.36));
-    // 5500K daylight — near-neutral with a faint warm cast.
-    const sun = new THREE.DirectionalLight(0xffaa55, 0.6);
-    // Low and raking, the way an evening sun actually sits.
-    sun.position.set(19, 7.5, 13);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+    // High and slightly front-left: long enough shadows to read the massing,
+    // short enough that they never cross the copy in frame-left.
+    sun.position.set(20, 40, 20);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.camera.near = 1;
-    sun.shadow.camera.far = 70;
+    sun.shadow.camera.far = 140;   // the sun sits ~49 units out now
     sun.shadow.bias = -0.0001;
     sun.shadow.normalBias = 0.022;
     const shc = sun.shadow.camera as THREE.OrthographicCamera;
     shc.left = -15; shc.right = 15; shc.top = 17; shc.bottom = -13;
     shc.updateProjectionMatrix();
     scene.add(sun);
-    const fill = new THREE.DirectionalLight(0x6f86c0, 0.22);
+    const fill = new THREE.DirectionalLight(0xdfe7f2, 0.35);   // sky bounce into the shadow side
     fill.position.set(-12, 8, -9);
     scene.add(fill);
-
-    const interior: THREE.PointLight[] = [];
-    for (let k = 0; k < FLOORS; k += 2) {
-      ([-1.7, 1.7] as const).forEach((x) => {
-        const l = new THREE.PointLight(0xffbe7a, 0, 16, 2);
-        // Just under each slab soffit, which is where real ceiling lighting sits
-        // and why the glow reads as banded storeys rather than one blob.
-        l.position.set(x, (k + 1) * FH - 0.42, 0);
-        world.add(l);
-        interior.push(l);
-      });
-    }
 
     /* ---- PBR materials ----------------------------------------------------- */
     const conc = concreteMaps(256, [214, 217, 221]);
     const slabConc = concreteMaps(256, [203, 207, 213]);
-    const groundConc = concreteMaps(256, [176, 181, 189], false);
     [conc, slabConc].forEach((m) => Object.values(m).forEach((t) => t.repeat.set(2, 2)));
-    Object.values(groundConc).forEach((t) => t.repeat.set(80, 80));
 
     const concreteMat = new THREE.MeshStandardMaterial({
       ...conc, roughness: 0.85, metalness: 0, normalScale: new THREE.Vector2(0.7, 0.7),
@@ -216,8 +215,8 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       clearcoat: 1, clearcoatRoughness: 0.03,
       transparent: true, side: THREE.DoubleSide, envMapIntensity: 1.0,
     });
-    const ledMat = new THREE.MeshStandardMaterial({ color: 0xfff6e8, emissive: 0xffc188, emissiveIntensity: 0, roughness: 1 });
-    const lampMat = new THREE.MeshStandardMaterial({ color: 0x5a1210, emissive: ACCENT, emissiveIntensity: 0, roughness: 0.6 });
+    const ledMat = new THREE.MeshStandardMaterial({ color: 0xf2f4f6, roughness: 0.4, metalness: 0.1 });
+    const lampMat = new THREE.MeshStandardMaterial({ color: ACCENT, roughness: 0.4, metalness: 0.1 });
 
     /* ---- ground, with a hole cut for the excavation ------------------------ */
     const GROUND = 240;                      // half-extent, world units
@@ -234,37 +233,44 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     const guv = groundGeo.attributes.uv as THREE.BufferAttribute;
     const GUV = GROUND * 2;
     for (let i = 0; i < guv.count; i++) guv.setXY(i, guv.getX(i) / GUV, guv.getY(i) / GUV);
-    // Outermost layer: churned site dirt, not a clean floor.
-    const dirt = dirtMaps(256);
+    /* Warm asphalt grey. Pale concrete out here left the site sitting on a
+       white plane, which flattened every shadow it received — a mid-dark ground
+       is what gives the massing its scale back. */
     // 0.25 tiles/unit. Density has to stay bounded as the ground grows: at
     // 1 tile/unit a 480-unit plane repeats a 256px map 480 times, which thrashes
     // the texture cache at grazing angles and cost ~17fps.
-    Object.values(dirt).forEach((x) => x.repeat.set(GUV * 0.25, GUV * 0.25));
+    const groundAsphalt = asphaltMaps(256);
+    Object.values(groundAsphalt).forEach((x) => x.repeat.set(GUV * 0.25, GUV * 0.25));
     const ground = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({
-      ...dirt, roughness: 0.9, metalness: 0, normalScale: new THREE.Vector2(0.7, 0.7),
+      ...groundAsphalt, color: 0x3A3F47, roughness: 0.85, metalness: 0,
+      normalScale: new THREE.Vector2(0.6, 0.6),
     }));
     ground.receiveShadow = true;
     world.add(ground);
 
-    // Gravel hardstanding inside the hoarding — the working apron.
+    /* Paved hardstanding inside the hoarding. Was churned gravel, which under a
+       daylight sun left a brown yard wrapped around the finished tower — the
+       one thing that stopped the last frame reading as a completed scheme. */
     const apronGeo = new THREE.PlaneGeometry(BW + 12, BD + 12).rotateX(-Math.PI / 2);
     const auv = apronGeo.attributes.uv as THREE.BufferAttribute;
     for (let i = 0; i < auv.count; i++) auv.setXY(i, auv.getX(i) * 9, auv.getY(i) * 9);
-    const gravel = dirtMaps(256);
-    Object.values(gravel).forEach((t) => t.repeat.set(6, 6));
+    const court = pavingMaps(256);
+    Object.values(court).forEach((t) => t.repeat.set(6, 6));
     const apron = new THREE.Mesh(apronGeo, new THREE.MeshStandardMaterial({
-      ...gravel, color: 0x9d9382, roughness: 0.9, metalness: 0, normalScale: new THREE.Vector2(0.75, 0.75),
+      ...court, color: 0xd3d7dc, roughness: 0.8, metalness: 0, normalScale: new THREE.Vector2(0.6, 0.6),
     }));
     apron.position.y = 0.004; apron.receiveShadow = true;
     world.add(apron);
 
     const lawn = grassMaps(256);
-    Object.values(lawn).forEach((x) => x.repeat.set(14, 4));
+    Object.values(lawn).forEach((x) => x.repeat.set(70, 4));
     const lawnMat = new THREE.MeshStandardMaterial({
       ...lawn, roughness: 0.94, metalness: 0, normalScale: new THREE.Vector2(0.55, 0.55),
     });
-    // Verge between the footway and the carriageway, both sides of the road.
-    ([[6.0, 26, 1.2], [10.0, 26, 1.4]] as const).forEach(([lz, lw, ld]) => {
+    /* Turf verges either side of the carriageway. Length matches the run of
+       road that is ever in frame — at 26 they ended mid-shot, which read as two
+       green rugs dropped on the asphalt rather than a planted street edge. */
+    ([[6.0, 140, 1.2], [10.0, 140, 1.4]] as const).forEach(([lz, lw, ld]) => {
       const g = new THREE.Mesh(new THREE.PlaneGeometry(lw, ld).rotateX(-Math.PI / 2), lawnMat);
       g.position.set(-6, 0.009, lz);
       g.receiveShadow = true;
@@ -315,12 +321,12 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     world.add(pit);
 
     /* Footway between the plot and the kerb. */
-    const walk = new THREE.Mesh(new THREE.BoxGeometry(30, 0.09, 1.5), pavingMat);
+    const walk = new THREE.Mesh(new THREE.BoxGeometry(140, 0.09, 1.5), pavingMat);
     walk.position.set(-6, 0.045, 2.0);
     walk.rotation.y = 0.031;
     walk.receiveShadow = true;
     world.add(walk);
-    const kerbStone = new THREE.Mesh(new THREE.BoxGeometry(30, 0.14, 0.16), concreteMat);
+    const kerbStone = new THREE.Mesh(new THREE.BoxGeometry(140, 0.14, 0.16), concreteMat);
     kerbStone.position.set(-6, 0.07, 5.95);
     kerbStone.rotation.y = 0;
     kerbStone.castShadow = kerbStone.receiveShadow = true;
@@ -362,7 +368,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     const blueprint = new THREE.Mesh(
       new THREE.PlaneGeometry(4.4, 4.4).rotateX(-Math.PI / 2),
       new THREE.MeshStandardMaterial({
-        map: bpTex, emissiveMap: bpTex, emissive: 0x6fa8ff, emissiveIntensity: 0,
+        map: bpTex,
         roughness: 0.95, transparent: true, opacity: 0,
       })
     );
@@ -572,28 +578,73 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     world.add(roof);
 
     /* Brand sign on the parapet fascia. `alphaMap` is what makes it read as an
-       applied wordmark rather than a billboard — the plane is invisible except
-       where the letters are, so the glazing behind it is never blocked. Emissive
-       crimson at 0.5 so it glows at night without lighting the facade. */
-    const brand = brandTexture();
+       applied wordmark — the plane is invisible except where the letters are, so
+       the glazing behind it is never blocked. `toneMapped: false` is what makes
+       it an ILLUMINATED sign: the emissive is added after ACES, so it keeps its
+       full crimson instead of being rolled off with the rest of the frame. */
+    const brand = brandTexture(2048, 512);   // 2× the old map: the sign is the one texture read at close range
     const brandMat = new THREE.MeshStandardMaterial({
       map: brand.map, alphaMap: brand.alpha, transparent: true,
-      emissive: 0xc8102e, emissiveMap: brand.map, emissiveIntensity: 0.5,
-      color: 0xf4f6f8, roughness: 0.35, metalness: 0.2,
+      emissive: 0xc8102e, emissiveMap: brand.map, emissiveIntensity: 1.2,
+      color: 0xc8102e, roughness: 0.1, metalness: 0.1,
+      toneMapped: false,
       depthWrite: false, side: THREE.DoubleSide,
     });
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.15), brandMat);
-    sign.position.set(0, TOP - 0.62, BD / 2 + 0.1);
+    /* Matte dark fascia panel BEHIND the lettering. The sign used to sit
+       straight on the curtain wall, so the glazing's reflections and the lit
+       interior read through the gaps in the letterforms and muddied the
+       wordmark at every angle. A solid backing is also what a real applied sign
+       is mounted on. Sits 1 cm proud of the glass, the letters 1 cm proud of it. */
+    const fascia = new THREE.Mesh(
+      new THREE.PlaneGeometry(6.15, 1.78),
+      new THREE.MeshStandardMaterial({ color: 0x14181f, roughness: 0.85, metalness: 0.05 })
+    );
+    fascia.position.set(0, TOP - 0.68, BD / 2 + 0.113);
+    fascia.visible = false;
+    world.add(fascia);
+
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(5.75, 1.44), brandMat);
+    sign.position.set(0, TOP - 0.68, BD / 2 + 0.116);
     sign.visible = false;
     world.add(sign);
-    /* A dedicated wash on the signage. Emissive alone makes the letters bright
-       but leaves them flat against the facade; a light in FRONT of them lifts
-       the band they sit on, which is what reads as premium illuminated signage.
-       Short range (4.5) on purpose — it must not spill onto the whole elevation
-       and wash out the glazing. */
-    const signLight = new THREE.PointLight(0xc8102e, 0, 4.5, 2);
-    signLight.position.set(0, TOP - 0.62, BD / 2 + 1.15);
-    world.add(signLight);
+
+    /* The seventh floor is the one still being built: exposed stub columns
+       carrying on past the top slab, and a perimeter edge-protection rail. This
+       is what stops a 7-storey block reading as finished-and-capped the moment
+       the roof lands. */
+    const topWorks = new THREE.Group();
+    {
+      const railMat = steel(0xf0a81e, 0.35);
+      ([-1, 1] as const).forEach((sx) => ([-1, 1] as const).forEach((sz) => {
+        const stub = new THREE.Mesh(
+          upright(new THREE.BoxGeometry(0.16, 0.72, 0.16), 0.72), steelFrame
+        );
+        stub.position.set(sx * (BW / 2 - 0.45), TOP, sz * (BD / 2 - 0.45));
+        stub.castShadow = true;
+        topWorks.add(stub);
+      }));
+      // Guardrail: top rail, mid rail, posts — the three-part set you actually
+      // see on an open slab edge.
+      ([[BW + 0.2, 0.06, 0, BD / 2 + 0.1], [BW + 0.2, 0.06, 0, -BD / 2 - 0.1]] as const)
+        .forEach(([len, th, x, z]) => {
+          [0.44, 0.78].forEach((h) => {
+            const r = new THREE.Mesh(new THREE.BoxGeometry(len, th, th), railMat);
+            r.position.set(x, TOP + h, z);
+            topWorks.add(r);
+          });
+        });
+      for (let i = 0; i <= 6; i++) {
+        const x = mix(-BW / 2 - 0.1, BW / 2 + 0.1, i / 6);
+        ([BD / 2 + 0.1, -BD / 2 - 0.1] as const).forEach((z) => {
+          const post = new THREE.Mesh(upright(new THREE.BoxGeometry(0.05, 0.82, 0.05), 0.82), railMat);
+          post.position.set(x, TOP, z);
+          post.castShadow = true;
+          topWorks.add(post);
+        });
+      }
+    }
+    topWorks.visible = false;
+    world.add(topWorks);
 
     const canopy = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 1.3), steelDark);
     canopy.position.set(0, 1.05, BD / 2 + 0.55);
@@ -606,7 +657,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        rather than a coloured glow pasted over the model. */
     const RIM = 0xc8102e;
     const rimMat = new THREE.MeshStandardMaterial({
-      color: 0x2a0409, emissive: RIM, emissiveIntensity: 0, roughness: 0.5,
+      color: RIM, roughness: 0.4, metalness: 0.1,
     });
     const rims: THREE.Mesh[] = [];
     for (let k = 1; k <= FLOORS; k++) {
@@ -622,10 +673,13 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       world.add(m); rims.push(m);
     });
 
-    /* ---- tower crane ---------------------------------------------------------- */
-    const crane = new THREE.Group();
-    {
-      const MAST = 7.4, SEC = 0.42;
+    /* ---- tower cranes ---------------------------------------------------------
+       Two machines off one builder. `mast` is the only thing that differs
+       structurally; `payload` hangs a beam off the hook block, which is what
+       separates a crane that is standing there from a crane that is working. */
+    const makeCrane = ({ mast: MAST, payload = false }: { mast: number; payload?: boolean }) => {
+      const crane = new THREE.Group();
+      const SEC = 0.42;
       const base = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.3, 1.5), concreteMat);
       base.position.y = 0.15; base.castShadow = base.receiveShadow = true;
       crane.add(base);
@@ -674,10 +728,11 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       const tie = (x: number) => new THREE.Line(
         new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 1.9, 0), new THREE.Vector3(x, 0.34, 0)]), cableMat
       );
-      const hoist = new THREE.Mesh(upright(new THREE.CylinderGeometry(0.016, 0.016, 4.2, 5), 4.2), steelDark);
-      hoist.position.set(4.2, 0.34 - 4.2, 0);
+      const HOIST = payload ? MAST - TOP - 0.71 : 4.2;   // beam rides ~1.2 above the slab
+      const hoist = new THREE.Mesh(upright(new THREE.CylinderGeometry(0.016, 0.016, HOIST, 5), HOIST), steelDark);
+      hoist.position.set(4.2, 0.34 - HOIST, 0);
       const hookBlock = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.28, 0.24), steelGrey);
-      hookBlock.position.set(4.2, 0.34 - 4.35, 0); hookBlock.castShadow = true;
+      hookBlock.position.set(4.2, 0.34 - HOIST - 0.15, 0); hookBlock.castShadow = true;
       slew.add(cab, cabGlass, jib, cJib, cWeight, apex, tie(6.2), tie(3.2), tie(-2.6), hoist, hookBlock);
       // Red aviation indicator lamps: apex, jib tip, counter-jib tip.
       ([[0, 2.0, 0], [6.5, 0.34, 0], [-3.1, 0.34, 0]] as const).forEach(([x, y, z]) => {
@@ -687,20 +742,39 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       });
       // Brand rim on the mast legs, same crimson as the building's edges.
       const craneRim = new THREE.MeshStandardMaterial({
-        color: 0x2a0409, emissive: 0xc8102e, emissiveIntensity: 0.35, roughness: 0.5,
+        color: 0xc8102e, roughness: 0.4, metalness: 0.1,
       });
       [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sz]) => {
         const strip = new THREE.Mesh(new THREE.BoxGeometry(0.03, MAST * 0.96, 0.03), craneRim);
         strip.position.set(sx * SEC / 2 * 1.35, 0.3 + MAST * 0.48, sz * SEC / 2 * 1.35);
         crane.add(strip);
       });
+      if (payload) {
+        /* A steel beam slung under the hook, swinging over the roof. Two slings
+           from the block to the beam ends — a beam hanging off a single point
+           reads as stuck to the hook rather than lifted by it. */
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.16, 0.22), steelRed);
+        beam.position.set(4.2, 0.34 - HOIST - 0.95, 0);
+        beam.castShadow = true;
+        const sling = (x: number) => new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(4.2, 0.34 - HOIST - 0.28, 0), new THREE.Vector3(x, 0.34 - HOIST - 0.88, 0),
+          ]), cableMat
+        );
+        slew.add(beam, sling(3.25), sling(5.15));
+      }
       crane.add(slew);
       crane.userData.slew = slew;
-    }
-    const CRANE_HOME = new THREE.Vector3(BW / 2 + 2.5, 0, -BD / 2 - 1.6);
+      crane.scale.setScalar(0.0001);
+      world.add(crane);
+      return crane;
+    };
+    /* ONE crane. It stands off the back-right corner, clears floor 7 by a full
+       jib height, and carries a beam over the roof — a single working machine
+       reads better than two competing for the same skyline. */
+    const crane = makeCrane({ mast: TOP + 3.6, payload: true });
+    const CRANE_HOME = new THREE.Vector3(BW / 2 + 2.6, 0, -BD / 2 - 1.9);
     crane.position.copy(CRANE_HOME);
-    crane.scale.setScalar(0.0001);
-    world.add(crane);
 
     /* ---- mixer trucks --------------------------------------------------------- */
     const tyreMat = new THREE.MeshStandardMaterial({ color: 0x14161a, roughness: 0.9 });
@@ -900,6 +974,35 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       f.add(torso, head);
       return f;
     };
+    /* Site workers. Same silhouette as the neutral figures, plus the two things
+       that actually identify one at this scale: a hi-vis torso and a hard hat.
+       Both are flat colour on the existing geometry — no extra meshes beyond the
+       hat, so a worker costs one more draw call than a bystander. */
+    const vestMats = [0xffd21e, 0xff7a18].map((c) =>
+      new THREE.MeshStandardMaterial({ color: c, roughness: 0.7, metalness: 0 }));
+    const hatMats = [0xffd21e, 0xc8102e].map((c) =>
+      new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0 }));
+    const hatGeo = new THREE.SphereGeometry(0.062, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2);
+    const brimGeo = new THREE.CylinderGeometry(0.075, 0.075, 0.012, 10);
+    const makeWorker = (i: number) => {
+      const f = new THREE.Group();
+      const torso = new THREE.Mesh(torsoGeo, vestMats[i % 2]);
+      torso.position.y = 0.24; torso.castShadow = true;
+      const head = new THREE.Mesh(headGeo, figMat);
+      head.position.y = 0.5; head.castShadow = true;
+      const hat = new THREE.Mesh(hatGeo, hatMats[i % 2]);
+      hat.position.y = 0.52; hat.castShadow = true;
+      const brim = new THREE.Mesh(brimGeo, hatMats[i % 2]);
+      brim.position.y = 0.522;
+      [-0.032, 0.032].forEach((x) => {
+        const leg = new THREE.Mesh(legGeo, figMat);
+        leg.position.set(x, 0, 0); leg.castShadow = true;
+        f.add(leg);
+      });
+      f.add(torso, head, hat, brim);
+      return f;
+    };
+
     // Two populations: crew on site during the build, visitors at handover.
     const crew: THREE.Object3D[] = [], visitors: THREE.Object3D[] = [];
     ([[-2.4, 3.6], [2.9, 3.2], [-3.6, -2.2], [3.4, -2.8]] as const).forEach(([x, z]) => {
@@ -909,6 +1012,22 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       f.scale.setScalar(0.0001);
       world.add(f); crew.push(f);
     });
+    /* Six workers, placed by what they would actually be doing: two on the top
+       slab, two at the gate end of the scaffold, two out by the mixers. `y` is
+       explicit because the roof pair stands on the structure, not the ground. */
+    const workers: THREE.Object3D[] = [];
+    ([
+      [-1.5, -0.7, TOP], [1.2, 0.4, TOP],                 // top slab
+      [-BW / 2 - 1.0, BD / 2 + 0.9, 0], [-1.9, BD / 2 + 1.7, 0],   // scaffold / gate
+      [-4.4, 5.1, 0], [4.6, 4.7, 0],                      // beside the mixers
+    ] as const).forEach(([x, z, y], i) => {
+      const f = makeWorker(i);
+      f.position.set(x, y, z);
+      f.rotation.y = Math.atan2(-x, -z) + (i % 2 ? 0.5 : -0.4);
+      f.scale.setScalar(0.0001);
+      world.add(f); workers.push(f);
+    });
+
     ([[-1.2, 4.4], [0.5, 4.9], [1.9, 4.2], [-2.6, 4.9], [3.1, 3.9]] as const).forEach(([x, z]) => {
       const f = makeFigure();
       f.position.set(x, 0, z);
@@ -918,10 +1037,9 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     });
 
     /* ---- ambient ground lighting (comes on with the handover) ---------------- */
-    const bollardMat = new THREE.MeshStandardMaterial({ color: 0xfff0d6, emissive: 0xffc98a, emissiveIntensity: 0, roughness: 0.7 });
+    const bollardMat = new THREE.MeshStandardMaterial({ color: 0xe9ecf0, roughness: 0.4, metalness: 0.1 });
     const bollardGeo = upright(new THREE.CylinderGeometry(0.04, 0.06, 0.3, 8), 0.3);
     const bollards: THREE.Mesh[] = [];
-    const groundGlow: THREE.PointLight[] = [];
     for (let i = 0; i < 10; i++) {
       const side = i < 5 ? -1 : 1;
       const b = new THREE.Mesh(bollardGeo, bollardMat);
@@ -930,18 +1048,12 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       b.scale.setScalar(0.0001);
       world.add(b); bollards.push(b);
     }
-    [-1.9, 1.9].forEach((x) => {
-      const l = new THREE.PointLight(0xffc98a, 0, 5, 2);
-      l.position.set(x, 0.5, BD / 2 + 2.6);
-      world.add(l); groundGlow.push(l);
-    });
 
-    /* Street lighting down the carriageway. Emissive heads only — 34 real
-       PointLights would cost more than the rest of the scene put together, and
-       at this camera distance the bloom pass sells the glow anyway. */
+    /* Street lighting down the carriageway — columns and unlit heads. In
+       daylight these are street furniture, not light sources. */
     const streetMat = new THREE.MeshStandardMaterial({ color: 0x2a2f36, roughness: 0.5, metalness: 0.7 });
     const streetLampMat = new THREE.MeshStandardMaterial({
-      color: 0xfff2d8, emissive: 0xffd9a0, emissiveIntensity: 1.4, roughness: 0.4,
+      color: 0xe9ecf0, roughness: 0.4, metalness: 0.1,
     });
     {
       const COLUMNS = 34, SPACING = 15;
@@ -978,8 +1090,8 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     fac.map.repeat.set(3, 6);
     fac.emissive.repeat.set(3, 6);
     const cityMat = new THREE.MeshStandardMaterial({
-      map: fac.map, emissiveMap: fac.emissive, emissive: 0xffffff, emissiveIntensity: 0.55,
-      color: 0xb6c0cc, roughness: 0.42, metalness: 0.35, envMapIntensity: 1.0,
+      map: fac.map,
+      color: 0xb6c0cc, roughness: 0.4, metalness: 0.1, envMapIntensity: 1.0,
     });
     const cityIM = new THREE.InstancedMesh(cityGeo, cityMat, CITY);
     cityIM.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CITY * 3), 3);
@@ -1011,13 +1123,12 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     }
     world.add(cityIM);
 
-    /* Alipson red crown lighting on a subset of the background towers. Emissive
-       only — no extra lights — so it costs one draw call and reads as the brand
-       colour picked up across the skyline at dusk. */
+    /* Alipson red crown banding on a subset of the background towers — painted
+       trim, one draw call, the brand colour picked up across the skyline. */
     const ACCENTS = 22;
     const accentIM = new THREE.InstancedMesh(
       new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial({ color: 0x4a0f0f, emissive: ACCENT, emissiveIntensity: 1.5, roughness: 0.6 }),
+      new THREE.MeshStandardMaterial({ color: ACCENT, roughness: 0.4, metalness: 0.1 }),
       ACCENTS
     );
     {
@@ -1048,7 +1159,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     const boardMat = new THREE.MeshStandardMaterial({ color: 0xa88a5c, roughness: 0.95 });
     const scaffolds = ([[-BW / 2 - 0.75, 0, Math.PI / 2, BD], [0, -BD / 2 - 0.75, 0, BW]] as const).map(([sx, sz, ry, len]) => {
       const g = new THREE.Group();
-      const LIFTS = 5, BAY = len / 2;
+      const LIFTS = FLOORS, BAY = len / 2;
       const standGeo = upright(new THREE.CylinderGeometry(0.035, 0.035, TOP, 6), TOP);
       for (let b = 0; b <= 2; b++) {
         [-0.38, 0.38].forEach((off) => {
@@ -1086,7 +1197,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     });
 
     // Site light poles with hazard lamps at the head.
-    const hazardMat = new THREE.MeshStandardMaterial({ color: 0x6b4a12, emissive: 0xffa524, emissiveIntensity: 0, roughness: 0.6 });
+    const hazardMat = new THREE.MeshStandardMaterial({ color: 0xffa524, roughness: 0.4, metalness: 0.1 });
     const poleGeo = upright(new THREE.CylinderGeometry(0.05, 0.075, 4.6, 8), 4.6);
     const lampHeadGeo = new THREE.BoxGeometry(0.5, 0.1, 0.26);
     // Pushed well out: at the reveal the camera closes to 18 units, and poles
@@ -1136,10 +1247,8 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        did not have, so the paint slowly walked off the asphalt.
        Layout: dashed centre line, solid boundary line at each edge, and a zebra
        crossing on the building's entrance axis. */
-    // Emissive so the markings read at dusk and pick up the bloom pass — road
-    // paint is retroreflective in reality, which is close enough to this.
     const paintMat = new THREE.MeshStandardMaterial({
-      color: 0xf4f2ea, roughness: 0.62, emissive: 0xdfe6f0, emissiveIntensity: 0.55,
+      color: 0xf4f2ea, roughness: 0.4, metalness: 0.1,
     });
     type Paint = { x: number; z: number; w: number; d: number };
     const PAINT: Paint[] = [];
@@ -1202,8 +1311,8 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       color: 0xf2f4f7, roughness: 0.06, metalness: 1, envMapIntensity: 2.4,
     });
     const carTrim = new THREE.MeshStandardMaterial({ color: 0x23262c, roughness: 0.3, metalness: 0.85, envMapIntensity: 1.4 });
-    const headMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffeccd, emissiveIntensity: 0, roughness: 0.2 });
-    const tailMat = new THREE.MeshStandardMaterial({ color: 0x4a0d0d, emissive: 0xff2a1e, emissiveIntensity: 0, roughness: 0.4 });
+    const headMat = new THREE.MeshStandardMaterial({ color: 0xe6ebf0, roughness: 0.4, metalness: 0.1 });
+    const tailMat = new THREE.MeshStandardMaterial({ color: 0x8c1a18, roughness: 0.4, metalness: 0.1 });
     const wheels: THREE.Mesh[] = [];
     {
       const L = 1.85, W = 0.72;
@@ -1247,14 +1356,6 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
         const sill = new THREE.Mesh(new THREE.BoxGeometry(L * 0.86, 0.03, 0.02), chrome);
         sill.position.set(0, 0.855, s * (W * 0.44));
         car.add(waist, sill);
-      });
-      // Headlamp beams — short throw, enough to wet the asphalt ahead.
-      ([-0.24, 0.24] as const).forEach((z) => {
-        const beam = new THREE.SpotLight(0xffe9c4, 0, 11, 0.46, 0.6, 1.5);
-        beam.position.set(L * 0.5, 0.47, z);
-        beam.target.position.set(6, 0, z);
-        car.add(beam, beam.target);
-        (car.userData.beams ||= []).push(beam);
       });
       // Wheels, pushed to the corners — short overhangs read as expensive.
       const tyreGeo = new THREE.CylinderGeometry(0.135, 0.135, 0.1, 16).rotateX(Math.PI / 2);
@@ -1349,18 +1450,9 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     n8ao.configuration.gammaCorrection = false;
     n8ao.configuration.color = new THREE.Color(0x0e1420);
     composer.addPass(n8ao);
-    // Bloom picks up sun-hit steel, the LED plates and the crane lamps. Kept
-    // low — this is daylight architecture, not a neon scene.
-    /* Strength 0.2 as specified. The THRESHOLD is deliberately NOT 0.8: the
-       `luminanceThreshold={0.8}` in the spec is @react-three/postprocessing's
-       Bloom, which thresholds TONE-MAPPED luminance on a 0..1 scale. three's
-       UnrealBloomPass thresholds the raw HDR buffer, where a sunlit concrete
-       slab sits well above 1.0 — setting 0.8 here blooms the entire frame to
-       white (this exact bug shipped once already). 1.15 is the equivalent. */
-    // Dark scene: only emissives clear a ~1.0 threshold, so this blooms the lights
-    // and nothing else — the "no harsh white glare on concrete" requirement.
-    const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.34, 0.34, 1.05);
-    composer.addPass(bloom);
+    /* NO BLOOM. Nothing in a daylight architectural render glows, so the pass
+       has nothing legitimate to pick up — it only ever blew out sunlit concrete
+       and glass. Deleting it also buys back a full-res pass per frame. */
     const bokeh = new BokehPass(scene, camera, { focus: 20, aperture: 0.00007, maxblur: 0.007 });
     /* DEPTH OF FIELD IS OFF. Measured cost: BokehPass renders the whole scene a
        second time for its depth buffer — 1765 → 1110 draw calls per frame and
@@ -1373,7 +1465,8 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
 
     /* ---- the per-frame update ------------------------------------------------------ */
     const look = new THREE.Vector3();
-    let clock = 0;
+    let clock = 0, focus = 0, focusOn = false;
+    const gateCam = new THREE.Vector3(), gateLook = new THREE.Vector3();
     const update = (t: number, dt = 0, tail = 0) => {
       clock += dt;
       const e = ease(t);
@@ -1394,6 +1487,15 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
         Math.cos(ang) * mix(rad, rad + 4.2, lift)
       );
       look.set(0, mix(1.2, TOP * 0.55, ease(span(0.12, 0.9, t))) - lift * 1.9, 0);
+      /* GATE FOCUS. Blended on top of the playhead camera rather than replacing
+         it, so releasing the focus hands control back mid-frame with no jump. */
+      if (focusOn) focus = Math.min(1, focus + dt * 1.05);
+      else if (focus > 0) focus = Math.max(0, focus - dt * 1.5);
+      if (focus > 0.0001) {
+        const k = ease(focus), ws = world.scale.x;
+        camera.position.lerp(gateCam.copy(GATE_CAM).multiplyScalar(ws), k);
+        look.lerp(gateLook.copy(GATE_LOOK).multiplyScalar(ws), k);
+      }
       camera.lookAt(look);
       bokehU.focus.value = camera.position.distanceTo(look);
 
@@ -1402,7 +1504,6 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       const bp = ease(span(0.04, 0.14, t)) * (1 - ease(span(0.52, 0.66, t)));
       const bpm = blueprint.material as THREE.MeshStandardMaterial;
       bpm.opacity = bp;
-      bpm.emissiveIntensity = bp * (0.55 + 0.45 * Math.sin(clock * 1.5)) * 0.6;
       const dig = ease(span(0.04, 0.18, t));
       pit.scale.y = mix(0.02, 1, dig);
       pit.position.y = -PIT * pit.scale.y * 0.5;
@@ -1418,8 +1519,10 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       crane.visible = craneIn > 0.01 && clear < 0.99;
       crane.position.set(CRANE_HOME.x + clear * 30, CRANE_HOME.y, CRANE_HOME.z - clear * 12);
 
-      (crane.userData.slew as THREE.Group).rotation.y = mix(0, 2.4, ease(span(0.2, 0.9, t)));
-      lampMat.emissiveIntensity = craneIn * (Math.sin(clock * 3.1) > 0.2 ? 0.9 : 0.12);
+      // Swings the load across the slab rather than away from it. rotation.y = θ
+      // sends the jib (local +x) to world (r·cosθ, −r·sinθ); from the crane's
+      // corner the building sits at θ ≈ -2.54 rad, so the sweep straddles it.
+      (crane.userData.slew as THREE.Group).rotation.y = mix(-3.2, -1.9, ease(span(0.2, 0.9, t)));
       mixers.forEach((g, i) => {
         g.scale.setScalar(s0(ease(span(0.2 + i * 0.05, 0.32 + i * 0.05, t))));
         const out = ease(span(0.84 + i * 0.03, 0.97 + i * 0.03, t));
@@ -1448,7 +1551,6 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       });
       // Poles stay for the life of the site and keep their hazard lamps going.
       poles.forEach((g, i) => g.scale.setScalar(s0(ease(span(0.12 + i * 0.02, 0.24 + i * 0.02, t)))));
-      hazardMat.emissiveIntensity = (Math.sin(clock * 2.2) > 0 ? 1.1 : 0.15) * (1 - ease(span(0.9, 1, t))) + ease(span(0.9, 1, t)) * 0.7;
       cages.forEach((g, i) => {
         const k = stagger(t, 0.1, 0.19, i, cages.length);
         g.scale.y = s0(k);
@@ -1497,11 +1599,10 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       roof.scale.setScalar(s0(ease(span(0.5, 0.58, t))));
       // Signage goes up once the parapet exists, then warms to full at dusk.
       const brandIn = ease(span(0.58, 0.7, t));
-      sign.visible = brandIn > 0.02;
+      sign.visible = fascia.visible = brandIn > 0.02;
       sign.scale.set(brandIn, brandIn, 1);
+      fascia.scale.set(brandIn, brandIn, 1);
       brandMat.opacity = brandIn;
-      brandMat.emissiveIntensity = brandIn * (0.3 + ease(span(0.68, 0.9, t)) * 0.5);
-      signLight.intensity = brandIn * ease(span(0.66, 0.9, t)) * 1.2;
       plates.forEach((m, k) => {
         const s = s0(stagger(t, 0.26, 0.42, k, plates.length));
         m.scale.set(s, 1, s);
@@ -1510,13 +1611,9 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
         const s = s0(stagger(t, 0.46, 0.72, k, spandrels.length));
         m.scale.set(s, 1, s);
       });
-      const lit = ease(span(0.68, 0.92, t));
       // Rim light comes up with the glazing and holds through the reveal.
       const rim = ease(span(0.72, 0.94, t));
       rims.forEach((m) => { m.visible = rim > 0.02; });
-      rimMat.emissiveIntensity = rim * 0.85;
-      ledMat.emissiveIntensity = lit * 1.3 + ease(span(0.88, 1, t)) * 2.1;
-      interior.forEach((l) => { l.intensity = lit * 0.9 + ease(span(0.9, 1, t)) * 1.5; });
 
       // The gate swings outward before the car moves, and stays open.
       const gateOpen = ease(span(0.8, 0.93, t));
@@ -1541,11 +1638,6 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
         // Wheels turn in proportion to distance covered, not to time.
         const roll = drive * 46;
         wheels.forEach((w) => { w.rotation.y = roll; });
-        // Lamps come up as it pulls away and stay lit for the exit.
-        const lamps = ease(span(0.0, 0.22, tail));
-        headMat.emissiveIntensity = lamps * 1.6;
-        tailMat.emissiveIntensity = lamps * 2.8;
-        ((car.userData.beams as THREE.SpotLight[]) || []).forEach((b) => { b.intensity = lamps * 2.2; });
       }
 
       if (import.meta.env.DEV) {
@@ -1558,10 +1650,6 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
         };
       }
 
-      // Street lighting comes on across phase 2 rather than being on from the
-      // start — "streetlights fade in" is the lamps lighting, not poles appearing.
-      streetLampMat.emissiveIntensity = ease(span(0.42, 0.78, t)) * 1.4;
-
       // P5 — site clears, landscaping and lighting resolve the landmark.
       setTrees((i) => ease(stagger(t, 0.5, 0.86, i, TREES.length, 1.6)));
       canopy.scale.setScalar(s0(ease(span(0.56, 0.66, t))));
@@ -1572,16 +1660,24 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       crew.forEach((f, i) => f.scale.setScalar(s0(
         ease(span(0.24 + i * 0.02, 0.34 + i * 0.02, t)) * (1 - ease(span(0.86, 0.94, t)))
       )));
+      /* Workers leave with the crew. The roof pair (indices 0 and 1) cannot
+         arrive until there is a slab to stand on, so they wait for the roof. */
+      const off = 1 - ease(span(0.86, 0.94, t));
+      workers.forEach((f, i) => {
+        const start = i < 2 ? 0.52 : 0.26 + i * 0.02;
+        f.scale.setScalar(s0(ease(span(start, start + 0.1, t)) * off));
+      });
+      // Top-floor works: up with the roof, struck with the rest of the site.
+      const tw = ease(span(0.5, 0.6, t)) * off;
+      topWorks.visible = tw > 0.01;
+      topWorks.scale.set(1, s0(tw), 1);
       visitors.forEach((f, i) => f.scale.setScalar(s0(ease(stagger(t, 0.9, 1, i, visitors.length, 1.2)))));
-      const dusk = ease(span(0.9, 1, t));
       bollards.forEach((b, i) => b.scale.setScalar(s0(ease(stagger(t, 0.88, 0.98, i, bollards.length, 1.4)))));
-      bollardMat.emissiveIntensity = dusk * 0.45;
-      groundGlow.forEach((l) => { l.intensity = dusk * 0.5; });
 
       // ATMOSPHERE — dust is heaviest while the site works, and settles as the
       // building finishes. Motes drift on their own slow clock.
       const air = ease(span(0.16, 0.34, t)) * (1 - ease(span(0.84, 0.98, t)));
-      dustMat.opacity = air * 0.5;
+      dustMat.opacity = air * 0.12;
       dust.visible = air > 0.01;
       if (dust.visible) {
         for (let i = 0; i < DUST; i++) {
@@ -1607,7 +1703,6 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       renderer.setSize(w, h, false);
       composer.setSize(w, h);
       n8ao.setSize(w, h);
-      bloom.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     };
@@ -1633,17 +1728,28 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     };
     raf = requestAnimationFrame(loop);
 
-    api.current = { update: (t, tl = 0) => { playhead = t; tailv = tl; } };
+    const releaseFocus = () => { focusOn = false; };
+    api.current = {
+      update: (t, tl = 0) => { playhead = t; tailv = tl; },
+      focusGate: () => { focusOn = true; },
+    };
     update(0);
 
     const onResize = () => resize();
     window.addEventListener('resize', onResize);
+    /* The gate focus is released by the USER, not by the playhead — the skip
+       scrolls the page itself to part the gate doors, and a playhead-delta test
+       would cancel the focus on the frame it began. */
+    (['wheel', 'touchstart', 'keydown', 'pointerdown'] as const)
+      .forEach((e) => window.addEventListener(e, releaseFocus, { passive: true }));
     const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, { threshold: 0 });
     io.observe(el);
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
+      (['wheel', 'touchstart', 'keydown', 'pointerdown'] as const)
+        .forEach((e) => window.removeEventListener(e, releaseFocus));
       io.disconnect();
       api.current = null;
       scene.traverse((o) => {
@@ -1668,7 +1774,10 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     };
   }, []);
 
-  useImperativeHandle(ref, () => ({ update: (t, tl) => api.current?.update(t, tl) }), []);
+  useImperativeHandle(ref, () => ({
+    update: (t, tl) => api.current?.update(t, tl),
+    focusGate: () => api.current?.focusGate(),
+  }), []);
 
   return <div ref={host} className={className} aria-hidden />;
 });

@@ -4,10 +4,15 @@ import { Menu, X, ArrowUpRight } from 'lucide-react';
 import Logo from './ui/Logo';
 import { NAV } from '../data/site';
 import { scrollToId } from '../hooks/useLenis';
+import { gateOpenScroll } from './StoryScroll';
 import { useUI } from '../context/UIContext';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  /* Hidden behind the closed split gate. The threshold comes from StoryScroll so
+     it tracks the gate's own timing rather than restating it — the bar appears
+     as the doors finish parting, not on the first pixel of scroll. */
+  const [past, setPast] = useState(false);
   const [active, setActive] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const { openQuote } = useUI();
@@ -15,6 +20,7 @@ export default function Navbar() {
   useEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 40);
+      setPast(window.scrollY >= gateOpenScroll());
       for (const { id } of NAV) {
         const el = document.getElementById(id);
         if (el) {
@@ -27,6 +33,8 @@ export default function Navbar() {
       }
     };
     window.addEventListener('scroll', onScroll, { passive: true });
+    // Deep links and reloads can land mid-page, where the gate is long gone.
+    onScroll();
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
@@ -37,7 +45,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className={`nav ${scrolled ? 'scrolled' : ''}`}>
+      <header className={`nav ${scrolled ? 'scrolled' : ''} ${past ? 'is-in' : ''}`} aria-hidden={!past}>
         <div className="nav__inner">
           <a href="#hero" onClick={(e) => { e.preventDefault(); go('hero'); }} data-cursor="Home">
             <Logo compact={scrolled} />

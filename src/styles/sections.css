@@ -12,41 +12,51 @@
 }
 .logo-name, .logo-sub { white-space: nowrap; }
 .logo-sub { font-family: var(--font-grotesk); font-size: 0.5rem; letter-spacing: 0.4em; color: var(--accent-soft); margin-top: 3px; }
+/* On the dark glass bar: solid crimson wordmark and mark, white subtext for
+   contrast. Scoped to .nav — the footer sets its own on a light section.
+   (This replaces the white-to-crimson shimmer sweep: "solid" and an animated
+   gradient fill are the same property, so only one of them can win.) */
+.nav .logo-name { background: none; -webkit-text-fill-color: #C8102E; color: #C8102E; }
+.nav .logo-sub { color: #334155; }
 
 /* ==========================================================================
    NAVBAR
    ========================================================================== */
-.nav { position: fixed; top: 0; left: 0; width: 100%; z-index: 800; transition: transform 0.6s var(--ease-lux); }
+/* z-index stays 800, not the 50 in the brief: the floating Call/WhatsApp
+   buttons sit at 900 and the modals at 950–1100, and that order is deliberate.
+   50 would still clear page content, but only by 10 over the hero's split gate
+   (z-40) — too little headroom to be worth the churn. */
+.nav { position: fixed; top: 0; left: 0; right: 0; z-index: 800;
+  /* Hidden behind the closed split gate; fades in as the doors finish parting. */
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.5s ease, transform 0.6s var(--ease-lux); }
+.nav.is-in { opacity: 1; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) { .nav { transition: none; } }
 .nav__inner {
   display: flex; align-items: center; justify-content: space-between;
-  height: 84px; margin: 0 auto; max-width: var(--container);
-  padding-inline: var(--pad-x); transition: 0.5s var(--ease-lux);
+  height: 72px; margin: 1rem auto; max-width: 1200px;
+  border-radius: 9999px; padding-inline: 1.75rem;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  /* The brief's rgba(255,255,255,0.12) is the DARK-theme border; on the light
+     capsule it is invisible against a white page. Same weight, slate instead. */
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 34px -20px rgba(15, 23, 42, 0.28);
+  transition: 0.5s var(--ease-lux);
 }
-.nav.scrolled .nav__inner {
-  height: 66px; margin-top: 12px; border-radius: 100px;
-  max-width: calc(var(--container) - 2rem);
-  background: rgba(255,255,255,0.82); backdrop-filter: blur(22px) saturate(1.4);
-  -webkit-backdrop-filter: blur(22px) saturate(1.4);
-  border: 1px solid var(--border); box-shadow: 0 10px 34px -20px rgba(26,29,32,0.30);
-  padding-inline: 1.5rem;
-}
+/* Scrolled only tightens it — the capsule itself is the resting state now. */
+.nav.scrolled .nav__inner { height: 64px; margin-top: 0.75rem; }
 .nav.scrolled { padding-inline: var(--pad-x); }
 .nav__links { display: flex; gap: 1.7rem; align-items: center; }
-.nav__link { position: relative; font-family: var(--font-grotesk); font-size: 0.86rem; letter-spacing: 0.02em; color: var(--text-soft); padding: 4px 0; transition: color 0.3s; }
+.nav__link { position: relative; font-family: var(--font-grotesk); font-size: 0.86rem; letter-spacing: 0.02em; color: #0F172A; padding: 4px 0; transition: color 0.3s; }
 .nav__link::after { content: ''; position: absolute; left: 0; bottom: -2px; width: 100%; height: 1px; background: var(--accent); transform: scaleX(0); transform-origin: right; transition: transform 0.45s var(--ease-lux); }
-.nav__link:hover, .nav__link.active { color: var(--text); }
+.nav__link:hover, .nav__link.active { color: var(--accent); }
 .nav__link:hover::after, .nav__link.active::after { transform: scaleX(1); transform-origin: left; }
-/* Over the dark hero gate (navbar not yet scrolled): frosted dark bar + high-contrast links */
-.nav:not(.scrolled) .nav__inner {
-  background: linear-gradient(180deg, rgba(0,0,0,0.46) 0%, rgba(0,0,0,0.1) 100%);
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-.nav:not(.scrolled) .nav__link { color: #e5e7eb; }
-.nav:not(.scrolled) .nav__link:hover, .nav:not(.scrolled) .nav__link.active { color: #f16a63; }
-.nav:not(.scrolled) .nav__link::after { background: var(--accent); box-shadow: 0 0 10px rgba(211,47,47,0.6); }
 .nav__right { display: flex; align-items: center; gap: 1rem; }
-.nav__toggle { display: none; width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--border); place-items: center; color: var(--text); }
+.nav .btn-primary { background: #C8102E; box-shadow: none; height: 44px; padding-inline: 1.25rem; }
+.nav .btn-primary:hover { background: #A00D24; box-shadow: none; }
+.nav__toggle { display: none; width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); place-items: center; color: #0F172A; }
 .theme-btn { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); display: grid; place-items: center; color: var(--text-soft); transition: 0.4s var(--ease-lux); }
 .theme-btn:hover { color: var(--accent-soft); border-color: var(--accent); transform: rotate(-20deg); }
 
@@ -146,7 +156,7 @@
    (box-shadow), so the button never changes size or shifts on any state. */
 .btn-watch { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 0.7rem;
   height: 52px; padding: 0 1.5rem 0 0.5rem; border-radius: 100px;
-  border: 1px solid rgba(var(--accent-rgb), 0.45); color: #fff; background-color: rgba(21,21,21,0.32);
+  border: 1px solid rgba(var(--accent-rgb), 0.35); color: var(--text); background-color: rgba(255,255,255,0.72);
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   font-family: var(--font-grotesk); font-weight: 600; font-size: 0.9rem; letter-spacing: 0.02em; white-space: nowrap;
   transition: background-color 0.35s var(--ease-lux), border-color 0.35s var(--ease-lux); }
@@ -208,8 +218,8 @@
    the gate (40); the transform is written from the scroll tail in JS. */
 .story__stats { position: absolute; z-index: 32; left: 0; right: 0; bottom: 0;
   opacity: 0; will-change: transform, opacity; pointer-events: auto;
-  background: linear-gradient(180deg, rgba(8,10,16,0) 0%, rgba(8,10,16,0.82) 26%, var(--ink-900) 62%);
-  padding-top: clamp(2rem, 6vh, 4.5rem); }
+  background: linear-gradient(180deg, rgba(248,250,252,0) 0%, rgba(248,250,252,0.92) 26%, #F8FAFC 62%);
+  padding-top: clamp(2rem, 6vh, 4.5rem); padding-bottom: clamp(1.4rem, 3.5vh, 2.6rem); }
 .story--static .story__stats { opacity: 1; transform: none; }
 
 /* Onward cue — sits just above the stats bar once it has seated. */
@@ -217,10 +227,7 @@
   margin-bottom: clamp(1rem, 2.5vh, 1.8rem);
   opacity: 0; pointer-events: none; white-space: nowrap;
   font-family: var(--font-grotesk); font-weight: 600; font-size: 0.68rem;
-  letter-spacing: 0.28em; text-transform: uppercase; color: rgba(248,248,246,0.82);
-  /* It sits above the gradient, over whatever the render happens to show —
-     the shadow is what keeps it legible against a sunlit concrete pad. */
-  text-shadow: 0 1px 10px rgba(8,10,16,0.9), 0 0 3px rgba(8,10,16,0.8); }
+  letter-spacing: 0.28em; text-transform: uppercase; color: #334155; }
 .story__cue svg { animation: cueBob 1.9s var(--ease-lux) infinite; color: var(--accent-soft); }
 @keyframes cueBob { 0%, 100% { transform: translateY(-3px); opacity: 0.55; } 50% { transform: translateY(4px); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .story__cue svg { animation: none; } }
@@ -233,96 +240,72 @@
 .ribbon__num { position: relative; padding-bottom: 0.55rem; }
 .ribbon__num::after { content: ''; position: absolute; left: 50%; bottom: 0;
   width: 58px; height: 2px; transform: translateX(-50%); border-radius: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent) 35%, var(--accent) 65%, transparent);
-  box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.65); }
+  background: linear-gradient(90deg, transparent, var(--accent) 35%, var(--accent) 65%, transparent); }
 .ribbon__grid { display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: clamp(0.7rem, 1.6vw, 1.15rem); padding-inline: clamp(0.9rem, 3vw, 2rem); }
-/* ARCHITECTURAL CHAMFERED STAT CARD
+  gap: clamp(0.7rem, 1.6vw, 1.15rem); }
+/* Two classes, so this outranks `.container`'s own padding-left/right. */
+.ribbon__grid.container { padding-inline: clamp(0.9rem, 3vw, 2rem); }
+/* The Call and WhatsApp floaters are `position: fixed` bottom-right at 54px
+   wide plus a clamp(1rem, 3vw, 1.75rem) inset — about 82px of the viewport's
+   right edge, which lands on the CLIENT SATISFACTION card. Reserve that width
+   back only where the grid is four-up; below 1024px the cards go two-up and the
+   floaters sit clear of them already. */
+@media (min-width: 1024px) {
+  .ribbon__grid.container { padding-right: clamp(6.5rem, 8vw, 7.25rem); }
+}
+/* STAT CARD
    --------------------------------------------------------------------------
-   Three nested layers, and the nesting is not decorative — it is forced by two
-   facts about clip-path:
-
-     1. clip-path clips the element's ENTIRE rendering, including its `border`
-        AND its `box-shadow`. A chamfered card therefore cannot draw its edge
-        with `border`, and cannot glow with `box-shadow`.
-     2. An ancestor carrying `filter` establishes a backdrop root, which makes a
-        descendant's `backdrop-filter` sample nothing and silently do nothing.
-
-   So: the glow is a BLURRED SIBLING (::before) inside an unclipped wrapper, the
-   1px crimson edge is a clipped layer whose 1px padding reveals itself around
-   the face, and the face carries the glass. Collapse these and you lose the
-   bevel, the edge, or the blur — pick any one.                                */
+   Rounded rectangles, not the chamfered clip-path build this used to be. The
+   chamfer is gone on purpose: `clip-path` clips an element's border AND its
+   box-shadow, which is why the old card needed three nested layers — a blurred
+   sibling standing in for the shadow, a padded block standing in for the 1px
+   edge, and a face for the glass. A 12px radius needs none of that, so the
+   border and both shadows are now real properties on one element.            */
 .ribbon__cell {
-  --chamfer: 20px;
-  position: relative;                     /* unclipped: the glow needs to escape */
-  transition: transform 0.45s var(--ease-lux);
+  position: relative;
+  transition: all 0.3s ease;
 }
-/* Outer crimson glow. A sibling of the edge, never an ancestor of the face, so
-   its `filter` cannot kill the backdrop blur. */
-.ribbon__cell::before {
-  content: ''; position: absolute; inset: 2px; z-index: 0;
-  clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
-  background: rgba(var(--accent-rgb), 0.5);
-  filter: blur(16px);
-  opacity: 0;
-  transition: opacity 0.45s var(--ease-lux);
-  pointer-events: none;
-}
-/* No transform here — see the whileHover note in Ribbon.tsx. */
-.ribbon__cell:hover::before { opacity: 1; }
-
-/* The 1px crimson edge: a clipped block whose padding is the edge thickness. */
+/* No transform here — framer-motion writes an inline transform on these cards
+   (the entrance animation), and an inline transform beats any CSS rule, so the
+   -6px hover lift lives in `whileHover` in Ribbon.tsx. */
 .ribbon__cell-edge {
-  position: relative; z-index: 1; height: 100%; padding: 1px;
-  clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
-  background: linear-gradient(150deg,
-    rgba(var(--accent-rgb), 0.55) 0%,
-    rgba(var(--accent-rgb), 0.22) 42%,
-    rgba(255, 255, 255, 0.1) 100%);
-  transition: background 0.45s var(--ease-lux);
+  position: relative; z-index: 1; height: 100%;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px) saturate(115%);
+  -webkit-backdrop-filter: blur(8px) saturate(115%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .ribbon__cell:hover .ribbon__cell-edge {
-  background: linear-gradient(150deg,
-    rgba(var(--accent-rgb), 0.95) 0%,
-    rgba(var(--accent-rgb), 0.45) 46%,
-    rgba(255, 255, 255, 0.16) 100%);
+  border-color: #C8102E;
+  box-shadow: 0 12px 24px -6px rgba(200, 16, 46, 0.12);
 }
-
 .ribbon__cell-face {
   position: relative; height: 100%;
-  padding: clamp(1.5rem, 3vw, 2rem) clamp(1rem, 2.2vw, 1.6rem);
+  padding: 1.25rem 1rem;
+  border-radius: 12px;
   text-align: center;
-  /* Chamfer inset by the 1px edge, so the bevel stays parallel. */
-  clip-path: polygon(0 0, calc(100% - var(--chamfer) + 1px) 0, 100% calc(var(--chamfer) - 1px), 100% 100%, 0 100%);
-  background: rgba(15, 16, 22, 0.75);
-  backdrop-filter: blur(16px) saturate(115%);
-  -webkit-backdrop-filter: blur(16px) saturate(115%);
 }
-/* Blueprint grid inside the card at 5% — drawn with gradients, no asset. */
-.ribbon__cell-face::before {
-  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  opacity: 0.05;
-  background-image:
-    repeating-linear-gradient(0deg, rgba(255,255,255,0.9) 0 1px, transparent 1px 22px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,0.9) 0 1px, transparent 1px 22px);
-}
-/* Inner top light: the highlight `inset 0 1px 0 0 rgba(255,255,255,0.1)` would
-   give, done as a gradient because inset shadows are clipped too. It stops
-   short of the bevel so it never crosses the cut corner. */
+/* Crimson hairline along the top edge — the one structural line left. Inset to
+   the radius so it never runs past the corner curve. */
 .ribbon__cell-face::after {
-  content: ''; position: absolute; top: 0; left: 0;
-  width: calc(100% - var(--chamfer)); height: 1px; z-index: 1; pointer-events: none;
-  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.16) 45%, rgba(255,255,255,0.05));
+  content: ''; position: absolute; top: 0; left: 12px; right: 12px;
+  height: 1px; z-index: 1; pointer-events: none;
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.1), rgba(var(--accent-rgb), 0.5) 45%, rgba(var(--accent-rgb), 0.12));
 }
 .ribbon__cell-face > * { position: relative; z-index: 2; }
 
 @media (prefers-reduced-transparency: reduce) {
-  .ribbon__cell-face { backdrop-filter: none; -webkit-backdrop-filter: none;
-    background: rgba(15, 16, 22, 0.96); }
+  .ribbon__cell-edge { backdrop-filter: none; -webkit-backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.98); }
 }
-.ribbon__num { font-family: var(--font-display); font-weight: 800; font-size: clamp(2.2rem, 5vw, 3.6rem); color: #f8f8f6; letter-spacing: -0.02em; }
+.ribbon__num { font-family: var(--font-display); font-weight: 800; font-size: clamp(2.2rem, 5vw, 3.6rem); color: #0F172A; letter-spacing: -0.02em; }
 .ribbon__num em { font-style: normal; color: var(--accent); font-weight: 700; }
-.ribbon__label { margin-top: 0.4rem; font-size: 0.74rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(248,248,246,0.62); }
+.ribbon__label { margin-top: 0.4rem; font-size: 0.85rem; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase; color: #334155;
+  line-height: 1.4; }
 /* Two-up on narrow screens. The old border resets here are gone with the
    rules they reset — these cards have no borders to clear. */
 @media (max-width: 720px) { .ribbon__grid { grid-template-columns: repeat(2, 1fr); } }
@@ -582,6 +565,12 @@
   gap: clamp(2rem, 4vw, 3.5rem); padding: clamp(1.75rem, 3.5vw, 2.75rem) 0 clamp(1.25rem, 2vw, 1.75rem); align-items: stretch; }
 .footer__col--map { display: flex; }
 .footer__col--contact .logo { margin-bottom: 1.4rem; }
+/* Solid crimson, not the brand gradient. The mark's paths are filled from an
+   SVG gradient, so they are overridden here rather than in the component —
+   `:not(:last-of-type)` spares the white rocket core, which is the third path. */
+.footer .logo-name { background: none; -webkit-text-fill-color: #C8102E; color: #C8102E; }
+.footer .logo-sub { color: #C8102E; }
+.footer .logo svg path:not(:last-of-type) { fill: #C8102E; }
 .footer__col--contact h4 { margin-bottom: 1.1rem; }
 .footer__col .footer__contact-line { display: flex; align-items: flex-start; gap: 0.55rem; color: var(--text-soft); font-size: 0.94rem; margin-bottom: 0.7rem; transition: color 0.3s; }
 .footer__col .footer__contact-line svg { color: var(--accent-soft); flex-shrink: 0; margin-top: 3px; }
@@ -606,14 +595,14 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
    room for the visible upper half. */
 .footer__bottom { position: relative; z-index: 1; overflow: hidden;
   min-height: clamp(56px, 8.5vw, 200px); display: flex; align-items: flex-end;
-  padding-block: 1.25rem; border-top: 1px solid var(--border); color: var(--text-mute); font-size: 0.82rem; }
+  padding-block: 1.25rem; border-top: 1px solid var(--border); color: var(--text); font-size: 0.82rem; }
 .footer__bottom-inner { position: relative; z-index: 10; width: 100%; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
-.footer__bottom a { color: var(--text-mute); } .footer__bottom a:hover { color: var(--accent-soft); }
+.footer__bottom a { color: var(--text); } .footer__bottom a:hover { color: var(--accent); }
 .footer__watermark-word { position: absolute; bottom: 0; left: 50%;
   transform: translate(-50%, 50%); pointer-events: none; user-select: none;
   font-family: var(--font-display); font-weight: 900; font-size: 14vw;
   line-height: 1; letter-spacing: -0.05em; text-transform: uppercase;
-  white-space: nowrap; color: rgba(220, 38, 38, 0.10); }
+  white-space: nowrap; color: rgba(200, 16, 46, 0.5); }
 @media (min-width: 768px) { .footer__watermark-word { font-size: 16vw; } }
 
 /* ==========================================================================
@@ -712,7 +701,7 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
    To change how long the build takes, edit `end` in StoryScroll.tsx.
    (Reduced motion and the `?hero=` QA mode never create the trigger, so this
    height is also what they render at — which is correct for both.) */
-.story { position: relative; height: 100svh; background: var(--ink-900); --accent-soft: #e8615b; }
+.story { position: relative; height: 100svh; background: linear-gradient(180deg, #F8FAFC 0%, #E2E8F0 100%); }
 /* Not sticky — the ancestor is pinned for real now, and a sticky child inside a
    pinned parent fights it. */
 .story__stage { position: relative; height: 100svh; overflow: hidden; }
@@ -723,12 +712,13 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .story__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block;
   background: #0b0d13; will-change: transform; transform-origin: center 62%; touch-action: pan-y; }
 
-/* Filmic grade: cool vignette, and a deep bottom fade that hands off to the
-   next section with no visible seam. */
+/* Daylight grade: a whisper of a cool vignette, nothing more. The old filmic
+   version fell to black at the bottom — under a daylight render that reads as a
+   dark band, and the stats bar already paints its own handoff when it slides in. */
 .story__grade { position: absolute; inset: 0; z-index: 3; pointer-events: none;
   background:
-    radial-gradient(120% 80% at 50% 34%, transparent 48%, rgba(8,10,16,0.62) 100%),
-    linear-gradient(180deg, rgba(8,10,16,0.42) 0%, transparent 24%, transparent 46%, rgba(8,10,16,0.82) 88%, var(--ink-900) 100%); }
+    radial-gradient(120% 85% at 50% 38%, transparent 58%, rgba(148,160,176,0.28) 100%),
+    linear-gradient(180deg, rgba(232,236,239,0.55) 0%, transparent 22%); }
 
 /* Headline + CTAs — the hero's only overlay. z-30 floats it clear of every
    render layer (plate 1, wire 2, grade 3) while staying under the gate, so it
@@ -736,23 +726,25 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .story__finale-copy { position: absolute; z-index: 30; left: 0; right: 0; bottom: 0; opacity: 0;
   padding: 0 var(--pad-x) clamp(3.5rem, 13vh, 9rem); max-width: 900px; pointer-events: none; }
 .story--static .story__finale-copy { opacity: 1; visibility: visible; }
-.story__eyebrow { color: var(--accent-soft); margin-bottom: 1rem; }
+.story__eyebrow { color: var(--accent); margin-bottom: 1rem; }
 /* Heading and subtext are deliberately separated on THREE axes at once —
    weight (800 vs 400), colour (near-white vs muted grey) and measure (600px vs
    480px). Changing only the size gives a bigger heading, not a hierarchy. */
-.story__headline { font-family: var(--font-display); font-weight: 800;
-  font-size: clamp(1.5rem, 3.2vw, 1.95rem); line-height: 1.08; letter-spacing: -0.015em;
-  color: #fafafa; max-width: 600px;
-  /* `balance` evens the two lines instead of leaving a one-word orphan. */
-  text-wrap: balance;
-  text-shadow: 0 2px 40px rgba(0,0,0,0.4); }
-.story__headline em { font-style: italic; color: var(--accent-soft); }
+.story__headline { font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(1.5rem, 3.2vw, 1.95rem); line-height: 1.12; letter-spacing: -0.02em;
+  color: #0F172A; max-width: 600px; }
+/* Upright, not italic — the accent carries the emphasis on its own. A slanted
+   second line on a 700-weight display face reads as strain, not confidence.
+   `display: block` puts the accent on its own line, so the heading is always
+   exactly two: "Building Landmarks," / "Delivering Trust." (It also stops the
+   block changing height between phases, which `text-wrap: balance` could not.) */
+.story__headline em { display: block; font-style: normal; color: #C8102E; }
 /* Phase subtitle. `max-width` in ch, not px — it has to hold a 12-word line and
    a 5-word one without the block visibly changing shape between beats. */
 .story__sub { margin-top: 1.05rem; max-width: 480px; font-weight: 400;
   font-family: var(--font-grotesk); text-wrap: balance;
   font-size: clamp(0.95rem, 1.4vw, 1.08rem);
-  line-height: 1.6; color: rgba(248,248,246,0.78); }
+  line-height: 1.6; color: #4A5568; }
 .story__cta { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; pointer-events: auto; }
 /* The copy block is absolutely positioned and its height changes with each
    phase's line count; anchoring the CTAs to the block's own flow (rather than
@@ -801,7 +793,7 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .story__gate-l::after { right: -1px; }
 .story__gate-r::before { left: -1px; }
 .story__gate-brand { position: absolute; inset: 0; z-index: 7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.55rem; text-align: center; padding-inline: 6vw; will-change: transform, opacity; }
-.story__gate-name { font-family: var(--font-display); font-weight: 500; letter-spacing: 0.14em; font-size: clamp(1.3rem, 3.6vw, 2.3rem); color: #fafafa; margin-top: 0.6rem; }
+.story__gate-name { font-family: var(--font-display); font-weight: 500; letter-spacing: 0.14em; font-size: clamp(1.3rem, 3.6vw, 2.3rem); color: #FFFFFF; margin-top: 0.6rem; }
 .story__gate-sub { font-family: var(--font-grotesk); font-weight: 600; letter-spacing: 0.5em; font-size: 0.66rem; color: var(--accent-soft); }
 .story__gate-hint { margin-top: 1.7rem; padding: 0.55rem 1.15rem; border-radius: 100px;
   border: 1px solid rgba(var(--accent-rgb), 0.45); background: var(--tint);
@@ -960,12 +952,10 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
    white copy over dark photography and every rule here would invert it.
    ========================================================================== */
 /* Matches the WebGL sky ramp, so there is no flash before the chunk loads. */
-.story--3d { background: linear-gradient(to bottom, #0f1115, #2b2029); }
+.story--3d { background: linear-gradient(180deg, #F8FAFC 0%, #E2E8F0 100%); }
 
-/* The copy moves OFF the bottom edge in daylight. It has to: the bottom of the
-   hero still fades to --ink-900 to hand off to the dark stats ribbon, and dark
-   #0F172A type sitting in that fade would be unreadable. Up here it sits on
-   open sky, which is where an arch-viz sheet puts its title anyway. */
+/* The copy sits high, on open sky, which is where an arch-viz sheet puts its
+   title anyway — and it keeps dark type off the building and the asphalt. */
 /* Sized and inset as a CARD, not a full-width band. The base rule uses
    `left/right: 0` plus `padding-inline`, which put the glass panel's left edge
    off-screen — so it lost its radius and read as a bar across the viewport.
@@ -978,37 +968,32 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 @media (max-width: 760px) {
   .story--3d .story__finale-copy { width: calc(100% - var(--pad-x) * 2); }
 }
-.story--3d .story__headline { color: #f6f8fb; }
-.story--3d .story__headline em { color: var(--accent); }
-.story--3d .story__eyebrow { color: var(--accent-soft); }
-.story--3d .story__sub { color: #a0a5b5; }
-.story--3d .story__eyebrow::before { background: var(--accent-soft); }
-/* NO CARD. The copy floats directly on the render — no panel, no border, no
-   backdrop-filter. (The glass card that lived here was removed at the client's
-   request; if it ever comes back it must keep its border AND radius, or the
-   blur boundary reads as a seam across the render — see backdrop-filter-seam.) */
+.story--3d .story__headline { color: #0F172A; }
+.story--3d .story__headline em { color: #C8102E; }
+.story--3d .story__eyebrow { color: var(--accent); }
+.story--3d .story__sub { color: #334155; }
+.story--3d .story__eyebrow::before { background: var(--accent); }
+/* No wash. It existed to put light behind DARK copy on a dark ground; the copy
+   is light again, so the render stays clear. (If one is ever needed here it must
+   be a gradient falling to transparent, never a blurred scrim — the blur
+   boundary draws a seam across the render. See backdrop-filter-seam.) */
 .story--3d .story__finale-copy::before { content: none; }
 
-/* With no panel behind it, every bit of legibility now comes from the type
-   itself. `filter: drop-shadow` on the wrapper follows the glyph outlines
-   rather than the box, so it stays a shadow on letterforms and never draws an
-   edge. The per-element `text-shadow` halos underneath do the heavy lifting
-   where the render goes dark (hoarding, glazing, asphalt) — a dark drop shadow
-   alone cannot rescue dark text sliding over a dark object. */
-.story--3d .story__finale-copy > div {
-  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.55)); }
-.story--3d .story__headline {
-  text-shadow: 0 2px 18px rgba(6,8,12,0.9), 0 0 44px rgba(6,8,12,0.7); }
-.story--3d .story__sub {
-  text-shadow: 0 2px 14px rgba(6,8,12,0.9), 0 0 30px rgba(6,8,12,0.65); }
-.story--3d .story__eyebrow {
-  text-shadow: 0 2px 12px rgba(6,8,12,0.95); }
-/* Vignette only at the bottom, and only to carry the eye into the dark ribbon. */
+/* NO halo, NO drop-shadow, NO scrim — the copy is flat colour on the render and
+   carries itself on contrast alone. The `filter` that used to sit on the wrapper
+   is what drew the soft rectangle down the left of the hero: a drop-shadow
+   spreads from the whole subtree's alpha, not just the glyph outlines. */
+.story--3d .story__finale-copy > div { filter: none; }
+.story--3d .story__headline { text-shadow: none; }
+.story--3d .story__sub { text-shadow: none; }
+.story--3d .story__eyebrow { text-shadow: none; }
+/* NO VIGNETTE — a clear render, corner to corner. The foot is the only overlay
+   left, and it now falls to the dark theme rather than to white: a pale fade
+   over a midnight scene read as smoke sitting on the ground. */
 .story--3d .story__grade {
-  background: linear-gradient(180deg, transparent 0%, transparent 62%, rgba(15,23,42,0.28) 84%, var(--ink-900) 100%); }
-/* The watch button is a light-on-dark ghost by default — invert it on daylight. */
-.story--3d .btn-watch { color: #f2f5f9; border-color: rgba(255,255,255,0.26); background: rgba(255,255,255,0.07); }
-.story--3d .btn-watch:hover { background: rgba(255,255,255,0.14); border-color: rgba(var(--accent-rgb), 0.6); }
+  background: linear-gradient(to bottom, transparent 80%, #E2E8F0 100%); }
+.story--3d .btn-watch { color: #0F172A; border-color: rgba(15,23,42,0.14); background: rgba(255,255,255,0.75); }
+.story--3d .btn-watch:hover { background: rgba(255,255,255,0.92); border-color: rgba(var(--accent-rgb), 0.6); }
 
 /* Phase 4 — interior lights coming on. `screen` so it adds light to the glass
    rather than laying a warm film over the whole frame; centred on the volume,

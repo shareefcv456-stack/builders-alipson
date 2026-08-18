@@ -581,9 +581,13 @@ export function brandTexture(w = 1024, h = 256): { map: THREE.Texture; alpha: TH
   c.width = w; c.height = h;
   const g = c.getContext('2d')!;
   g.clearRect(0, 0, w, h);
+  /* Every coordinate below is authored against a 1024×256 sheet. Scaling the
+     context means a bigger canvas actually raises the resolution instead of
+     drawing the same small artwork into one corner of it. */
+  g.scale(w / 1024, h / 256);
 
   // The "A" mark: a chevron with a notch, matching the site's LogoMark.
-  const mx = 118, my = h / 2, s = 74;
+  const mx = 118, my = 128, s = 74;
   g.fillStyle = '#ffffff';
   g.beginPath();
   g.moveTo(mx, my - s);
@@ -617,7 +621,7 @@ export function brandTexture(w = 1024, h = 256): { map: THREE.Texture; alpha: TH
   const mk = (srgb: boolean) => {
     const t = new THREE.CanvasTexture(c);
     if (srgb) t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = 4;
+    t.anisotropy = 16;   // read at a grazing angle for most of the shot
     return t;
   };
   return { map: mk(true), alpha: mk(false) };

@@ -58,7 +58,7 @@ function Cell({ stat, index }: { stat: Stat; index: number }) {
 export default function Ribbon() {
   return (
     <section className="ribbon">
-      <div className="ribbon__grid container" style={{ paddingInline: 0 }}>
+      <div className="ribbon__grid container">
         {STATS.map((s, i) => (
           <Cell key={s.label} stat={s} index={i} />
         ))}

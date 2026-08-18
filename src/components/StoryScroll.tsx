@@ -56,6 +56,15 @@ const N = HERO_FRAMES.length;
    stage of construction the drawing is showing. Start the film at phase 4
    instead and a finished wireframe dissolves into a photo of an empty site.  */
 const GATE_END = 0.08;     // doors finished parting
+/** Scroll distance, in px, at which the split-gate doors have finished parting.
+ *  Derived from GATE_END and the pin runway below rather than restated, so the
+ *  navbar (which stays hidden behind the closed gate) cannot drift out of sync
+ *  with the gate it is waiting on. */
+const PIN_RUNWAY = () => window.innerHeight * (window.innerWidth < 760 ? 2.7 : 4);
+export function gateOpenScroll() {
+  if (typeof window === 'undefined') return 0;
+  return PIN_RUNWAY() * GATE_END;
+}
 const PHASE_3_END = 0.60;  // slabs and frames done — the drawing is complete
 const PHASE_4_END = 0.85;  // facade closed, interior lights up
 /** The landmark is finished HERE, not at 1.0. The last tenth is deliberate
@@ -217,6 +226,25 @@ export default function StoryScroll() {
     return () => cancelAnimationFrame(raf);
   }, [still]);
 
+  /* Skipping the intro drops the visitor straight onto the hero. CinematicIntro
+     is a sibling component, so it signals with a window event rather than a
+     callback threaded through App for this one cue. */
+  useEffect(() => {
+    const onSkip = () => {
+      three.current?.focusGate();
+      /* The split-gate doors cover the whole viewport until scroll progress
+         GATE_END (0.08 of a 4vh pin), so without this the camera move plays
+         behind them and is never seen. Half a viewport clears that on both the
+         desktop (4vh) and phone (2.7vh) runways without restating either. */
+      const lenis = (window as unknown as { lenis?: Lenis }).lenis;
+      const to = window.scrollY + window.innerHeight * 0.5;
+      if (lenis) lenis.scrollTo(to, { duration: 1.6 });
+      else window.scrollTo({ top: to, behavior: 'smooth' });
+    };
+    window.addEventListener('alipson:skip-intro', onSkip);
+    return () => window.removeEventListener('alipson:skip-intro', onSkip);
+  }, []);
+
   useEffect(() => {
     const cv = canvas.current;
     if (!cv) return;
@@ -338,7 +366,7 @@ export default function StoryScroll() {
              disagree about what the percentage is a percentage OF — px is
              unambiguous — and because it lets the phone get a shorter timeline
              without a media query that could desync from the pin. */
-          end: () => '+=' + Math.round(window.innerHeight * (window.innerWidth < 760 ? 2.7 : 4)),
+          end: () => '+=' + Math.round(PIN_RUNWAY()),
           pin: true,
           pinSpacing: true,
           /* Pinning for real (not CSS sticky) means the pin CAN jump if you
