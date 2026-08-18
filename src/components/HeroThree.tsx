@@ -6,7 +6,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { concreteMaps, dirtMaps, asphaltMaps, pavingMaps, grassMaps, facadeTexture, metalRoughness, softDot, blueprintTexture, cityEnvironment } from '../lib/procTex';
+import { concreteMaps, dirtMaps, asphaltMaps, pavingMaps, grassMaps, facadeTexture, metalRoughness, softDot, blueprintTexture, brandTexture, cityEnvironment } from '../lib/procTex';
 
 /**
  * The construction timeline as an architectural-visualisation render: daylight,
@@ -48,6 +48,13 @@ const PIT = 0.9;
  *  BD/2 + 2.6 = 4.7, so the road must stay clear of that or it runs through the
  *  compound fence — which it did, until the gate scene made it obvious. */
 const ROAD_Z = 7.8, ROAD_HALF = 1.7;
+/** Driveway corridor: the lane the car uses from its bay, through the gate and
+ *  onto the carriageway. NOTHING may be planted inside it. Kept here as one
+ *  constant because the trees, the shrubs and the gate opening all have to
+ *  agree — the previous rule guarded a frame-left wedge from an older car path
+ *  and left the actual driveway planted. */
+const DRIVE_HALF = 3.4;
+const inDriveway = (x: number, z: number) => Math.abs(x) < DRIVE_HALF && z > 1.2;
 const SUN = new THREE.Vector3(16, 20, 11);
 
 const upright = <T extends THREE.BufferGeometry>(g: T, h: number): T => { g.translate(0, h / 2, 0); return g; };
@@ -564,6 +571,22 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     roof.position.y = TOP; roof.castShadow = true; roof.scale.setScalar(0.0001);
     world.add(roof);
 
+    /* Brand sign on the parapet fascia. `alphaMap` is what makes it read as an
+       applied wordmark rather than a billboard — the plane is invisible except
+       where the letters are, so the glazing behind it is never blocked. Emissive
+       crimson at 0.5 so it glows at night without lighting the facade. */
+    const brand = brandTexture();
+    const brandMat = new THREE.MeshStandardMaterial({
+      map: brand.map, alphaMap: brand.alpha, transparent: true,
+      emissive: 0xc8102e, emissiveMap: brand.map, emissiveIntensity: 0.5,
+      color: 0xf4f6f8, roughness: 0.35, metalness: 0.2,
+      depthWrite: false, side: THREE.DoubleSide,
+    });
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.15), brandMat);
+    sign.position.set(0, TOP - 0.62, BD / 2 + 0.1);
+    sign.visible = false;
+    world.add(sign);
+
     const canopy = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 1.3), steelDark);
     canopy.position.set(0, 1.05, BD / 2 + 0.55);
     canopy.castShadow = true; canopy.scale.setScalar(0.0001);
@@ -748,9 +771,9 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       const a = (i / 14) * Math.PI * 2 + 0.5 + ((i * 2.399) % 0.6);
       const rad = 7.2 + ((i * 3.1) % 2.6);
       let tx = Math.cos(a) * rad, tz = Math.sin(a) * rad * 0.84;
-      // Keep the access corridor clear. The car drives out through frame-left,
-      // and trees planted in that wedge sat directly in front of it.
-      if (tx < -4.5 && tz > 0.5) tz = -tz - 1.2;
+      // Mirror anything standing in the driveway to the back of the plot, so
+      // the run from the bay through the gate is completely clear.
+      if (inDriveway(tx, tz)) { tz = -Math.abs(tz) - 2.0; tx *= 0.85; }
       const tall = 0.9 + ((i * 1.7) % 1) * 0.8;
       const clumps: Clump[] = [];
       const n = 16 + (i % 3) * 3;
@@ -804,7 +827,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       const a = (i / 46) * Math.PI * 2 + 0.22;
       const rad = 5.9 + ((i * 2.7) % 1.9);
       let sx = Math.cos(a) * rad, sz = Math.sin(a) * rad * 0.86;
-      if (sx < -4.2 && sz > 0.5) sz = -sz - 1.0;      // keep the car corridor clear
+      if (inDriveway(sx, sz)) { sz = -Math.abs(sz) - 1.8; sx *= 0.85; }   // clear the driveway
       SHRUBS.push({
         p: new THREE.Vector3(sx, 0.1 + ((i * 3.1) % 1) * 0.06, sz),
         s: new THREE.Vector3(0.2 + ((i * 5) % 4) * 0.05, 0.14 + ((i * 7) % 4) * 0.035, 0.2 + ((i * 11) % 4) * 0.05),
@@ -1464,6 +1487,12 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
         if (p.mesh.visible) p.mesh.position.lerpVectors(p.from, p.to, outCubic(k));
       });
       roof.scale.setScalar(s0(ease(span(0.5, 0.58, t))));
+      // Signage goes up once the parapet exists, then warms to full at dusk.
+      const brandIn = ease(span(0.58, 0.7, t));
+      sign.visible = brandIn > 0.02;
+      sign.scale.set(brandIn, brandIn, 1);
+      brandMat.opacity = brandIn;
+      brandMat.emissiveIntensity = brandIn * (0.22 + ease(span(0.68, 0.9, t)) * 0.38);
       plates.forEach((m, k) => {
         const s = s0(stagger(t, 0.26, 0.42, k, plates.length));
         m.scale.set(s, 1, s);

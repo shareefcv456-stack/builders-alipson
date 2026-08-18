@@ -565,3 +565,60 @@ export function facadeTexture(size = 256): { map: THREE.Texture; emissive: THREE
   };
   return { map: wrap(c), emissive: wrap(e) };
 }
+
+/**
+ * Alipson wordmark + logo mark, drawn on a transparent canvas for use as a
+ * building sign. Returned as a pair: `map` for the visible material and
+ * `alpha` (the same art) for the alpha channel, so the plane shows ONLY the
+ * lettering and stays invisible glass everywhere else.
+ *
+ * Canvas rather than TextGeometry deliberately: three's text needs a typeface
+ * JSON loaded over the network, and a sign this size does not justify an asset
+ * download when a 1024px canvas reads identically at this camera distance.
+ */
+export function brandTexture(w = 1024, h = 256): { map: THREE.Texture; alpha: THREE.Texture } {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d')!;
+  g.clearRect(0, 0, w, h);
+
+  // The "A" mark: a chevron with a notch, matching the site's LogoMark.
+  const mx = 118, my = h / 2, s = 74;
+  g.fillStyle = '#ffffff';
+  g.beginPath();
+  g.moveTo(mx, my - s);
+  g.lineTo(mx - s * 0.82, my + s * 0.86);
+  g.lineTo(mx - s * 0.34, my + s * 0.86);
+  g.lineTo(mx, my - s * 0.06);
+  g.lineTo(mx + s * 0.34, my + s * 0.86);
+  g.lineTo(mx + s * 0.82, my + s * 0.86);
+  g.closePath();
+  g.fill();
+  // Inner diamond, knocked out so the mark reads at a distance.
+  g.globalCompositeOperation = 'destination-out';
+  g.beginPath();
+  g.moveTo(mx, my - s * 0.02);
+  g.lineTo(mx + s * 0.2, my + s * 0.36);
+  g.lineTo(mx, my + s * 0.74);
+  g.lineTo(mx - s * 0.2, my + s * 0.36);
+  g.closePath();
+  g.fill();
+  g.globalCompositeOperation = 'source-over';
+
+  g.fillStyle = '#ffffff';
+  g.textBaseline = 'middle';
+  g.font = '700 82px "Syne", "Manrope", sans-serif';
+  g.letterSpacing = '10px';
+  g.fillText('ALIPSON', 214, my - 26);
+  g.font = '600 40px "Plus Jakarta Sans", sans-serif';
+  g.letterSpacing = '22px';
+  g.fillText('BUILDERS', 218, my + 40);
+
+  const mk = (srgb: boolean) => {
+    const t = new THREE.CanvasTexture(c);
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  };
+  return { map: mk(true), alpha: mk(false) };
+}
