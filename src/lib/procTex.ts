@@ -591,6 +591,17 @@ export function brandTexture(w = 1024, h = 256): { map: THREE.Texture; alpha: TH
        drawing the same small artwork into one corner of it. */
     g.scale(w / 1024, h / 256);
 
+    /* Faint blueprint watermark ruling across the panel face — reads as a
+       composite sheet rather than blank white at close range. Drawn first so
+       the wordmark sits on top of it. */
+    g.save();
+    g.globalAlpha = 0.08;
+    g.strokeStyle = mark === '#ffffff' ? '#ffffff' : '#0F172A';
+    g.lineWidth = 1;
+    for (let x = 24; x < 1024; x += 34) { g.beginPath(); g.moveTo(x, 12); g.lineTo(x, 244); g.stroke(); }
+    for (let y = 24; y < 256; y += 34) { g.beginPath(); g.moveTo(12, y); g.lineTo(1012, y); g.stroke(); }
+    g.restore();
+
     // The "A" mark: a chevron with a notch, matching the site's LogoMark.
     const mx = 118, my = 128, s = 74;
     g.fillStyle = mark;
@@ -615,21 +626,29 @@ export function brandTexture(w = 1024, h = 256): { map: THREE.Texture; alpha: TH
     g.globalCompositeOperation = 'source-over';
 
     g.textBaseline = 'middle';
+    /* Subtle crimson back-glow behind ALIPSON only — the canvas equivalent of
+       text-shadow: 0 0 12px rgba(200,16,46,0.4). Cleared before BUILDERS so the
+       slate line stays crisp. */
     g.fillStyle = name;
-    g.font = '700 82px "Syne", "Manrope", sans-serif';
+    g.font = '800 82px "Syne", "Manrope", sans-serif';
     g.letterSpacing = '10px';
+    g.shadowColor = 'rgba(200, 16, 46, 0.4)';
+    g.shadowBlur = 12;
     g.fillText('ALIPSON', 214, my - 26);
+    g.shadowBlur = 0;
+    g.shadowColor = 'transparent';
     g.fillStyle = sub;
-    g.font = '600 40px "Plus Jakarta Sans", sans-serif';
-    g.letterSpacing = '22px';
+    g.font = '700 46px "Plus Jakarta Sans", sans-serif';
+    g.letterSpacing = '9px';
     g.fillText('BUILDERS', 218, my + 40);
     return c;
   };
 
-  /* Mark and ALIPSON in brand crimson; BUILDERS in charcoal. BUILDERS is
-     600-weight at 40px with 22px tracking, so at render scale it is mostly
-     anti-aliased edge — in crimson it measured 2.78:1 against the white board,
-     against ALIPSON's 14.25:1. Charcoal is the contrast half of the pairing. */
+  /* Mark and ALIPSON in brand crimson at 800; BUILDERS in slate-black at 700
+     with 0.15em (6px) tracking. BUILDERS was 600-weight and mostly anti-aliased edge at
+     render scale — in crimson it measured 2.78:1 against the white board,
+     against ALIPSON's 14.25:1. The heavier weight, wider tracking and slate
+     fill are what make it readable at billboard distance. */
   const colour = sheet('#C8102E', '#C8102E', '#0F172A');
   const mask = sheet('#ffffff', '#ffffff', '#ffffff');
 

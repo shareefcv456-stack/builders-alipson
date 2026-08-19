@@ -15,8 +15,6 @@ import Studio from './components/Studio';
 import Founder from './components/Founder';
 import Services from './components/Services';
 import Projects from './components/Projects';
-import Nunny from './components/Nunny';
-import WhyUs from './components/WhyUs';
 import Process from './components/Process';
 import Clients from './components/Clients';
 import Testimonials from './components/Testimonials';
@@ -27,19 +25,14 @@ import Contact from './components/Contact';
 import Footer from './components/Footer';
 import { QuoteModal, BrochureModal, VideoModal } from './components/Modals';
 
-// Check if mobile (viewport < 768px)
-const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768;
-
 export default function App() {
-  /* CinematicIntro plays first: blueprint line-draw → "We don't build
-     buildings." → brand mark, with a Skip intro button. It is skipped on mobile
-     (slow first paint reads as a broken black page) and under `?noloader`.
-     Set the initial value to `true` to turn the intro off site-wide. */
+  /* CinematicIntro plays first on EVERY load and reload: blueprint line-draw →
+     "We don't build buildings." → brand mark, with a Skip intro button. It then
+     hands off to the scroll-driven gate at scroll 0, so a refresh always starts
+     the sequence from the beginning. `?noloader` is the only escape hatch — the
+     old mobile bypass is gone, so phones get the intro too. */
   const [loaded, setLoaded] = useState(
-    () => typeof window !== 'undefined' && (
-      window.location.search.includes('noloader') ||
-      isMobile()
-    )
+    () => typeof window !== 'undefined' && window.location.search.includes('noloader')
   );
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [brochureOpen, setBrochureOpen] = useState(false);
@@ -47,23 +40,32 @@ export default function App() {
 
   useLenis();
 
-  // On every load/refresh: stop the browser restoring the previous scroll
-  // position and force the top, so the scroll-driven intro gate starts at frame 0.
+  /* On every load, refresh and back/forward restore: stop the browser putting
+     the scroll position back and force the top, so the gate starts at frame 0.
+     `pageshow` covers the bfcache case, where no effect re-runs and the browser
+     would otherwise hand the page back mid-scroll. */
   useEffect(() => {
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-    window.scrollTo(0, 0);
+    const toTop = () => window.scrollTo(0, 0);
+    toTop();
+    const onShow = () => { if (!window.location.hash) toTop(); };
+    window.addEventListener('pageshow', onShow);
+    return () => window.removeEventListener('pageshow', onShow);
   }, []);
 
   useEffect(() => {
     document.body.style.overflow = loaded ? '' : 'hidden';
   }, [loaded]);
 
-  // Deep-link: scroll to #section on first load once content is revealed.
+  /* Once the intro clears: an explicit #hash deep-links to that section, and
+     the bare base URL is pinned back to the top. The second half matters —
+     releasing `body { overflow }` can otherwise surface a scroll position the
+     browser latched while the intro was covering the page. */
   useEffect(() => {
     if (!loaded) return;
     const id = window.location.hash.replace('#', '');
-    if (!id) return;
     const t = setTimeout(() => {
+      if (!id) { window.scrollTo(0, 0); return; }
       const el = document.getElementById(id);
       if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
     }, 120);
@@ -89,8 +91,6 @@ export default function App() {
           <Founder />
           <Services />
           <Projects />
-          <Nunny />
-          <WhyUs />
           <Process />
           <Clients />
           <Testimonials />

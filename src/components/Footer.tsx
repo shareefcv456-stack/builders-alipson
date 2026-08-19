@@ -1,28 +1,11 @@
 import { Facebook, Instagram, Youtube, ArrowUpRight, Phone, Mail, MapPin } from 'lucide-react';
 import Logo from './ui/Logo';
-import Magnetic from './ui/Magnetic';
-import RevealText from './ui/RevealText';
 import { NAV, CONTACT } from '../data/site';
 import { scrollToId } from '../hooks/useLenis';
-import { useUI } from '../context/UIContext';
 
 export default function Footer() {
-  const { openQuote } = useUI();
-
   return (
     <footer className="footer grain" id="footer">
-
-      {/* Closing CTA */}
-      <div className="container footer__cta">
-        <RevealText className="" as="h2" lines={[<>Together, we build</>, <>the <em>extraordinary.</em></>]} />
-        <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}>
-          <Magnetic strength={0.3}>
-            <button className="btn btn-primary" onClick={openQuote}>
-              Book a Consultation <ArrowUpRight size={16} />
-            </button>
-          </Magnetic>
-        </div>
-      </div>
 
       {/* Top row — Contact · Quick Links · Map */}
       <div className="container footer__top grid grid-cols-1 md:grid-cols-3 gap-8" id="location">

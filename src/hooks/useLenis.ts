@@ -36,15 +36,23 @@ export function useLenis() {
   }, []);
 }
 
-/** Smooth-scroll to a section id, using Lenis when present. */
+/** Height of the floating navbar capsule — sections stop below it, not under it. */
+const NAV_OFFSET = 100;
+
+/**
+ * Smooth-scroll to a section id, using Lenis when present. Falls back to native
+ * smooth scrolling, and to an instant jump under reduced-motion (where Lenis is
+ * never created, so `behavior: smooth` would be the one animation left running).
+ */
 export function scrollToId(id: string) {
   const el = document.getElementById(id);
   if (!el) return;
   const lenis = (window as unknown as { lenis?: Lenis }).lenis;
   if (lenis) {
-    lenis.scrollTo(el, { offset: -80, duration: 1.4 });
-  } else {
-    const y = el.getBoundingClientRect().top + window.scrollY - 80;
-    window.scrollTo({ top: y, behavior: 'smooth' });
+    lenis.scrollTo(el, { offset: -NAV_OFFSET, duration: 1.4 });
+    return;
   }
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const y = el.getBoundingClientRect().top + window.scrollY - NAV_OFFSET;
+  window.scrollTo({ top: y, behavior: reduce ? 'auto' : 'smooth' });
 }

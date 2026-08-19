@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import {
   Building2, Award, Compass, Wrench, ShieldCheck,
   Clock, Users, Ruler, Sparkles, LineChart, Leaf,
-  HardHat, ClipboardList, Plane, type LucideIcon,
+  type LucideIcon,
 } from 'lucide-react';
 import type { MediaKey } from '../lib/media';
 
@@ -33,20 +33,6 @@ export const STATS: Stat[] = [
   { value: 100, suffix: '%', label: 'On-Time Completion' },
   { value: 15, suffix: '+', label: 'Years Combined Expertise' },
   { value: 100, suffix: '%', label: 'Client Satisfaction' },
-];
-
-/* ---- NUNNY RECRUITMENT DIVISION ----------------------------------------- */
-export type NunnyFeature = { num: string; icon: LucideIcon; title: string; desc: string };
-export const NUNNY_FEATURES: NunnyFeature[] = [
-  { num: '01', icon: HardHat, title: 'Skilled Labour Supply', desc: 'Vetted masons, steel fixers, carpenters, electricians and finishers — mobilised to your site on schedule.' },
-  { num: '02', icon: Ruler, title: 'Site Engineering Talent', desc: 'Civil engineers, surveyors, QA/QC and project managers who keep quality and timelines on track.' },
-  { num: '03', icon: Plane, title: 'Overseas Placement', desc: 'Gulf & international deployment with documentation, visa processing and pre-departure orientation handled end-to-end.' },
-  { num: '04', icon: ClipboardList, title: 'Workforce Management', desc: 'Payroll, compliance, rostering and on-site supervision — a fully managed crew, not just a headcount.' },
-];
-export const NUNNY_STATS: Stat[] = [
-  { value: 5000, suffix: '+', label: 'Workers Placed' },
-  { value: 12, suffix: '+', label: 'Countries Served' },
-  { value: 48, suffix: 'h', label: 'Avg. Mobilisation' },
 ];
 
 /* ---- SERVICES ----------------------------------------------------------- */

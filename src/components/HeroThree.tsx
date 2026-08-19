@@ -588,6 +588,10 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       color: 0xffffff, roughness: 0.8, metalness: 0,
       depthWrite: false, side: THREE.DoubleSide,
     });
+    /* Board width trimmed 18% so the sign sits entirely inside the top roof
+       beams instead of running past them. Heights are unchanged — only the
+       span overflowed. */
+    const SIGN_W = 0.82;
     /* Signage board BEHIND the lettering, in three stacked planes: a dark red
        frame, a white matte face inset from it, and the artwork on top. The board
        exists because the sign used to sit straight on the curtain wall, where
@@ -595,7 +599,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        roughness 0.8 / metalness 0 so the face stays matte — a glossy board picks
        up the same hard specular the glass does, which is what made it sparkle. */
     const frame = new THREE.Mesh(
-      new THREE.PlaneGeometry(6.31, 1.94),
+      new THREE.PlaneGeometry(6.31 * SIGN_W, 1.94),
       new THREE.MeshStandardMaterial({ color: 0x8E0C22, roughness: 0.45, metalness: 0.35 })
     );
     frame.position.set(0, TOP - 0.68, BD / 2 + 0.108);
@@ -603,14 +607,16 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     world.add(frame);
 
     const fascia = new THREE.Mesh(
-      new THREE.PlaneGeometry(6.15, 1.78),
-      new THREE.MeshStandardMaterial({ color: 0xF8FAFC, roughness: 0.8, metalness: 0 })
+      new THREE.PlaneGeometry(6.15 * SIGN_W, 1.78),
+      /* Semi-gloss composite panel rather than flat matte board — it catches a
+         soft sheen off the sun without the hard specular the glazing throws. */
+      new THREE.MeshStandardMaterial({ color: 0xF8FAFC, roughness: 0.3, metalness: 0.2 })
     );
     fascia.position.set(0, TOP - 0.68, BD / 2 + 0.113);
     fascia.visible = false;
     world.add(fascia);
 
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(5.75, 1.44), brandMat);
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(5.75 * SIGN_W, 1.44), brandMat);
     sign.position.set(0, TOP - 0.68, BD / 2 + 0.116);
     sign.visible = false;
     world.add(sign);
@@ -1474,6 +1480,8 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     const look = new THREE.Vector3();
     let clock = 0, focus = 0, focusOn = false;
     const gateCam = new THREE.Vector3(), gateLook = new THREE.Vector3();
+    /* Hoisted: this runs every frame, so no per-frame allocations. */
+    const panDir = new THREE.Vector3(), panRight = new THREE.Vector3();
     const update = (t: number, dt = 0, tail = 0) => {
       clock += dt;
       const e = ease(t);
@@ -1494,6 +1502,18 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
         Math.cos(ang) * mix(rad, rad + 4.2, lift)
       );
       look.set(0, mix(1.2, TOP * 0.55, ease(span(0.12, 0.9, t))) - lift * 1.9, 0);
+      /* COPY CLEARANCE. The finale headline sits bottom-left. Panning the look
+         target LEFT pushes the model right in frame, and dropping it tilts the
+         lens down so the building rides higher — together that clears the type
+         instead of letting the tower run straight through it. Eased in with the
+         copy so the build phases keep their original framing. */
+      const copyClear = ease(span(0.30, 0.62, t));
+      if (copyClear > 0) {
+        panDir.copy(look).sub(camera.position).normalize();
+        panRight.crossVectors(panDir, camera.up).normalize();
+        look.addScaledVector(panRight, -3.4 * copyClear);
+        look.y -= 0.85 * copyClear;
+      }
       /* GATE FOCUS. Blended on top of the playhead camera rather than replacing
          it, so releasing the focus hands control back mid-frame with no jump. */
       if (focusOn) focus = Math.min(1, focus + dt * 1.05);

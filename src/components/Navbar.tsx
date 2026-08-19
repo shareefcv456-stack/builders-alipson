@@ -18,28 +18,56 @@ export default function Navbar() {
   const { openQuote } = useUI();
 
   useEffect(() => {
-    const onScroll = () => {
+    /* Scrollspy: the active item is the LAST nav section whose top has crossed
+       the probe line. The previous version required the probe to sit *inside*
+       the element, so it went blank over the gaps between sections and never
+       lit up the pinned hero or the footer at all. */
+    const PROBE = 160;
+    let raf = 0;
+
+    const measure = () => {
+      raf = 0;
       setScrolled(window.scrollY > 40);
       setPast(window.scrollY >= gateOpenScroll());
+
+      const atBottom =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      if (atBottom) { setActive(NAV[NAV.length - 1].id); return; }
+
+      let best = NAV[0].id;
+      let bestTop = -Infinity;
       for (const { id } of NAV) {
         const el = document.getElementById(id);
-        if (el) {
-          const r = el.getBoundingClientRect();
-          if (r.top <= 160 && r.bottom >= 160) {
-            setActive(id);
-            break;
-          }
-        }
+        if (!el) continue;
+        const top = el.getBoundingClientRect().top;
+        if (top <= PROBE && top > bestTop) { best = id; bestTop = top; }
       }
+      setActive(best);
     };
+
+    /* Measure on the frame AFTER the scroll event, coalesced. GSAP pins this
+       page, and reading rects inside the scroll handler caught the pin-spacer
+       mid-update — on a programmatic jump (a nav click), which fires exactly
+       one scroll event, that left the indicator stuck on the previous section. */
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(measure); };
+
     window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
     // Deep links and reloads can land mid-page, where the gate is long gone.
-    onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
+    measure();
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
   }, []);
 
+  /* Single-page smooth scroll — no route change, so the pinned scroll-driven
+     hero is never torn down and re-mounted. The URL is deliberately left clean
+     (no #hash written) so a later refresh lands on the hero, not mid-page. */
   const go = (id: string) => {
     setMenuOpen(false);
+    setActive(id);          // light the target immediately, don't wait for scroll
     scrollToId(id);
   };
 

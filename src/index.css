@@ -55,7 +55,7 @@
   /* Fonts — modern editorial sans (no decorative faces) */
   /* Body copy. `body` reads --font-sans, NOT --font-grotesk — changing only
      the grotesk token leaves every paragraph on the old face. */
-  --font-sans:    'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans:    'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   /* Syne for display: high-contrast geometric, reads as architectural.
      Plus Jakarta Sans for body: neutral, wide language coverage. */
   --font-display: 'Syne', 'Manrope', system-ui, sans-serif;
@@ -65,11 +65,11 @@
   --ease-lux:  cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out:  cubic-bezier(0.22, 1, 0.36, 1);
 
-  --container: 1360px;
+  --container: 1200px;
   --pad-x: clamp(1.25rem, 5vw, 5rem);
-  /* Compact, responsive vertical rhythm (~py-10 → py-16). Kills the huge
-     empty gaps around sections while staying breathable on desktop. */
-  --section-py: clamp(2.5rem, 5vw, 4rem);
+  /* Compact vertical rhythm — py-10 → py-12. Tight enough that sections read
+     as one continuous page rather than a stack of isolated screens. */
+  --section-py: clamp(2.5rem, 4vw, 3rem);
   --radius: 20px;
   --radius-lg: 28px;
 }
@@ -145,22 +145,22 @@ body {
 
 /* Smooth, layout-shift-free theme transitions across surfaces */
 .section, .bg-alt, .bg-elev, .nav.scrolled .nav__inner, .glass,
-.svc, .proj, .bento__cell, .tcard, .founder__quote, .founder__caption,
+.svc, .proj, .std__card, .tcard, .founder__quote, .founder__caption,
 .founder__values, .ptl__node, .ptl__body, .contact__form, .contact__ic,
-.svc__icon, .bento__icon, .studio__hl-icon, .filter, .btn-ghost, .theme-btn,
+.svc__icon, .std__ic, .studio__hl-icon, .filter, .btn-ghost, .theme-btn,
 .faq__item, .field input, .field textarea, .footer, .hero__badge {
   transition: background-color 0.5s ease-in-out, border-color 0.5s ease-in-out, color 0.5s ease-in-out, box-shadow 0.5s ease-in-out;
 }
 
 h1, h2, h3, h4, h5 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.04;
   color: var(--text);
   text-wrap: balance;          /* avoid orphan/awkward heading breaks */
 }
-p { text-wrap: pretty; }        /* avoid single-word last lines */
+p { text-wrap: pretty; font-family: var(--font-sans); font-weight: 400; line-height: 1.6; }
 h1 em, h2 em, h3 em, h4 em, h5 em, .display em, .title em { font-style: normal; }  /* editorial sans has no italic */
 :where(h1, h2, h3, p) { overflow-wrap: break-word; }  /* never overflow the container */
 a { color: inherit; text-decoration: none; }
@@ -183,10 +183,10 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 /* --------------------------------------------------------------------------
    3. LAYOUT UTILITIES
    -------------------------------------------------------------------------- */
-/* max-width 80rem == Tailwind's max-w-7xl; padding 1.5rem == px-6. Every
+/* max-width 1200px (--container); padding 1.5rem == px-6. Every
    content block below the hero runs through this one rule, which is what
    keeps their left edges identical down the page. */
-.container { width: 100%; max-width: 80rem; margin: 0 auto; padding-left: 1.5rem; padding-right: 1.5rem; }
+.container { width: 100%; max-width: var(--container); margin: 0 auto; padding-left: 1.5rem; padding-right: 1.5rem; }
 
 /* Reveal animations start their off-screen elements at translateX(±44px)
    (see ui/Reveal.tsx `left`/`right`), which pushed them past the viewport and
@@ -225,23 +225,32 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
   font-size: 0.75rem; letter-spacing: 0.32em; text-transform: uppercase;
   color: var(--accent-soft);
 }
-.eyebrow::before { content: ''; width: 30px; height: 1px; background: linear-gradient(90deg, var(--accent), var(--gold)); opacity: 0.85; }
+.eyebrow::before { content: ''; width: 30px; height: 1px; background: var(--accent); opacity: 0.85; }
 .eyebrow--center { justify-content: center; }
+/* Centred eyebrows get a matching dash on the trailing side, so the label sits
+   between two rules rather than hanging off one. */
+.eyebrow--center::after { content: ''; width: 30px; height: 1px;
+  background: var(--accent); opacity: 0.85; }
 
 .display {
   font-family: var(--font-display);
   font-size: clamp(2.4rem, 6vw, 5rem);
-  font-weight: 300; line-height: 1.02; letter-spacing: -0.025em;
+  font-weight: 800; line-height: 1.02; letter-spacing: -0.02em;
 }
 .display em { font-style: italic; color: var(--accent-soft); }
-.title { font-size: clamp(2rem, 4.5vw, 3.6rem); font-weight: 300; letter-spacing: -0.025em; }
+.title { font-size: clamp(1.75rem, 3.2vw, 2.25rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+/* Any heading that is not the hero display or a component-scoped one lands on
+   the same scale, so a stray <h2>/<h3> cannot reintroduce the old giant type. */
+h2, h3 { font-size: clamp(1.75rem, 3.2vw, 2.25rem); line-height: 1.2; }
+h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
 .title em { font-style: italic; color: var(--accent-soft); }
 
 .lede { color: var(--text-soft); font-size: clamp(1rem, 1.3vw, 1.15rem); line-height: 1.75; max-width: 52ch; }
-.section-head { max-width: 760px; margin-bottom: 2rem; }
+.section-head { max-width: 760px; margin-bottom: 1.5rem; }
 .section-head--center { margin-inline: auto; text-align: center; }
 .section-head--center .eyebrow { justify-content: center; }
-.section-head .title { margin-top: 1.4rem; }
+.section-head .title { margin-top: 0.9rem; }
+.section-head > *:last-child { margin-bottom: 0; }
 
 .grain::after {
   content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;

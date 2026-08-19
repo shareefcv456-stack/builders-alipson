@@ -1,8 +1,11 @@
-import { motion } from 'framer-motion';
-import { ShieldCheck, Landmark, Lightbulb } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { ShieldCheck, Landmark, Lightbulb, ArrowRight } from 'lucide-react';
 import Reveal, { Stagger, staggerItem } from './ui/Reveal';
 import RevealText from './ui/RevealText';
+import { scrollToId } from '../hooks/useLenis';
 import { media } from '../lib/media';
+import Sketch from './ui/Sketch';
 
 const FEATURES = [
   { icon: ShieldCheck, title: 'Automated Smart Access Control', desc: 'Motorised leaves with app, RFID and intercom entry, plus a battery fallback so the gate never strands a resident.' },
@@ -10,38 +13,75 @@ const FEATURES = [
   { icon: Lightbulb,   title: 'Integrated Facade Ambient Lighting', desc: 'Recessed grazers and step-lit approaches wired into the estate circuit, tuned warm so the entrance reads at dusk.' },
 ];
 
-export default function AlipsonGate() {
+/* Bottom-right corner pattern: stepped crimson-over-charcoal wedges, with thin
+   crimson rules running parallel to the step as texture. */
+function GeoPattern() {
   return (
-    <section id="gateway" className="section">
+    <svg className="gate__geo" viewBox="0 0 90 90" aria-hidden="true" focusable="false">
+      <path className="gf-dark" d="M90 90H30L90 30z" />
+      <path className="gf-red" d="M90 90H58L90 58z" />
+      <g className="gf-bars">
+        <path d="M22 90 90 22M14 90 90 14M6 90 90 6" />
+      </g>
+    </svg>
+  );
+}
+
+export default function AlipsonGate() {
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState<number | null>(null);
+  const { scrollYProgress } = useScroll({ target: stageRef, offset: ['start end', 'end start'] });
+  /* Parallax zoom: 1.0 → 1.04 across the section's pass through the viewport. */
+  const zoom = useTransform(scrollYProgress, [0, 1], [1, 1.04]);
+
+  return (
+    <section id="gateway" className="section gate">
       <div className="container">
         <div className="section-head section-head--center">
           <Reveal><span className="eyebrow eyebrow--center">The Alipson Gate</span></Reveal>
           <RevealText
-            className="title"
+            className="title gate__title"
             lines={[<>The Gateway to Luxury Living</>, <><em>Signature Entry Architecture</em></>]}
           />
         </div>
 
-        <Reveal dir="scale">
-          <figure className="gate__visual">
-            <img
-              src={media('gateway')}
-              alt="An Alipson entrance — lit portico, stone piers and step-lit approach at dusk"
-              loading="lazy"
-            />
-            <figcaption className="gate__caption">
-              <b>Signature Entrance</b>
-              <span>Stone piers · lit portico · step-lit approach</span>
-            </figcaption>
-          </figure>
-        </Reveal>
+        <div className="gate__stage" ref={stageRef}>
+          <Reveal dir="scale">
+            <figure className="gate__visual">
+              <motion.img
+                src={media('gateway')}
+                alt="An Alipson entrance — lit portico, stone piers and step-lit approach at dusk"
+                style={{ scale: zoom }}
+                loading="lazy"
+              />
+              <span className="gate__tag">01 / Signature Gateway</span>
+              <figcaption className="gate__caption">
+                <b>Signature Entrance</b>
+                <span>Stone piers · lit portico · step-lit approach</span>
+              </figcaption>
+            </figure>
+          </Reveal>
 
-        <Stagger className="gate__features">
-          {FEATURES.map((f) => (
-            <motion.article className="gate__card" key={f.title} variants={staggerItem}>
-              <span className="gate__card-ic"><f.icon size={20} /></span>
+        </div>
+
+        <Stagger className="gate__features" gap={0.12}>
+          {FEATURES.map((f, i) => (
+            <motion.article
+              className={`gate__card ${active === i ? 'is-active' : ''}`}
+              key={f.title}
+              variants={staggerItem}
+              onClick={() => setActive(active === i ? null : i)}
+            >
+              <Sketch variant="gate" className="gate__sketch" />
+              <GeoPattern />
+              <span className="gate__card-ic"><f.icon size={20} strokeWidth={1.9} /></span>
               <h3>{f.title}</h3>
               <p>{f.desc}</p>
+              {/* ponytail: no per-feature pages yet — same destination as the
+                  Standard cards. Repoint when they exist. */}
+              <button className="gate__more" onClick={(e) => { e.stopPropagation(); scrollToId('services'); }}>
+                Learn More <ArrowRight size={14} />
+              </button>
             </motion.article>
           ))}
         </Stagger>

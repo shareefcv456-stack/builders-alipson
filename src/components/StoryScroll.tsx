@@ -413,11 +413,19 @@ export default function StoryScroll() {
           { autoAlpha: 0, yPercent: 18 },
           { autoAlpha: 1, yPercent: 0, ease: 'power1.out', duration: PHASE_1_END * SPAN },
           GATE_END * SPAN * 0.5)
+        // Scrim rides the copy exactly — it exists only to back this text.
+        .fromTo('.story__copy-scrim',
+          { autoAlpha: 0 },
+          { autoAlpha: 1, ease: 'power1.out', duration: PHASE_1_END * SPAN },
+          GATE_END * SPAN * 0.5)
         // …and clear out before the handoff. autoAlpha (not opacity) so it also
         // goes visibility:hidden — at opacity 0 alone the CTAs stay clickable and
         // stay in the a11y tree, hovering invisibly over the stats section.
         .to('.story__finale-copy',
           { autoAlpha: 0, y: -20, ease: 'power1.out', duration: (1 - COPY_OUT) * SPAN },
+          COPY_OUT * SPAN)
+        .to('.story__copy-scrim',
+          { autoAlpha: 0, ease: 'power1.out', duration: (1 - COPY_OUT) * SPAN },
           COPY_OUT * SPAN);
 
       if (pinned !== null) tl.progress(pinned);
@@ -458,6 +466,10 @@ export default function StoryScroll() {
             <div className="story__interior" ref={glow} aria-hidden />
           </>
         )}
+        {/* Left-weighted scrim so the finale copy always clears the 3D
+            canvas behind it. Full-bleed and fading to transparent — a box-shaped
+            scrim draws a hard seam across the render. */}
+        <div className="story__copy-scrim" />
         <div className="story__grade" />
 
         {/* Stats bar — rises over the still-pinned canvas at the end of the

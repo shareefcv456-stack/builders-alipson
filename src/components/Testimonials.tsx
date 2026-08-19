@@ -54,11 +54,15 @@ export default function Testimonials() {
           <RevealText className="title" lines={[<>Trusted by the</>, <>families we <em>build for.</em></>]} />
         </div>
       </div>
-      <div className="marquee" style={{ paddingBlock: '0.5rem' }}>
-        <div className="marquee__track">
-          {loop.map((t, i) => (
-            <TCard key={i} t={t} thumb={THUMBS[i % THUMBS.length]} />
-          ))}
+      {/* The rail is full-bleed by design, but it has to be boxed by something
+          that clips — otherwise the duplicated track widens the page. */}
+      <div className="tmarquee">
+        <div className="marquee" style={{ paddingBlock: '0.5rem' }}>
+          <div className="marquee__track">
+            {loop.map((t, i) => (
+              <TCard key={i} t={t} thumb={THUMBS[i % THUMBS.length]} />
+            ))}
+          </div>
         </div>
       </div>
     </section>

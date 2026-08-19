@@ -68,7 +68,7 @@ export function VideoModal({ open, onClose }: { open: boolean; onClose: () => vo
         {open && (
           <iframe
             src={`https://www.youtube-nocookie.com/embed/${STORY_ID}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
-            title="Together, We Build The Extraordinary — Alipson Builders x Nunny Recruitment"
+            title="Together, We Build The Extraordinary — Alipson Builders"
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
             allowFullScreen
             loading="lazy"
@@ -77,7 +77,7 @@ export function VideoModal({ open, onClose }: { open: boolean; onClose: () => vo
       </div>
       <div className="video-modal__cap">
         <h3>Together, We Build The Extraordinary</h3>
-        <p>The story of Alipson Builders &amp; Nunny Recruitment — engineering, craftsmanship and the people who make it real.</p>
+        <p>The story of Alipson Builders — engineering, craftsmanship and the people who make it real.</p>
       </div>
     </Modal>
   );
