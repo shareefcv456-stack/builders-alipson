@@ -50,65 +50,63 @@ export default function Studio() {
 
           <Reveal dir="up" className="studio__stack">
             <motion.figure className="studio__frame" style={{ y: imgY }}>
-              {/* Structural construction plan. A crimson laser sweeps up from
-                  the foundation over 4s; each layer draws in as the beam passes
-                  it (grid axes → load pillars → shear walls → roof beams), then
-                  the whole sheet glows, holds, and loops. */}
+              {/* 7-stage construction time-lapse on one 8s clock. Each stage is
+                  its own dash-drawn layer; the shared clock is what keeps the
+                  sequence from drifting apart. */}
               <svg className="studio__sheet" viewBox="0 0 400 500" aria-hidden="true" focusable="false">
                 <defs>
-                  <linearGradient id="studioLaser" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#C8102E" stopOpacity="0" />
-                    <stop offset="40%" stopColor="#C8102E" stopOpacity="0.55" />
-                    <stop offset="50%" stopColor="#ffffff" stopOpacity="0.95" />
-                    <stop offset="60%" stopColor="#C8102E" stopOpacity="0.55" />
+                  <linearGradient id="studioBeam" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor="#C8102E" stopOpacity="0.9" />
                     <stop offset="100%" stopColor="#C8102E" stopOpacity="0" />
                   </linearGradient>
                 </defs>
 
+                {/* static drafting grid */}
+                <g className="studio__grid">
+                  {Array.from({ length: 21 }).map((_, i) => <path key={`gv${i}`} d={`M${i * 20} 0V500`} />)}
+                  {Array.from({ length: 26 }).map((_, i) => <path key={`gh${i}`} d={`M0 ${i * 20}H400`} />)}
+                </g>
+
                 <g className="studio__plan">
-                  {/* setting-out grid + column reference axes */}
-                  <g className="studio__lyr studio__lyr--grid">
-                    {[60, 130, 200, 270, 340].map((x) => <path key={`gx${x}`} d={`M${x} 60V430`} />)}
-                    {[110, 180, 250, 320, 390].map((y) => <path key={`gy${y}`} d={`M40 ${y}H360`} />)}
-                    <path d="M40 430h320" />
+                  {/* 1 — plot, structural axes, dimension strings, elevation tags */}
+                  <g className="studio__st studio__st--1">
+                    <path d="M60 90h280v328H60z" />
+<path d="M84 46V426" /><path d="M200 46V426" /><path d="M316 46V426" />
+<path d="M30 402h300M30 270h300" />
+<path d="M60 446h188M60 438v16M248 438v16M154 438v16" />
+<path d="M352 110v292M344 110h16M344 402h16M344 270h16" />
+                    <circle cx="84" cy="40" r="9" /><circle cx="200" cy="40" r="9" /><circle cx="316" cy="40" r="9" />
+                    <path d="M40 344h14M40 286h14M40 228h14M40 170h14M40 110h14" />
                   </g>
 
-                  {/* load-bearing pillars on the grid intersections */}
-                  <g className="studio__lyr studio__lyr--pillars">
-                    {[60, 130, 200, 270, 340].map((x) => (
-                      <path key={`p${x}`} d={`M${x - 7} 430V96h14v334z`} />
-                    ))}
-                    <path d="M40 430h320v18H40z" />
+                  {/* 2 — foundation raft, ground beam and pad footings */}
+                  <g className="studio__st studio__st--2">
+                    <path d="M64 402h272v14H64z" /><path d="M70 416h260v9H70z" /><path d="M67 416h34v16h-34z" /><path d="M128 416h34v16h-34z" /><path d="M183 416h34v16h-34z" /><path d="M238 416h34v16h-34z" /><path d="M299 416h34v16h-34z" /><path d="M70 425l11 9M100 425l11 9M130 425l11 9M160 425l11 9M190 425l11 9M220 425l11 9M250 425l11 9M280 425l11 9M310 425l11 9" />
                   </g>
 
-                  {/* shear walls + floor slabs */}
-                  <g className="studio__lyr studio__lyr--walls">
-                    {[110, 180, 250, 320].map((y) => (
-                      <path key={`s${y}`} d={`M53 ${y - 6}h294v12H53z`} />
-                    ))}
-                    <path d="M137 320h56v70h-56zM207 250h56v70h-56z" />
-                    <path d="M67 180h56v62H67z" />
+                  {/* 3 — load-bearing columns rising to the top slab */}
+                  <g className="studio__st studio__st--3">
+                    <path d="M78 402V110h12v292z" /><path d="M139 402V110h12v292z" /><path d="M194 402V110h12v292z" /><path d="M249 402V110h12v292z" /><path d="M310 402V110h12v292z" />
                   </g>
 
-                  {/* roof beam network */}
-                  <g className="studio__lyr studio__lyr--roof">
-                    <path d="M40 96h320" />
-                    <path d="M40 96 200 52l160 44" />
-                    <path d="M130 96 200 52l70 44M60 96l140-44M340 96 200 52" />
-                    <path d="M40 78h320" />
+                  {/* 4 — floor slabs, room partitions, balcony cantilevers */}
+                  <g className="studio__st studio__st--4">
+                    <path d="M64 344h272v9H64z" /><path d="M64 286h272v9H64z" /><path d="M64 228h272v9H64z" /><path d="M64 170h272v9H64z" /><path d="M110 402V350h64v52M225 344v-52h58v52" /><path d="M110 286v-52h50v52M240 228v-52h56v52" /><path d="M336 320h30v9h-30zM336 204h30v9h-30z" />
                   </g>
 
-                  {/* elevation dimension strings */}
-                  <g className="studio__lyr studio__lyr--dims">
-                    <path d="M374 96v334M366 96h16M366 430h16" />
-                    <path d="M40 460h320M40 452v16M360 452v16" />
+                  {/* 5 — glazing, door openings and facade louvers */}
+                  <g className="studio__st studio__st--5">
+                    <path d="M96 368h38v26h-38zM157 368h32v26h-32zM212 368h32v26h-32zM267 368h38v26h-38z" /><path d="M96 310h38v26h-38zM157 310h32v26h-32zM212 310h32v26h-32zM267 310h38v26h-38z" /><path d="M96 252h38v26h-38zM157 252h32v26h-32zM212 252h32v26h-32zM267 252h38v26h-38z" /><path d="M96 194h38v26h-38zM157 194h32v26h-32zM212 194h32v26h-32zM267 194h38v26h-38z" /><path d="M96 136h38v26h-38zM157 136h32v26h-32zM212 136h32v26h-32zM267 136h38v26h-38z" /><path d="M186 402v-32h28v32" /><path d="M96 140h38M96 148h38M96 156h38M267 140h38M267 148h38M267 156h38" />
+                  </g>
+
+                  {/* 6 — roof truss and parapet crown */}
+                  <g className="studio__st studio__st--6">
+                    <path d="M64 110h272v10H64z" /><path d="M70 110 200 64l130 46" /><path d="M70 110h260M200 64v46" /><path d="M70 110 135 86M135 86l65 24M200 64l65 22M265 86l65 24" /><path d="M135 86v24M265 86v24" /><path d="M64 50h272v12H64z" />
                   </g>
                 </g>
 
-                {/* Step 1 — the laser itself */}
-                <rect className="studio__laser" x="28" y="0" width="344" height="56" fill="url(#studioLaser)" />
-
-                <text className="studio__mark" x="200" y="486" textAnchor="middle">ALIPSON BUILDERS</text>
+                {/* 7 — laser sweep */}
+                <rect className="studio__beam" x="52" y="0" width="296" height="120" fill="url(#studioBeam)" />
               </svg>
               <span className="studio__scrim" aria-hidden="true" />
 
@@ -121,6 +119,7 @@ export default function Studio() {
                 <path d="M6 156V42L48 0h44L50 42v114z" />
               </svg>
 
+              <span className="studio__wm">Alipson Builders</span>
               <figcaption className="studio__badge">
                 <b>15+</b>
                 <span>Years of<br />Excellence</span>
