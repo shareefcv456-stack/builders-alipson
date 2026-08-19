@@ -71,9 +71,8 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom bar — copyright floating over a half-cropped ALIPSON watermark */}
+      {/* Bottom bar — copyright and legal links, nothing behind them. */}
       <div className="footer__bottom">
-        <span className="footer__watermark-word" aria-hidden>ALIPSON</span>
         <div className="container footer__bottom-inner">
           <p>© {new Date().getFullYear()} Alipson Builders Pvt Ltd. All rights reserved.</p>
           <div style={{ display: 'flex', gap: '1.8rem' }}>

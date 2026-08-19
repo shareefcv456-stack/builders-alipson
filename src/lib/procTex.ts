@@ -577,52 +577,67 @@ export function facadeTexture(size = 256): { map: THREE.Texture; emissive: THREE
  * download when a 1024px canvas reads identically at this camera distance.
  */
 export function brandTexture(w = 1024, h = 256): { map: THREE.Texture; alpha: THREE.Texture } {
-  const c = document.createElement('canvas');
-  c.width = w; c.height = h;
-  const g = c.getContext('2d')!;
-  g.clearRect(0, 0, w, h);
-  /* Every coordinate below is authored against a 1024×256 sheet. Scaling the
-     context means a bigger canvas actually raises the resolution instead of
-     drawing the same small artwork into one corner of it. */
-  g.scale(w / 1024, h / 256);
+  /* TWO canvases, not one. The colour sheet feeds `map`; a white-on-transparent
+     copy feeds `alphaMap`. They cannot be the same image: three samples the
+     GREEN channel for an alpha mask, and crimson (#C8102E) has green 16 — reuse
+     the colour sheet as the mask and the red parts of the wordmark vanish. */
+  const sheet = (mark: string, name: string, sub: string) => {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const g = c.getContext('2d')!;
+    g.clearRect(0, 0, w, h);
+    /* Every coordinate below is authored against a 1024×256 sheet. Scaling the
+       context means a bigger canvas actually raises the resolution instead of
+       drawing the same small artwork into one corner of it. */
+    g.scale(w / 1024, h / 256);
 
-  // The "A" mark: a chevron with a notch, matching the site's LogoMark.
-  const mx = 118, my = 128, s = 74;
-  g.fillStyle = '#ffffff';
-  g.beginPath();
-  g.moveTo(mx, my - s);
-  g.lineTo(mx - s * 0.82, my + s * 0.86);
-  g.lineTo(mx - s * 0.34, my + s * 0.86);
-  g.lineTo(mx, my - s * 0.06);
-  g.lineTo(mx + s * 0.34, my + s * 0.86);
-  g.lineTo(mx + s * 0.82, my + s * 0.86);
-  g.closePath();
-  g.fill();
-  // Inner diamond, knocked out so the mark reads at a distance.
-  g.globalCompositeOperation = 'destination-out';
-  g.beginPath();
-  g.moveTo(mx, my - s * 0.02);
-  g.lineTo(mx + s * 0.2, my + s * 0.36);
-  g.lineTo(mx, my + s * 0.74);
-  g.lineTo(mx - s * 0.2, my + s * 0.36);
-  g.closePath();
-  g.fill();
-  g.globalCompositeOperation = 'source-over';
+    // The "A" mark: a chevron with a notch, matching the site's LogoMark.
+    const mx = 118, my = 128, s = 74;
+    g.fillStyle = mark;
+    g.beginPath();
+    g.moveTo(mx, my - s);
+    g.lineTo(mx - s * 0.82, my + s * 0.86);
+    g.lineTo(mx - s * 0.34, my + s * 0.86);
+    g.lineTo(mx, my - s * 0.06);
+    g.lineTo(mx + s * 0.34, my + s * 0.86);
+    g.lineTo(mx + s * 0.82, my + s * 0.86);
+    g.closePath();
+    g.fill();
+    // Inner diamond, knocked out so the mark reads at a distance.
+    g.globalCompositeOperation = 'destination-out';
+    g.beginPath();
+    g.moveTo(mx, my - s * 0.02);
+    g.lineTo(mx + s * 0.2, my + s * 0.36);
+    g.lineTo(mx, my + s * 0.74);
+    g.lineTo(mx - s * 0.2, my + s * 0.36);
+    g.closePath();
+    g.fill();
+    g.globalCompositeOperation = 'source-over';
 
-  g.fillStyle = '#ffffff';
-  g.textBaseline = 'middle';
-  g.font = '700 82px "Syne", "Manrope", sans-serif';
-  g.letterSpacing = '10px';
-  g.fillText('ALIPSON', 214, my - 26);
-  g.font = '600 40px "Plus Jakarta Sans", sans-serif';
-  g.letterSpacing = '22px';
-  g.fillText('BUILDERS', 218, my + 40);
+    g.textBaseline = 'middle';
+    g.fillStyle = name;
+    g.font = '700 82px "Syne", "Manrope", sans-serif';
+    g.letterSpacing = '10px';
+    g.fillText('ALIPSON', 214, my - 26);
+    g.fillStyle = sub;
+    g.font = '600 40px "Plus Jakarta Sans", sans-serif';
+    g.letterSpacing = '22px';
+    g.fillText('BUILDERS', 218, my + 40);
+    return c;
+  };
 
-  const mk = (srgb: boolean) => {
+  /* Mark and ALIPSON in brand crimson; BUILDERS in charcoal. BUILDERS is
+     600-weight at 40px with 22px tracking, so at render scale it is mostly
+     anti-aliased edge — in crimson it measured 2.78:1 against the white board,
+     against ALIPSON's 14.25:1. Charcoal is the contrast half of the pairing. */
+  const colour = sheet('#C8102E', '#C8102E', '#0F172A');
+  const mask = sheet('#ffffff', '#ffffff', '#ffffff');
+
+  const mk = (c: HTMLCanvasElement, srgb: boolean) => {
     const t = new THREE.CanvasTexture(c);
     if (srgb) t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 16;   // read at a grazing angle for most of the shot
     return t;
   };
-  return { map: mk(true), alpha: mk(false) };
+  return { map: mk(colour, true), alpha: mk(mask, false) };
 }

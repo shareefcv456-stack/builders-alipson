@@ -579,25 +579,32 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
 
     /* Brand sign on the parapet fascia. `alphaMap` is what makes it read as an
        applied wordmark — the plane is invisible except where the letters are, so
-       the glazing behind it is never blocked. `toneMapped: false` is what makes
-       it an ILLUMINATED sign: the emissive is added after ACES, so it keeps its
-       full crimson instead of being rolled off with the rest of the frame. */
+       the white board behind carries them. Matte and unlit: the artwork is now
+       two-tone (crimson mark, charcoal ALIPSON, crimson BUILDERS) and a crimson
+       emissive over the top would flatten all three back to one red. */
     const brand = brandTexture(2048, 512);   // 2× the old map: the sign is the one texture read at close range
     const brandMat = new THREE.MeshStandardMaterial({
       map: brand.map, alphaMap: brand.alpha, transparent: true,
-      emissive: 0xc8102e, emissiveMap: brand.map, emissiveIntensity: 1.2,
-      color: 0xc8102e, roughness: 0.1, metalness: 0.1,
-      toneMapped: false,
+      color: 0xffffff, roughness: 0.8, metalness: 0,
       depthWrite: false, side: THREE.DoubleSide,
     });
-    /* Matte dark fascia panel BEHIND the lettering. The sign used to sit
-       straight on the curtain wall, so the glazing's reflections and the lit
-       interior read through the gaps in the letterforms and muddied the
-       wordmark at every angle. A solid backing is also what a real applied sign
-       is mounted on. Sits 1 cm proud of the glass, the letters 1 cm proud of it. */
+    /* Signage board BEHIND the lettering, in three stacked planes: a dark red
+       frame, a white matte face inset from it, and the artwork on top. The board
+       exists because the sign used to sit straight on the curtain wall, where
+       the glazing's reflections read through the gaps in the letterforms.
+       roughness 0.8 / metalness 0 so the face stays matte — a glossy board picks
+       up the same hard specular the glass does, which is what made it sparkle. */
+    const frame = new THREE.Mesh(
+      new THREE.PlaneGeometry(6.31, 1.94),
+      new THREE.MeshStandardMaterial({ color: 0x8E0C22, roughness: 0.45, metalness: 0.35 })
+    );
+    frame.position.set(0, TOP - 0.68, BD / 2 + 0.108);
+    frame.visible = false;
+    world.add(frame);
+
     const fascia = new THREE.Mesh(
       new THREE.PlaneGeometry(6.15, 1.78),
-      new THREE.MeshStandardMaterial({ color: 0x14181f, roughness: 0.85, metalness: 0.05 })
+      new THREE.MeshStandardMaterial({ color: 0xF8FAFC, roughness: 0.8, metalness: 0 })
     );
     fascia.position.set(0, TOP - 0.68, BD / 2 + 0.113);
     fascia.visible = false;
@@ -1599,9 +1606,10 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       roof.scale.setScalar(s0(ease(span(0.5, 0.58, t))));
       // Signage goes up once the parapet exists, then warms to full at dusk.
       const brandIn = ease(span(0.58, 0.7, t));
-      sign.visible = fascia.visible = brandIn > 0.02;
+      sign.visible = fascia.visible = frame.visible = brandIn > 0.02;
       sign.scale.set(brandIn, brandIn, 1);
       fascia.scale.set(brandIn, brandIn, 1);
+      frame.scale.set(brandIn, brandIn, 1);
       brandMat.opacity = brandIn;
       plates.forEach((m, k) => {
         const s = s0(stagger(t, 0.26, 0.42, k, plates.length));

@@ -69,7 +69,7 @@
   --pad-x: clamp(1.25rem, 5vw, 5rem);
   /* Compact, responsive vertical rhythm (~py-10 → py-16). Kills the huge
      empty gaps around sections while staying breathable on desktop. */
-  --section-py: clamp(2.75rem, 6vw, 4.5rem);
+  --section-py: clamp(2.5rem, 5vw, 4rem);
   --radius: 20px;
   --radius-lg: 28px;
 }
@@ -238,7 +238,7 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 .title em { font-style: italic; color: var(--accent-soft); }
 
 .lede { color: var(--text-soft); font-size: clamp(1rem, 1.3vw, 1.15rem); line-height: 1.75; max-width: 52ch; }
-.section-head { max-width: 760px; margin-bottom: clamp(1.75rem, 3vw, 2.75rem); }
+.section-head { max-width: 760px; margin-bottom: 2rem; }
 .section-head--center { margin-inline: auto; text-align: center; }
 .section-head--center .eyebrow { justify-content: center; }
 .section-head .title { margin-top: 1.4rem; }

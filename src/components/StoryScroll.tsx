@@ -60,7 +60,7 @@ const GATE_END = 0.08;     // doors finished parting
  *  Derived from GATE_END and the pin runway below rather than restated, so the
  *  navbar (which stays hidden behind the closed gate) cannot drift out of sync
  *  with the gate it is waiting on. */
-const PIN_RUNWAY = () => window.innerHeight * (window.innerWidth < 760 ? 2.7 : 4);
+const PIN_RUNWAY = () => window.innerHeight * (window.innerWidth < 760 ? 2.2 : 3);
 export function gateOpenScroll() {
   if (typeof window === 'undefined') return 0;
   return PIN_RUNWAY() * GATE_END;

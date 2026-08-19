@@ -590,20 +590,14 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .footer__news { display: flex; margin-top: 1rem; border: 1px solid var(--border); border-radius: 100px; overflow: hidden; padding: 0.3rem 0.3rem 0.3rem 1.1rem; }
 .footer__news input { flex: 1; background: none; border: none; outline: none; color: var(--text); font-size: 0.88rem; }
 .footer__news button { width: 42px; height: 42px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; flex-shrink: 0; }
-/* Bottom bar — copyright floats above a giant ALIPSON watermark whose lower
-   half is sliced off by this container's overflow:hidden. min-height reserves
-   room for the visible upper half. */
-.footer__bottom { position: relative; z-index: 1; overflow: hidden;
-  min-height: clamp(56px, 8.5vw, 200px); display: flex; align-items: flex-end;
-  padding-block: 1.25rem; border-top: 1px solid var(--border); color: var(--text); font-size: 0.82rem; }
-.footer__bottom-inner { position: relative; z-index: 10; width: 100%; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
-.footer__bottom a { color: var(--text); } .footer__bottom a:hover { color: var(--accent); }
-.footer__watermark-word { position: absolute; bottom: 0; left: 50%;
-  transform: translate(-50%, 50%); pointer-events: none; user-select: none;
-  font-family: var(--font-display); font-weight: 900; font-size: 14vw;
-  line-height: 1; letter-spacing: -0.05em; text-transform: uppercase;
-  white-space: nowrap; color: rgba(200, 16, 46, 0.5); }
-@media (min-width: 768px) { .footer__watermark-word { font-size: 16vw; } }
+/* Bottom bar — copyright and legal links. The giant ALIPSON watermark that used
+   to sit behind this is gone, and with it the min-height that reserved room for
+   it and the overflow:hidden that cropped it. */
+.footer__bottom { position: relative; z-index: 1;
+  padding-top: 2rem; padding-bottom: 2rem;
+  border-top: 1px solid #E2E8F0; color: var(--text-mute); font-size: 0.82rem; }
+.footer__bottom-inner { width: 100%; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+.footer__bottom a { color: var(--text-mute); } .footer__bottom a:hover { color: var(--accent); }
 
 /* ==========================================================================
    QUOTE MODAL BITS
@@ -726,13 +720,21 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .story__finale-copy { position: absolute; z-index: 30; left: 0; right: 0; bottom: 0; opacity: 0;
   padding: 0 var(--pad-x) clamp(3.5rem, 13vh, 9rem); max-width: 900px; pointer-events: none; }
 .story--static .story__finale-copy { opacity: 1; visibility: visible; }
-.story__eyebrow { color: var(--accent); margin-bottom: 1rem; }
+/* Pill badge, so the brand line keeps a backdrop of its own wherever it lands —
+   this is the one part of the block that rides high enough to cross the light
+   sky as well as the dark ground.
+   The fill is DARK, as the brief describes it. The rgba(255,255,255,0.1) value
+   it also gave is a light overlay: over the sky it LIFTS the backdrop toward
+   #FF4D4D's own luminance, and the badge measured 1.16–2.18:1. Dark fill with
+   white text is 8:1 on the same frames, and keeps the red on the rule. */
+.story__eyebrow { color: #FFFFFF; margin-bottom: 1rem;
+  background: rgba(15, 23, 42, 0.72); border-radius: 20px; padding: 4px 12px; }
 /* Heading and subtext are deliberately separated on THREE axes at once —
    weight (800 vs 400), colour (near-white vs muted grey) and measure (600px vs
    480px). Changing only the size gives a bigger heading, not a hierarchy. */
 .story__headline { font-family: var(--font-display); font-weight: 700;
-  font-size: clamp(1.5rem, 3.2vw, 1.95rem); line-height: 1.12; letter-spacing: -0.02em;
-  color: #0F172A; max-width: 600px; }
+  font-size: clamp(2.2rem, 5vw, 3.5rem); line-height: 1.2; letter-spacing: -0.02em;
+  color: #FFFFFF; max-width: 600px; }
 /* Upright, not italic — the accent carries the emphasis on its own. A slanted
    second line on a 700-weight display face reads as strain, not confidence.
    `display: block` puts the accent on its own line, so the heading is always
@@ -743,8 +745,8 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
    a 5-word one without the block visibly changing shape between beats. */
 .story__sub { margin-top: 1.05rem; max-width: 480px; font-weight: 400;
   font-family: var(--font-grotesk); text-wrap: balance;
-  font-size: clamp(0.95rem, 1.4vw, 1.08rem);
-  line-height: 1.6; color: #4A5568; }
+  font-size: 1.1rem;
+  line-height: 1.6; color: #E2E8F0; opacity: 0.9; }
 .story__cta { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; pointer-events: auto; }
 /* The copy block is absolutely positioned and its height changes with each
    phase's line count; anchoring the CTAs to the block's own flow (rather than
@@ -968,11 +970,11 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 @media (max-width: 760px) {
   .story--3d .story__finale-copy { width: calc(100% - var(--pad-x) * 2); }
 }
-.story--3d .story__headline { color: #0F172A; }
+.story--3d .story__headline { color: #FFFFFF; }
 .story--3d .story__headline em { color: #C8102E; }
-.story--3d .story__eyebrow { color: var(--accent); }
-.story--3d .story__sub { color: #334155; }
-.story--3d .story__eyebrow::before { background: var(--accent); }
+.story--3d .story__eyebrow { color: #FFFFFF; }
+.story--3d .story__sub { color: #E2E8F0; opacity: 0.9; }
+.story--3d .story__eyebrow::before { background: #FF4D4D; }
 /* No wash. It existed to put light behind DARK copy on a dark ground; the copy
    is light again, so the render stays clear. (If one is ever needed here it must
    be a gradient falling to transparent, never a blurred scrim — the blur
