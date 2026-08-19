@@ -579,9 +579,9 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
 
     /* Brand sign on the parapet fascia. `alphaMap` is what makes it read as an
        applied wordmark — the plane is invisible except where the letters are, so
-       the white board behind carries them. Matte and unlit: the artwork is now
-       two-tone (crimson mark, charcoal ALIPSON, crimson BUILDERS) and a crimson
-       emissive over the top would flatten all three back to one red. */
+       the dark board behind carries them. Unlit: the artwork is two-tone
+       (crimson mark + ALIPSON, white BUILDERS) and a crimson emissive over the
+       top would flatten both back to one red. */
     const brand = brandTexture(2048, 512);   // 2× the old map: the sign is the one texture read at close range
     const brandMat = new THREE.MeshStandardMaterial({
       map: brand.map, alphaMap: brand.alpha, transparent: true,
@@ -592,15 +592,14 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        beams instead of running past them. Heights are unchanged — only the
        span overflowed. */
     const SIGN_W = 0.82;
-    /* Signage board BEHIND the lettering, in three stacked planes: a dark red
-       frame, a white matte face inset from it, and the artwork on top. The board
-       exists because the sign used to sit straight on the curtain wall, where
-       the glazing's reflections read through the gaps in the letterforms.
-       roughness 0.8 / metalness 0 so the face stays matte — a glossy board picks
-       up the same hard specular the glass does, which is what made it sparkle. */
+    /* Signage board BEHIND the lettering, in three stacked planes: a crimson
+       perimeter outline, a dark composite face inset from it, and the artwork on
+       top. The board exists because the sign used to sit straight on the curtain
+       wall, where the glazing's reflections read through the gaps in the
+       letterforms. */
     const frame = new THREE.Mesh(
       new THREE.PlaneGeometry(6.31 * SIGN_W, 1.94),
-      new THREE.MeshStandardMaterial({ color: 0x8E0C22, roughness: 0.45, metalness: 0.35 })
+      new THREE.MeshStandardMaterial({ color: 0x57122C, roughness: 0.35, metalness: 0.3 })
     );
     frame.position.set(0, TOP - 0.68, BD / 2 + 0.108);
     frame.visible = false;
@@ -608,9 +607,9 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
 
     const fascia = new THREE.Mesh(
       new THREE.PlaneGeometry(6.15 * SIGN_W, 1.78),
-      /* Semi-gloss composite panel rather than flat matte board — it catches a
-         soft sheen off the sun without the hard specular the glazing throws. */
-      new THREE.MeshStandardMaterial({ color: 0xF8FAFC, roughness: 0.3, metalness: 0.2 })
+      /* Dark architectural composite panel — the wordmark now reads as light on
+         dark, which is what carries it at distance against a pale sky. */
+      new THREE.MeshStandardMaterial({ color: 0x0B132B, roughness: 0.2, metalness: 0.3 })
     );
     fascia.position.set(0, TOP - 0.68, BD / 2 + 0.113);
     fascia.visible = false;

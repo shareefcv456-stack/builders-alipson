@@ -596,7 +596,7 @@ export function brandTexture(w = 1024, h = 256): { map: THREE.Texture; alpha: TH
        the wordmark sits on top of it. */
     g.save();
     g.globalAlpha = 0.08;
-    g.strokeStyle = mark === '#ffffff' ? '#ffffff' : '#0F172A';
+    g.strokeStyle = '#ffffff';
     g.lineWidth = 1;
     for (let x = 24; x < 1024; x += 34) { g.beginPath(); g.moveTo(x, 12); g.lineTo(x, 244); g.stroke(); }
     for (let y = 24; y < 256; y += 34) { g.beginPath(); g.moveTo(12, y); g.lineTo(1012, y); g.stroke(); }
@@ -632,14 +632,14 @@ export function brandTexture(w = 1024, h = 256): { map: THREE.Texture; alpha: TH
     g.fillStyle = name;
     g.font = '800 82px "Syne", "Manrope", sans-serif';
     g.letterSpacing = '10px';
-    g.shadowColor = 'rgba(200, 16, 46, 0.4)';
-    g.shadowBlur = 12;
+    g.shadowColor = 'rgba(200, 16, 46, 0.6)';
+    g.shadowBlur = 14;
     g.fillText('ALIPSON', 214, my - 26);
     g.shadowBlur = 0;
     g.shadowColor = 'transparent';
     g.fillStyle = sub;
     g.font = '700 46px "Plus Jakarta Sans", sans-serif';
-    g.letterSpacing = '9px';
+    g.letterSpacing = '10px';
     g.fillText('BUILDERS', 218, my + 40);
     return c;
   };
@@ -649,7 +649,7 @@ export function brandTexture(w = 1024, h = 256): { map: THREE.Texture; alpha: TH
      render scale — in crimson it measured 2.78:1 against the white board,
      against ALIPSON's 14.25:1. The heavier weight, wider tracking and slate
      fill are what make it readable at billboard distance. */
-  const colour = sheet('#C8102E', '#C8102E', '#0F172A');
+  const colour = sheet('#C8102E', '#C8102E', '#FFFFFF');
   const mask = sheet('#ffffff', '#ffffff', '#ffffff');
 
   const mk = (c: HTMLCanvasElement, srgb: boolean) => {
