@@ -579,7 +579,7 @@ export function facadeTexture(size = 256): { map: THREE.Texture; emissive: THREE
 export function brandTexture(w = 1024, h = 256): { map: THREE.Texture; alpha: THREE.Texture } {
   /* TWO canvases, not one. The colour sheet feeds `map`; a white-on-transparent
      copy feeds `alphaMap`. They cannot be the same image: three samples the
-     GREEN channel for an alpha mask, and crimson (#C8102E) has green 16 — reuse
+     GREEN channel for an alpha mask, and crimson (#d31018) has green 16 — reuse
      the colour sheet as the mask and the red parts of the wordmark vanish. */
   const sheet = (mark: string, name: string, sub: string) => {
     const c = document.createElement('canvas');
@@ -627,12 +627,12 @@ export function brandTexture(w = 1024, h = 256): { map: THREE.Texture; alpha: TH
 
     g.textBaseline = 'middle';
     /* Subtle crimson back-glow behind ALIPSON only — the canvas equivalent of
-       text-shadow: 0 0 12px rgba(200,16,46,0.4). Cleared before BUILDERS so the
+       text-shadow: 0 0 12px rgba(211, 16, 24,0.4). Cleared before BUILDERS so the
        slate line stays crisp. */
     g.fillStyle = name;
     g.font = '800 82px "Syne", "Manrope", sans-serif';
     g.letterSpacing = '10px';
-    g.shadowColor = 'rgba(200, 16, 46, 0.6)';
+    g.shadowColor = 'rgba(211, 16, 24, 0.6)';
     g.shadowBlur = 14;
     g.fillText('ALIPSON', 214, my - 26);
     g.shadowBlur = 0;
@@ -649,7 +649,7 @@ export function brandTexture(w = 1024, h = 256): { map: THREE.Texture; alpha: TH
      render scale — in crimson it measured 2.78:1 against the white board,
      against ALIPSON's 14.25:1. The heavier weight, wider tracking and slate
      fill are what make it readable at billboard distance. */
-  const colour = sheet('#C8102E', '#C8102E', '#FFFFFF');
+  const colour = sheet('#d31018', '#d31018', '#FFFFFF');
   const mask = sheet('#ffffff', '#ffffff', '#ffffff');
 
   const mk = (c: HTMLCanvasElement, srgb: boolean) => {

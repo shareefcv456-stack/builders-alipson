@@ -56,8 +56,8 @@ export default function Studio() {
               <svg className="studio__sheet" viewBox="0 0 400 500" aria-hidden="true" focusable="false">
                 <defs>
                   <linearGradient id="studioBeam" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor="#C8102E" stopOpacity="0.9" />
-                    <stop offset="100%" stopColor="#C8102E" stopOpacity="0" />
+                    <stop offset="0%" stopColor="#d31018" stopOpacity="0.9" />
+                    <stop offset="100%" stopColor="#d31018" stopOpacity="0" />
                   </linearGradient>
                 </defs>
 
