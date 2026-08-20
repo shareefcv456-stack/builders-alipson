@@ -15,9 +15,23 @@ export default function FloatingActions() {
   const [showUp, setShowUp] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setShowUp(window.scrollY > window.innerHeight);
+    /* Coalesced into one rAF per frame, and the state is only written when the
+       answer actually CHANGES. This ran `setShowUp` on every scroll event — a
+       profile of a scroll had it as the highest-cost application function on the
+       page, above everything in the 3D hero. React bailed out of most of the
+       renders, but the handler still ran and still allocated on every event. */
+    let raf = 0;
+    const measure = () => {
+      raf = 0;
+      const next = window.scrollY > window.innerHeight;
+      setShowUp((cur) => (cur === next ? cur : next));
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(measure); };
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+    };
   }, []);
 
   const toTop = () => {

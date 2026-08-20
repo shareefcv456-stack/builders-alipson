@@ -90,6 +90,10 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     const el = host.current;
     if (!el) return;
 
+    /* Declared up here because three things now branch on it before the camera
+       exists: the backdrop, the fog, and whether the HDRI is fetched at all. */
+    const isPhone = () => window.innerWidth < 768;
+
     const renderer = new THREE.WebGLRenderer({
       antialias: true, alpha: true, powerPreference: 'high-performance',
     });
@@ -98,6 +102,16 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        the only post pass left is N8AO at half res, so the extra pixels buy
        genuinely sharper edges instead of being smeared away. Still a min() —
        a 3× phone would otherwise render 9 megapixels a frame. */
+    /* THE SINGLE BIGGEST BLOCKING COST ON THIS PAGE, measured. three.js calls
+       `getShaderInfoLog`/`getProgramInfoLog` after every program link to report
+       compile errors, and those are SYNCHRONOUS GPU round-trips — they stall the
+       main thread until the driver answers. A CPU profile of a cold load had
+       them at 72% of all self time.
+
+       Off in production, kept in dev, because the trade is real: with checking
+       off a broken shader fails silently to a black render instead of logging.
+       Anything that would break it is caught the moment you run the dev server. */
+    renderer.debug.checkShaderErrors = import.meta.env.DEV;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
@@ -117,12 +131,36 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     el.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.background = skyTexture();
-    /* Clear colour only — still NO FOG. You asked twice for the volumetric haze
-       gone ("crystal clear view", "no heavy smoke"), so the off-white is the
-       backdrop rather than a fog volume; the skyline's own haze tint (the
-       SKY_BOT lerp on the tower instance colours) carries depth. */
-    renderer.setClearColor(0xF1F5F9, 1);
+    const sky = skyTexture();
+
+    /* ---- BACKDROP: light on desktop, navy on mobile ------------------------
+       DESKTOP IS UNCHANGED — the light gradient sky and NO haze, which is what
+       you asked for twice ("crystal clear view", "no heavy smoke").
+
+       Mobile is a different picture and needs a different backdrop. There the
+       render is a letterbox sitting inside a navy stage, so a near-white sky
+       put a bright slab between the copy and the building and made the far
+       skyline read as a separate, brighter picture pasted into the page. Matching
+       the backdrop to the stage is what lets the frame end without an edge.
+
+       The fog is the same colour as that backdrop, so it does not add haze so
+       much as dissolve DISTANCE into it: the far towers fade toward the stage
+       colour while the site itself, twenty-odd units out, is barely touched —
+       which is what makes the building read as the sharp thing in frame. */
+    const MOBILE_BACKDROP = 0x0B132B;
+    /* Created once and always attached, with density 0 standing in for "off".
+       Attaching or detaching `scene.fog` at runtime forces a shader recompile of
+       every material in the scene, and a phone rotating to landscape crosses the
+       768px line — so the breakpoint would hitch every time. A zero density is
+       mathematically no fog (1 - exp(-(0·d)²) = 0) and costs one multiply. */
+    const fog = new THREE.FogExp2(MOBILE_BACKDROP, 0);
+    scene.fog = fog;
+    const applyBackdrop = () => {
+      const phone = isPhone();
+      scene.background = phone ? new THREE.Color(MOBILE_BACKDROP) : sky;
+      fog.density = phone ? 0.012 : 0;
+      renderer.setClearColor(phone ? MOBILE_BACKDROP : 0xF1F5F9, 1);
+    };
 
     /* Environment map — a REAL HDRI (public/hdr/sky_1k.hdr, Poly Haven CC0).
        The procedural cityEnvironment goes in first so the scene is never unlit
@@ -136,7 +174,16 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     scene.environment = envRT.texture;
     scene.environmentIntensity = 0.6;
     let hdrRT: THREE.WebGLRenderTarget | null = null;
-    new RGBELoader().load(
+    /* DESKTOP ONLY. The file is 1MB of RGBE that has to be DECODED ON THE MAIN
+       THREAD — a scroll profile caught `RGBE_ReadPixels_RLE` and
+       `RGBEByteToRGBHalf` running mid-scroll, because the fetch lands whenever it
+       lands and the parse is synchronous once it does.
+
+       It buys sharper reflections in the tower glass. On a phone the building is
+       a few hundred pixels tall and the procedural environment above is already
+       lighting it, so the difference is invisible and the cost is a megabyte plus
+       a main-thread stall during the one interaction that has to stay smooth. */
+    if (!isPhone()) new RGBELoader().load(
       '/hdr/sky_1k.hdr',
       (hdr) => {
         hdr.mapping = THREE.EquirectangularReflectionMapping;
@@ -156,7 +203,6 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        what fits the whole site into a tall viewport. `world` scales everything
        EXCEPT the camera, which is equivalent to pulling the camera back but
        leaves every authored position in its own units. */
-    const isPhone = () => window.innerWidth < 768;
     const camera = new THREE.PerspectiveCamera(isPhone() ? 50 : 45, 1, 0.1, 1000);
     const world = new THREE.Group();
     /* 25% smaller than the portrait framing this replaced (0.78). The mobile
@@ -172,14 +218,15 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
                 left-hand card and the building is pushed right to clear it; on a
                 phone that copy is full-width, so the same pan only shoves the
                 building off the edge. Near-zero here keeps it CENTRED. */
-    let dolly = isPhone() ? 0.62 : 1;
+    let dolly = isPhone() ? 0.48 : 1;
     let panK = isPhone() ? 0 : 1;
     /* Constant downward tilt on mobile, fed through the SAME reframe path the
        stats handoff uses (raise the camera, drop the look target). In a 380px
        letterbox the horizon otherwise sits mid-frame with the site crammed
        below it; tilting down puts the whole plot — road, gate, landscaping —
        inside the frame and keeps the ground plane's far edge out of it. */
-    let mLift = isPhone() ? 0.25 : 0;
+    let mLift = isPhone() ? 0.12 : 0;
+    applyBackdrop();
 
     /* ---- daylight ---------------------------------------------------------- */
     scene.add(new THREE.AmbientLight(0xffffff, 0.8));
@@ -1528,7 +1575,14 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
         mix(mix(7.6, 11.6, build), 7.4, reveal) + lift * 3.6,
         Math.cos(ang) * mix(rad, rad + 4.2, lift)
       );
-      look.set(0, mix(1.2, TOP * 0.55, ease(span(0.12, 0.9, t))) - lift * 1.9, 0);
+      /* `* ws` is the fix for the framing, not the dolly. Every authored height
+         in this scene lives inside `world`, which is scaled to 0.585 on a phone
+         — but the look target was written in UNSCALED units, so it aimed at a
+         point well above the actual roof and the camera tilted up off the
+         building. Scaling it lands the target on the real mid-height of the
+         real geometry at any world scale, desktop included (ws = 1 there). */
+      const ws = world.scale.x;
+      look.set(0, (mix(1.2, TOP * 0.55, ease(span(0.12, 0.9, t))) - lift * 1.9) * ws, 0);
       /* COPY CLEARANCE. The finale headline sits bottom-left. Panning the look
          target LEFT pushes the model right in frame, and dropping it tilts the
          lens down so the building rides higher — together that clears the type
@@ -1755,9 +1809,10 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       const phone = isPhone();
       camera.fov = phone ? 50 : 45;
       world.scale.setScalar(phone ? 0.585 : 1);
-      dolly = phone ? 0.62 : 1;
+      dolly = phone ? 0.48 : 1;
       panK = phone ? 0 : 1;
-      mLift = phone ? 0.25 : 0;
+      mLift = phone ? 0.12 : 0;
+      applyBackdrop();
       renderer.setSize(w, h, false);
       composer.setSize(w, h);
       n8ao.setSize(w, h);

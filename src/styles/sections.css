@@ -228,8 +228,15 @@
    the gate (40); the transform is written from the scroll tail in JS. */
 .story__stats { position: absolute; z-index: 32; left: 0; right: 0; bottom: 0;
   opacity: 0; will-change: transform, opacity; pointer-events: auto;
-  background: linear-gradient(180deg, rgba(248,250,252,0) 0%, rgba(248,250,252,0.92) 26%, #F8FAFC 62%);
-  padding-top: clamp(2rem, 6vh, 4.5rem); padding-bottom: clamp(1.4rem, 3.5vh, 2.6rem); }
+  /* BARELY THERE. This used to reach 92% opaque #F8FAFC by 26% of its own
+     height and go fully solid at 62%, which erased the bottom third of the
+     render — the road and the site frontage vanished into a white slab well
+     before the cards started. The cards carry their own opaque backing, so the
+     wash only ever needed to take the very last of the frame. */
+  background: linear-gradient(to bottom, transparent 70%, rgba(248, 250, 252, 0.4) 100%);
+  /* Halved. The old top padding was reserving room for the gradient's fade-in;
+     with the fade gone it was just an empty white band above the cards. */
+  padding-top: clamp(0.9rem, 2.5vh, 1.9rem); padding-bottom: clamp(1.1rem, 2.5vh, 1.8rem); }
 .story--static .story__stats { opacity: 1; transform: none; }
 
 /* Onward cue — sits just above the stats bar once it has seated. */
@@ -237,7 +244,11 @@
   margin-bottom: clamp(1rem, 2.5vh, 1.8rem);
   opacity: 0; pointer-events: none; white-space: nowrap;
   font-family: var(--font-grotesk); font-weight: 600; font-size: 0.68rem;
-  letter-spacing: 0.28em; text-transform: uppercase; color: #334155; }
+  letter-spacing: 0.28em; text-transform: uppercase; color: #F1F5F9;
+  /* Was #334155, which relied on the old opaque white wash. It sits on the bare
+     render now — light type plus a tight shadow carries it over both the pale
+     road on desktop and the navy stage on mobile. */
+  text-shadow: 0 1px 10px rgba(8, 12, 24, 0.85), 0 0 3px rgba(8, 12, 24, 0.7); }
 .story__cue svg { animation: cueBob 1.9s var(--ease-lux) infinite; color: var(--accent-soft); }
 @keyframes cueBob { 0%, 100% { transform: translateY(-3px); opacity: 0.55; } 50% { transform: translateY(4px); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .story__cue svg { animation: none; } }
@@ -249,10 +260,13 @@
    underline rather than a divider. */
 .ribbon__num { position: relative; padding-bottom: 0.55rem; }
 .ribbon__num::after { content: ''; position: absolute; left: 50%; bottom: 0;
-  width: 58px; height: 2px; transform: translateX(-50%); border-radius: 2px;
+  width: 44px; height: 2px; transform: translateX(-50%); border-radius: 2px;
   background: linear-gradient(90deg, transparent, var(--accent) 35%, var(--accent) 65%, transparent); }
-.ribbon__grid { display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: clamp(0.7rem, 1.6vw, 1.15rem); }
+/* `minmax(0, 220px)` + `justify-content: center` rather than `repeat(4, 1fr)`:
+   the cards were taking a full quarter of a 1440px container each (~330px) and
+   reading as slabs. Capped and centred, the row keeps its rhythm on any width. */
+.ribbon__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 220px));
+  justify-content: center; gap: clamp(0.7rem, 1.6vw, 1.15rem); }
 /* Two classes, so this outranks `.container`'s own padding-left/right. */
 .ribbon__grid.container { padding-inline: clamp(0.9rem, 3vw, 2rem); }
 /* The Call and WhatsApp floaters are `position: fixed` bottom-right at 54px
@@ -294,7 +308,7 @@
 }
 .ribbon__cell-face {
   position: relative; height: 100%;
-  padding: 1.25rem 1rem;
+  padding: 1rem 0.85rem;
   border-radius: 12px;
   text-align: center;
 }
@@ -311,9 +325,11 @@
   .ribbon__cell-edge { backdrop-filter: none; -webkit-backdrop-filter: none;
     background: rgba(255, 255, 255, 0.98); }
 }
-.ribbon__num { font-family: var(--font-display); font-weight: 800; font-size: clamp(2.2rem, 5vw, 3.6rem); color: #0F172A; letter-spacing: -0.02em; }
+/* Down from clamp(2.2rem, 5vw, 3.6rem) — the 3.6rem ceiling is what made the
+   cards oversized in the first place, since the padding was sized around it. */
+.ribbon__num { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.6rem, 2.6vw, 2.4rem); color: #0F172A; letter-spacing: -0.02em; }
 .ribbon__num em { font-style: normal; color: var(--accent); font-weight: 700; }
-.ribbon__label { margin-top: 0.4rem; font-size: 0.85rem; font-weight: 600;
+.ribbon__label { margin-top: 0.35rem; font-size: 0.72rem; font-weight: 600;
   letter-spacing: 0.1em; text-transform: uppercase; color: #334155;
   line-height: 1.4; }
 /* Two-up on narrow screens. The old border resets here are gone with the
@@ -1754,20 +1770,23 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
     padding: 0 var(--pad-x); }
   .story--3d .story__three {
     position: relative; order: 2; inset: auto;
-    /* ~380px on a phone (430px wide → 378px basis), capped for the 767px tablet
-       edge where a fixed 380px leaves the site tiny in a 2:1 letterbox.
-       As a flex BASIS rather than a fixed height, so the render takes whatever
-       the stage has left after the copy: it grows into the space a fixed height
-       would leave empty at the bottom, and shrinks instead of being clipped by
-       the stage's `overflow: hidden` on a short viewport (320×700, SE). */
+    /* 50vh, capped at 420px. Expressed as a flex BASIS with shrink allowed and
+       GROW OFF: the cap is what keeps the render tight instead of stretching to
+       fill the stage (which is what re-opened a band of empty ground above the
+       building), and the shrink is what stops it being clipped by the stage's
+       `overflow: hidden` on a short viewport — 320×700 and the SE cannot seat
+       the copy plus a full 50vh. The 260px floor is the point below which the
+       site stops being legible at all. */
     width: 100%; margin-top: 1.1rem;
-    flex: 1 1 clamp(300px, 88vw, 520px); min-height: 0;
-    /* The scene's sky is near-white at the horizon and the stage above it is
-       navy, so the canvas's top edge cut a hard line across the hero. Fading
-       the render's own top into the stage is the fix — a gradient laid OVER it
-       would need to match the sky at every playhead, which it cannot. */
-    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 15%);
-    mask-image: linear-gradient(180deg, transparent 0%, #000 15%); }
+    flex: 0 1 clamp(260px, 50vh, 420px); min-height: 0;
+    /* Both edges feather into the stage. The top fade used to be doing the whole
+       job of hiding a near-white sky meeting a navy stage; the scene's own
+       backdrop is the stage colour now, so this is a short blend rather than a
+       cover-up. The BOTTOM fade is the new one: it dissolves the cut across the
+       road so the ground plane hands off to the section below instead of ending
+       on a hard horizontal line. */
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 9%, #000 88%, transparent 100%);
+    mask-image: linear-gradient(180deg, transparent 0%, #000 9%, #000 88%, transparent 100%); }
   /* GSAP drives autoAlpha + yPercent on these two across the whole pin, and the
      stats bar slides up over the render. Naming the properties keeps both on
      the compositor for the length of a touch-scroll instead of re-rasterising. */
@@ -1801,6 +1820,26 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
      (the pinned hero, the footer) and so were never covered. */
   html, body { overflow-x: hidden; }
   .story, .footer { overflow-x: clip; }
+
+  /* ---- 1b · STATS: A CLEAN 2×2 ------------------------------------------- */
+  /* The ribbon is the one grid that stays two-up (see the note below): four
+     numbers stacked into a column is a scroll, not a summary. Sized down to
+     match — the desktop cap does not apply here, the cards take the full
+     column. */
+  .ribbon__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+  .ribbon__grid.container { padding-inline: 1rem; }
+  .ribbon__cell-face { padding: 1rem 0.75rem; }
+  .ribbon__num { font-size: 1.5rem; padding-bottom: 0.4rem; }
+  .ribbon__num::after { width: 34px; }
+  .ribbon__label { font-size: 0.68rem; letter-spacing: 0.07em; margin-top: 0.3rem; }
+  /* No top padding to speak of: on a phone the stats sit against the bottom of
+     the stage and the gap above them was pure dead space.
+     The BOTTOM padding is the floaters' keep-out. They are `position: fixed` at
+     40px plus a 1rem inset — about 3.5rem of the bottom-right corner — and in a
+     2×2 grid that corner is a card, not a margin. Desktop reserves the same room
+     with a `padding-right` at ≥1024px; two-up needs it on the other axis. */
+  .story__stats { padding-top: 0.75rem; padding-bottom: 6.75rem; }
+  .story__cue { margin-bottom: 0.7rem; font-size: 0.6rem; letter-spacing: 0.2em; }
 
   /* ---- 2 · SINGLE-COLUMN CARD GRIDS -------------------------------------- */
   /* The utility-class grids (only Footer uses one today) collapse from the same
