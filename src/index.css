@@ -1,6 +1,6 @@
 /* ==========================================================================
    ALIPSON BUILDERS — CINEMATIC LUXURY DESIGN SYSTEM 2026
-   White & Red theme · crisp white surfaces · Alipson logo red (#C8102E)
+   White & Red theme · crisp white surfaces · Alipson logo red (#d31018)
    ========================================================================== */
 
 /* Google Fonts now preloaded in index.html for performance */
@@ -20,14 +20,14 @@
   --bone-200: #ececec;
   --bone-300: #d9d9d9;   /* concrete grey */
 
-  --accent:      #c8102e;   /* Alipson crimson */
-  --accent-soft: #e8455f;   /* lighter crimson — accents on dark surfaces */
-  --accent-deep: #9a0007;   /* deep red */
-  --ember:       #9a0007;
-  --ember-soft:  #c8102e;
+  --accent:      #d31018;   /* City Palace Red */
+  --accent-soft: #e52e35;   /* lighter red — accents on dark surfaces */
+  --accent-deep: #a80a10;   /* deep red */
+  --ember:       #a80a10;
+  --ember-soft:  #d31018;
 
-  --accent-rgb: 200, 16, 46;
-  --ember-rgb:  154, 0, 7;
+  --accent-rgb: 211, 16, 24;
+  --ember-rgb:  168, 10, 16;
 
   --gold:      #d4af37;   /* champagne gold — secondary highlight */
   --gold-soft: #e6c964;   /* lighter gold for text on dark */
@@ -43,13 +43,13 @@
   --bg-alt:      var(--ink-850);
   --surface:     rgba(248, 248, 246, 0.035);
   --surface-2:   rgba(248, 248, 246, 0.055);
-  --border:      rgba(211, 47, 47, 0.14);         /* subtle red borders */
-  --border-strong: rgba(211, 47, 47, 0.28);
+  --border:      rgba(var(--accent-rgb), 0.14);         /* subtle red borders */
+  --border-strong: rgba(var(--accent-rgb), 0.28);
   --text:        #f8f8f6;
   --text-soft:   rgba(248, 248, 246, 0.72);
   --text-mute:   rgba(248, 248, 246, 0.46);
   --glass:       rgba(11, 13, 15, 0.6);           /* ultra-dark glassmorphism */
-  --glass-brd:   rgba(211, 47, 47, 0.2);
+  --glass-brd:   rgba(var(--accent-rgb), 0.2);
   --shadow:      0 30px 80px -20px rgba(0, 0, 0, 0.8);
 
   /* Fonts — modern editorial sans (no decorative faces) */
@@ -90,22 +90,22 @@
   --surface:     #ffffff;   /* card fill */
   --surface-2:   #F8FAFC;   /* icon chips, inputs, insets */
   --border:      #eceef1;   /* neutral hairline — the resting card border */
-  --border-strong: rgba(211, 47, 47, 0.30);       /* red — hover / active only */
-  --text:        #1a1d20;   /* deep charcoal, never pitch black */
-  --text-soft:   rgba(26, 29, 32, 0.72);
-  --text-mute:   rgba(26, 29, 32, 0.52);
-  --accent:      #c8102e;   /* Alipson crimson */
-  --accent-soft: #9c0d24;   /* deeper crimson — readable as text on white */
-  --accent-deep: #9a0007;   /* pressed / gradient end */
-  --ember:       #9a0007;
-  --accent-rgb:  200, 16, 46;
-  --ember-rgb:   154, 0, 7;
-  --tint:        rgba(211, 47, 47, 0.08);         /* soft red glass overlay */
+  --border-strong: rgba(var(--accent-rgb), 0.30);       /* red — hover / active only */
+  --text:        #0b1b4f;   /* Royal Navy Blue */
+  --text-soft:   rgba(11, 27, 79, 0.72);
+  --text-mute:   rgba(11, 27, 79, 0.52);
+  --accent:      #d31018;   /* City Palace Red */
+  --accent-soft: #e52e35;
+  --accent-deep: #a80a10;   /* pressed / gradient end */
+  --ember:       #a80a10;
+  --accent-rgb:  211, 16, 24;
+  --ember-rgb:   168, 10, 16;
+  --tint:        rgba(var(--accent-rgb), 0.08);         /* soft red glass overlay */
   --glass:       rgba(255, 255, 255, 0.80);       /* frosted white */
-  --glass-brd:   rgba(211, 47, 47, 0.18);
+  --glass-brd:   rgba(var(--accent-rgb), 0.18);
   /* Elevation: cards rest on shadow-sm and lift to shadow-xl on hover. */
-  --shadow-sm:   0 1px 2px rgba(26, 29, 32, 0.04), 0 6px 16px -12px rgba(26, 29, 32, 0.16);
-  --shadow-xl:   0 2px 4px rgba(26, 29, 32, 0.04), 0 26px 50px -22px rgba(26, 29, 32, 0.26);
+  --shadow-sm:   0 1px 2px rgba(11, 27, 79, 0.04), 0 6px 16px -12px rgba(11, 27, 79, 0.16);
+  --shadow-xl:   0 2px 4px rgba(11, 27, 79, 0.04), 0 26px 50px -22px rgba(11, 27, 79, 0.26);
   --shadow:      var(--shadow-xl);
 }
 
@@ -124,7 +124,7 @@ html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
 
 body {
-  background: transparent;   /* let the fixed drone fly-through layer show through */
+  background-color: var(--bg);   /* solid: transparent tears/ghosts under Lenis smooth scroll */
   color: var(--text);
   font-family: var(--font-sans);
   line-height: 1.6;
@@ -466,16 +466,16 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
   background-color: #0D1117 !important; 
   --bg: #0D1117;
   --bg-alt: #0D1117;
-  --accent: #C8102E;
-  --accent-soft: #C8102E;
+  --accent: #d31018;
+  --accent-soft: #d31018;
   --text: #ffffff;
   --text-soft: #ffffff;
   --text-mute: rgba(255, 255, 255, 0.8);
   color: #ffffff !important;
 }
-.text-\[\#C8102E\] { color: #C8102E !important; }
+.text-\[\#d31018\] { color: #d31018 !important; }
 
-.text-gray-900\/10 { color: rgba(26, 29, 32, 0.10) !important; }
+.text-gray-900\/10 { color: rgba(11, 27, 79, 0.10) !important; }
 .font-black { font-weight: 900 !important; }
 .text-\[12vw\] { font-size: 12vw !important; }
 .tracking-widest { letter-spacing: 0.1em !important; }
@@ -613,14 +613,14 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
 .text-gray-800 { color: #1f2937 !important; }
 .\!text-white { color: #ffffff !important; }
 .\!text-\[\#1A1D20\] { color: #1A1D20 !important; }
-.\!text-\[\#C8102E\] { color: #C8102E !important; }
+.\!text-\[\#d31018\] { color: #d31018 !important; }
 .\!text-gray-700 { color: #374151 !important; }
 .\!text-gray-800 { color: #1f2937 !important; }
 .hover\:\!text-\[\#1A1D20\]:hover { color: #1A1D20 !important; }
 
 /* ---- Borders, radius, shadow -------------------------------------------- */
 .border-l-4 { border-left-width: 4px !important; border-left-style: solid !important; }
-.border-\[\#C8102E\] { border-color: #C8102E !important; }
+.border-\[\#d31018\] { border-color: #d31018 !important; }
 .border-gray-100 { border-color: #f3f4f6 !important; }
 .border-gray-200 { border-color: #e5e7eb !important; }
 .rounded-xl { border-radius: 0.75rem !important; }

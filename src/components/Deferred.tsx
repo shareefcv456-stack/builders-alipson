@@ -19,7 +19,7 @@ import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
  * grow as sections arrive — the scrollbar stays roughly honest either way.
  */
 export default function Deferred({
-  id, minHeight = '70vh', children,
+  id, minHeight = '70dvh', children,
 }: { id: string; minHeight?: string; children: ReactNode }) {
   // A deep link lands mounted: the hash names the section, so waiting for an
   // observer that has not been created yet would race the browser's own jump.

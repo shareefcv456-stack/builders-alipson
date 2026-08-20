@@ -36,7 +36,7 @@ export default function AmbientCanvas({ variant, className }: { variant: Variant
     // it reads as a faint architectural watermark. (It was light ink back when
     // the sections carried a #0D1117 overlay; that overlay is gone.)
     const ink = (a: number) => `rgba(26,29,32,${a})`;
-    const crimson = (a: number) => `rgba(211, 47, 47,${a})`;
+    const crimson = (a: number) => `rgba(211, 16, 24,${a})`;
     // Cinematic slow-down: ease the global clock so motion stays subtle & calm
     // (keeps every drawing routine untouched — only the tempo changes).
     const SPEED = 0.6;

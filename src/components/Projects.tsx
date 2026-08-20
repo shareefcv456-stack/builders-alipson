@@ -55,8 +55,8 @@ export default function Projects() {
       <div className="container relative z-20">
         <div className="projects__head">
           <div>
-            <Reveal><span className="eyebrow !text-[#C8102E]">Selected Work</span></Reveal>
-            <RevealText className="title" lines={[<>Landmark</>, <><em className="!text-[#C8102E]">masterpieces.</em></>]} />
+            <Reveal><span className="eyebrow !text-[#d31018]">Selected Work</span></Reveal>
+            <RevealText className="title" lines={[<>Landmark</>, <><em className="!text-[#d31018]">masterpieces.</em></>]} />
           </div>
           <Reveal dir="left" delay={0.1}>
             <div className="filters">

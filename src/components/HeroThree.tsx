@@ -48,7 +48,7 @@ const stagger = (t: number, a: number, b: number, i: number, n: number, overlap 
 /** Never let a scale hit exactly 0 — three warns on degenerate matrices. */
 const s0 = (v: number) => Math.max(0.0001, v);
 
-const ACCENT = 0xc8102e;   // Alipson crimson
+const ACCENT = 0xd31018;   // Alipson crimson
 const SKY_TOP = '#F8FAFC', SKY_BOT = '#E2E8F0';   // soft light shade — the whole page reads as one bright surface
 const BW = 6.4, BD = 4.2, FLOORS = 7, FH = 1.02;
 const TOP = FLOORS * FH;
@@ -499,7 +499,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        OUTWARD (away from the compound) as the build completes — which is both
        how a site gate actually opens and what clears the car's path. */
     const gatePostMat = steel(0x8f9bab, 0.5);
-    const gateBarMat = steel(0xc8102e, 0.35);
+    const gateBarMat = steel(0xd31018, 0.35);
     const gate = new THREE.Group();
     const gateLeaves: THREE.Group[] = [];
     ([-1, 1] as const).forEach((side) => {
@@ -729,11 +729,11 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     canopy.castShadow = true; canopy.scale.setScalar(0.0001);
     world.add(canopy);
 
-    /* Crimson rim light (#C8102E) on the building's edges. Emissive strips run
+    /* Crimson rim light (#d31018) on the building's edges. Emissive strips run
        along each slab's leading edge and up the two front corners — the read is
        architectural edge lighting, which is a real thing on commercial façades,
        rather than a coloured glow pasted over the model. */
-    const RIM = 0xc8102e;
+    const RIM = 0xd31018;
     const rimMat = new THREE.MeshStandardMaterial({
       color: RIM, roughness: 0.4, metalness: 0.1,
     });
@@ -820,7 +820,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       });
       // Brand rim on the mast legs, same crimson as the building's edges.
       const craneRim = new THREE.MeshStandardMaterial({
-        color: 0xc8102e, roughness: 0.4, metalness: 0.1,
+        color: 0xd31018, roughness: 0.4, metalness: 0.1,
       });
       [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sz]) => {
         const strip = new THREE.Mesh(new THREE.BoxGeometry(0.03, MAST * 0.96, 0.03), craneRim);
@@ -889,7 +889,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       ladder.position.set(-1.62, 1.2, 0.3);
       // Brand accent stripe along the tank, tying the plant to the building.
       const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.055, 0.05), new THREE.MeshStandardMaterial({
-        color: 0xc8102e, emissive: 0xc8102e, emissiveIntensity: 0.12, roughness: 0.35, metalness: 0.6,
+        color: 0xd31018, emissive: 0xd31018, emissiveIntensity: 0.12, roughness: 0.35, metalness: 0.6,
       }));
       stripe.position.set(-0.5, 1.32, 0.6);
       const stripe2 = stripe.clone();
@@ -1058,7 +1058,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        hat, so a worker costs one more draw call than a bystander. */
     const vestMats = [0xffd21e, 0xff7a18].map((c) =>
       new THREE.MeshStandardMaterial({ color: c, roughness: 0.7, metalness: 0 }));
-    const hatMats = [0xffd21e, 0xc8102e].map((c) =>
+    const hatMats = [0xffd21e, 0xd31018].map((c) =>
       new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0 }));
     const hatGeo = new THREE.SphereGeometry(0.062, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2);
     const brimGeo = new THREE.CylinderGeometry(0.075, 0.075, 0.012, 10);

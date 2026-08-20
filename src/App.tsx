@@ -96,20 +96,20 @@ export default function App() {
           <StoryScroll />
           <Deferred id="intro"><Intro /></Deferred>
           <Deferred id="gateway"><AlipsonGate /></Deferred>
-          <Deferred id="studio" minHeight="100vh"><Studio /></Deferred>
-          <Deferred id="founder" minHeight="100vh"><Founder /></Deferred>
-          <Deferred id="services" minHeight="100vh"><Services /></Deferred>
-          <Deferred id="work" minHeight="100vh"><Projects /></Deferred>
+          <Deferred id="studio" minHeight="100dvh"><Studio /></Deferred>
+          <Deferred id="founder" minHeight="100dvh"><Founder /></Deferred>
+          <Deferred id="services" minHeight="100dvh"><Services /></Deferred>
+          <Deferred id="work" minHeight="100dvh"><Projects /></Deferred>
           <Deferred id="process"><Process /></Deferred>
-          <Deferred id="clients" minHeight="30vh"><Clients /></Deferred>
+          <Deferred id="clients" minHeight="30dvh"><Clients /></Deferred>
           <Deferred id="voices"><Testimonials /></Deferred>
-          <Deferred id="gallery" minHeight="100vh"><Gallery /></Deferred>
+          <Deferred id="gallery" minHeight="100dvh"><Gallery /></Deferred>
           <Deferred id="journal"><Faq /></Deferred>
-          <Deferred id="cta" minHeight="50vh"><Cta /></Deferred>
-          <Deferred id="contact" minHeight="100vh"><Contact /></Deferred>
+          <Deferred id="cta" minHeight="50dvh"><Cta /></Deferred>
+          <Deferred id="contact" minHeight="100dvh"><Contact /></Deferred>
         </main>
 
-        <Deferred id="footer" minHeight="80vh"><Footer /></Deferred>
+        <Deferred id="footer" minHeight="80dvh"><Footer /></Deferred>
 
         {/* One boundary, one chunk: the three modals share a module, and none of
             them renders anything until its `open` prop is true. */}
