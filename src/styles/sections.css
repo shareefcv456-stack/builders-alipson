@@ -36,6 +36,9 @@
 .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 800;
   /* Hidden behind the closed split gate; fades in as the doors finish parting. */
   opacity: 0; pointer-events: none;
+  /* Fixed over a scrolling page, and it carries a backdrop-filter — promote it
+     once rather than letting it re-rasterise against each passing section. */
+  transform: translateZ(0); will-change: transform, opacity;
   transition: opacity 0.5s ease, transform 0.6s var(--ease-lux); }
 .nav.is-in { opacity: 1; pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) { .nav { transition: none; } }
@@ -355,16 +358,24 @@
   box-shadow: 0 30px 60px -28px rgba(11, 19, 43, 0.45); }
 /* ---- 7-stage construction time-lapse (8s seamless loop) ------------------ */
 .studio__frame { background: #0B132B; }
+/* `translateZ(0)` promotes the whole time-lapse to its own compositor layer, so
+   the six dash-drawn stages repaint into that layer instead of into the section
+   behind them. Without it every frame of the 8s loop dirties the studio card. */
 .studio__sheet { position: absolute; inset: 0; width: 100%; height: 100%;
   fill: none; stroke-linecap: round; stroke-linejoin: round;
-  scale: 1.02; transition: scale 0.7s var(--ease-lux); }
+  scale: 1.02; transition: scale 0.7s var(--ease-lux);
+  transform: translateZ(0); backface-visibility: hidden; }
 
 /* Static drafting grid — always present, never animated. */
 .studio__grid { stroke: rgba(255, 255, 255, 0.08); stroke-width: 0.7; }
 
 /* Stage layers. Every one runs on the SAME 8s clock; only the keyframe
    percentages differ, which is what keeps the sequence from drifting. */
-.studio__st { stroke-dasharray: var(--dash); stroke-dashoffset: var(--dash); }
+/* `will-change` names what actually animates. `transform` is listed too because
+   it is the hint that keeps the layer promoted for the whole loop — naming only
+   the dash properties lets the compositor drop and re-create the layer. */
+.studio__st { stroke-dasharray: var(--dash); stroke-dashoffset: var(--dash);
+  will-change: transform, stroke-dashoffset, opacity; }
 .studio__st--1 { --dash: 2600; stroke: rgba(255,255,255,0.55); stroke-width: 1;   animation: studioS1 8s linear infinite; }
 .studio__st--2 { --dash: 2000; stroke: #FFFFFF;                stroke-width: 1.6; animation: studioS2 8s linear infinite; }
 .studio__st--3 { --dash: 3400; stroke: #FFFFFF;                stroke-width: 1.8; animation: studioS3 8s linear infinite; }
@@ -406,7 +417,9 @@
 }
 
 /* Stage 7 — crimson sweep base→roof, then the finished plan holds lit for 1s. */
-.studio__beam { opacity: 0; animation: studioBeam 8s linear infinite; }
+/* The one genuinely transform-animated layer in the sequence — GPU all the way. */
+.studio__beam { opacity: 0; animation: studioBeam 8s linear infinite;
+  will-change: transform, opacity; }
 @keyframes studioBeam {
   0%, 81.25% { transform: translateY(392px); opacity: 0; }
   83%        { opacity: 1; }
@@ -414,7 +427,7 @@
   90%        { transform: translateY(-24px); opacity: 0; }
   100%       { transform: translateY(-24px); opacity: 0; }
 }
-.studio__plan { animation: studioGlow 8s linear infinite; }
+.studio__plan { animation: studioGlow 8s linear infinite; will-change: filter; }
 @keyframes studioGlow {
   0%, 81.25% { filter: none; }
   87.5%, 96% { filter: drop-shadow(0 0 10px rgba(200, 16, 46, 0.8)); }
@@ -432,7 +445,6 @@
 @keyframes floatSketch {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-6px); }
-}
 }
 
 /* Soft dark/red veil, plus the permanent bottom gradient the badge sits on. */
@@ -1554,7 +1566,14 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 /* The 3D renderer's host. `touch-action: pan-y` so a swipe still scrolls the
    page — the scene is scroll-driven and takes no input of its own. */
 .story__three { position: absolute; inset: 0; z-index: 1; pointer-events: none; touch-action: pan-y; }
-.story__three canvas { display: block; width: 100%; height: 100%; }
+/* Promotion goes on the CANVAS, not on `.story__three`. The host is the element
+   the render loop flips to `visibility: hidden` once the hero leaves the
+   viewport, and that is what lets the compositor drop the WebGL layer for the
+   rest of the page — a `will-change` on the host would ask it to keep exactly
+   the layer we are trying to shed. On the child the hint is scoped to the
+   subtree that gets dropped along with it. */
+.story__three canvas { display: block; width: 100%; height: 100%;
+  transform: translateZ(0); backface-visibility: hidden; }
 
 /* ==========================================================================
    DAYLIGHT STUDIO — 3D hero only (.story--3d). Scoped, because ?flat runs
@@ -1690,4 +1709,233 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
    of removing the only signal that something is loading. */
 @media (prefers-reduced-motion: reduce) {
   .hero-loader__ring { animation: none; border-top-color: rgba(var(--accent-rgb), 0.7); }
+}
+
+/* ==========================================================================
+   MOBILE (<768px) — LAYOUT, TYPE AND PAINT BUDGET
+   --------------------------------------------------------------------------
+   Loaded last on purpose: every rule here has to beat the per-section
+   `max-width: 620px` / `580px` / `900px` breakpoints authored above, which
+   otherwise leave two-up card grids alive between 621px and 768px.
+
+   One breakpoint, not five. The sections each grew their own collapse point as
+   they were written, so a 700px phone got a single column in Services and two
+   columns in Capabilities. 768px is the line now, everywhere.
+
+   767.98px, not 768px, so this matches `isPhone()` in HeroThree.tsx exactly
+   (`innerWidth < 768`). At 768 on the nose the two would otherwise disagree —
+   the layout would stack while the 3D camera held its desktop framing.
+   ========================================================================== */
+@media (max-width: 767.98px) {
+
+  /* ---- 0 · HERO: TEXT ABOVE THE RENDER, NOT ON TOP OF IT ------------------ */
+  /* On desktop the copy is an OVERLAY on a full-bleed render — it has a whole
+     empty sky to sit in. A phone has no such sky: the same overlay lands the
+     headline across the crane and the sub-line across the structure, which is
+     exactly what it did at 430px.
+
+     So on mobile the stage stops being a layered composite and becomes a flex
+     COLUMN: copy first, render second, no overlap possible at any playhead.
+     Only the two in-flow layers are re-positioned — the gate, the scrim, the
+     grade and the stats bar stay absolute, so the gate still parts over the
+     whole stage and the stats still rise from the bottom. */
+  .story--3d .story__stage {
+    display: flex; flex-direction: column; justify-content: flex-start;
+    padding-top: clamp(4.5rem, 11vh, 7rem); }
+  /* The stage turns dark so the render's own sky continues into the band above
+     it. Recolouring the copy for a light ground was the alternative and it is
+     the worse one: the headline, accent, eyebrow pill, sub and Watch Story
+     button would each need a mobile variant, and the render below would still
+     meet a pale strip at its top edge. */
+  .story--3d { background: linear-gradient(180deg, #0B132B 0%, #0E1730 62%, #070B18 100%); }
+  .story--3d .story__finale-copy {
+    position: relative; order: 1; inset: auto;
+    width: 100%; max-width: none; flex: 0 0 auto;
+    padding: 0 var(--pad-x); }
+  .story--3d .story__three {
+    position: relative; order: 2; inset: auto;
+    /* ~380px on a phone (430px wide → 378px basis), capped for the 767px tablet
+       edge where a fixed 380px leaves the site tiny in a 2:1 letterbox.
+       As a flex BASIS rather than a fixed height, so the render takes whatever
+       the stage has left after the copy: it grows into the space a fixed height
+       would leave empty at the bottom, and shrinks instead of being clipped by
+       the stage's `overflow: hidden` on a short viewport (320×700, SE). */
+    width: 100%; margin-top: 1.1rem;
+    flex: 1 1 clamp(300px, 88vw, 520px); min-height: 0;
+    /* The scene's sky is near-white at the horizon and the stage above it is
+       navy, so the canvas's top edge cut a hard line across the hero. Fading
+       the render's own top into the stage is the fix — a gradient laid OVER it
+       would need to match the sky at every playhead, which it cannot. */
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 15%);
+    mask-image: linear-gradient(180deg, transparent 0%, #000 15%); }
+  /* GSAP drives autoAlpha + yPercent on these two across the whole pin, and the
+     stats bar slides up over the render. Naming the properties keeps both on
+     the compositor for the length of a touch-scroll instead of re-rasterising. */
+  .story__finale-copy, .story__stats { will-change: transform, opacity; }
+  /* The left-weighted scrim exists to lift copy off the render. Nothing sits on
+     the render any more, so it is pure cost — and over a dark stage it only
+     muddies the left edge of the frame. */
+  .story--3d .story__copy-scrim { display: none; }
+  /* Headline steps down a size class on mobile (~text-3xl) and back up to the
+     desktop scale (~text-5xl) above the breakpoint, where the base clamp()
+     takes over again. */
+  .story__headline { font-size: clamp(1.75rem, 7.5vw, 2.4rem); }
+  .story__sub { font-size: clamp(0.9rem, 3.6vw, 1rem); margin-top: 0.8rem; }
+  .story__cta { margin-top: 1.4rem; }
+
+  /* ---- 1 · SIDE MARGINS AND SAFE AREAS ----------------------------------- */
+  /* px-4 (1rem), plus the notch/curved-corner inset on iOS. `max()` rather than
+     addition: on a device with no inset, or in portrait where the inset is 0,
+     this is exactly 1rem — adding would double the gutter on every phone that
+     reports a bottom inset. Needs `viewport-fit=cover` in index.html to see a
+     non-zero value at all. */
+  .container {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  /* The hero's own gutter token, used by the pinned copy card. */
+  :root { --pad-x: max(1rem, env(safe-area-inset-left)); }
+
+  /* Belt and braces on the horizontal scrollbar. `.section` already carries
+     `overflow-x: clip`; these are the blocks that sit OUTSIDE a `.section`
+     (the pinned hero, the footer) and so were never covered. */
+  html, body { overflow-x: hidden; }
+  .story, .footer { overflow-x: clip; }
+
+  /* ---- 2 · SINGLE-COLUMN CARD GRIDS -------------------------------------- */
+  /* The utility-class grids (only Footer uses one today) collapse from the same
+     rule as the BEM ones, so a new `grid grid-cols-N` anywhere stacks without
+     needing its own breakpoint. `!important` only because the `.grid-cols-*`
+     utilities in index.css carry it; later cascade position is what wins. */
+  .grid { grid-template-columns: 1fr !important; }
+
+  .services__grid,
+  .std__grid,
+  .gate__features,
+  .projects__grid,
+  .studio__grid,
+  .contact__grid,
+  .intro__grid,
+  .founder__panel,
+  .footer__top,
+  .footer__contact { grid-template-columns: 1fr; }
+  .gallery__grid { columns: 1; }
+  /* The stats ribbon keeps two-up: four numbers stacked is a scroll, not a
+     summary. It is a readout, not a card grid. */
+
+  /* Touch-friendly padding — p-6 — on every card that stacks above. A full-width
+     card can afford the room a four-up card could not. */
+  .svc,
+  .std__card,
+  .gate__card,
+  .studio__details,
+  .founder__panel { padding: 1.5rem; }
+  /* Full width inside the container's gutters, and no inherited height floor.
+     The desktop layout sizes several of these cards from their neighbour in a
+     two-column row; stacked, that floor becomes dead space at the bottom of the
+     card instead of matching anything. */
+  .svc,
+  .std__card,
+  .gate__card,
+  .studio__details,
+  .studio__detailsWrap,
+  .founder__panel { width: 100%; margin-inline: auto; height: auto; min-height: 0; }
+  /* The blueprint frame is the exception: its time-lapse is absolutely
+     positioned, so it needs a height from somewhere. A square gives it one
+     without the 440px desktop floor. */
+  .studio__frame { min-height: 0; height: auto; aspect-ratio: 1 / 1; flex: 0 0 auto; }
+  .studio__visual, .studio__stack { height: auto; }
+  /* 44px minimum touch target on every control in a stacked card. */
+  .svc__more, .gate__more { min-height: 44px; align-items: center; }
+
+  /* ---- 3 · FLUID TYPE ---------------------------------------------------- */
+  /* clamp() so the step from a 320px phone to a 768px tablet is continuous —
+     the fixed rem sizes above jumped at the breakpoint. Upper bounds match the
+     desktop values these rules replace, so nothing shrinks on the way up. */
+  .title { font-size: clamp(1.6rem, 6.5vw, 2.5rem); }
+  .lede, .std__lede, .studio__body, .svc__desc, .gate__card p {
+    font-size: clamp(0.875rem, 3.4vw, 1rem); line-height: 1.65; }
+  .eyebrow { font-size: clamp(0.62rem, 2.4vw, 0.72rem); }
+  .studio__quote { font-size: clamp(1rem, 4vw, 1.15rem); }
+
+  /* ---- 4 · PAINT BUDGET -------------------------------------------------- */
+  /* Backdrop blur is the single most expensive thing on this page on a phone:
+     it forces a readback of everything painted behind the element on every
+     composited frame, and these elements sit over a scroll-driven canvas. Half
+     radius costs roughly a quarter of the work (the filter is separable and
+     scales with the radius in each pass) and, at these opacities, is not
+     visibly different. */
+  /* The list below is not guesswork — it is every element that still reported a
+     non-none `backdrop-filter` while scrolling the page at 430px. Each one is a
+     separate backdrop readback per composited frame, and there were ~50 of them
+     live at once before this. */
+  .svc { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+  .modal-scrim { backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+  /* `.nav__inner`, NOT `.nav`. The blur is declared on the inner capsule; a rule
+     on the header only ADDED a second blurred layer on top of the 16px one it
+     was meant to be replacing. */
+  .nav__inner { backdrop-filter: blur(8px) saturate(140%); -webkit-backdrop-filter: blur(8px) saturate(140%); }
+  .faq__item { backdrop-filter: blur(6px) saturate(115%); -webkit-backdrop-filter: blur(6px) saturate(115%); }
+  .gate__tag { backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+  /* The utility itself, not the one component using it: `.backdrop-blur-md`
+     carries `!important`, so a component-level rule cannot win — and capping it
+     here fixes every future user of the class too. Later cascade position plus
+     matching `!important` is what takes it. */
+  .backdrop-blur-md { backdrop-filter: blur(5px) !important; -webkit-backdrop-filter: blur(5px) !important; }
+  .ribbon__cell-edge { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+  .floater--up, .footer__map-open { backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+  .btn-ghost { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+
+  /* The 7-stage loop: the animated crimson drop-shadow is a full-frame filter
+     pass on a 400×500 SVG every frame of the glow. Drop it on mobile — the
+     sweep already carries the beat — and keep the compositor hints, which is
+     what actually holds the 60fps. */
+  .studio__plan { animation: none; filter: none; will-change: auto; }
+  .studio__sheet { scale: 1; }
+  .studio__chev { filter: none; }
+
+  /* Ambient decoration nobody looks at, repainting behind every section. */
+  .ambient-bg { display: none; }
+}
+
+/* ==========================================================================
+   LOW-END DEVICE FALLBACK — no backdrop blur at all
+   --------------------------------------------------------------------------
+   `data-perf="low"` is set by the inline probe in index.html (≤4GB RAM or ≤4
+   cores). On those machines a blurred backdrop is not a nice-to-have that
+   degrades gracefully — it is the difference between a steady 60fps scroll and
+   a stuttering one, because every glass surface on screen costs a full backdrop
+   readback per composited frame.
+
+   The universal selector is deliberate. Blur is declared on a dozen surfaces
+   across two files and new ones keep appearing; enumerating them here would
+   drift out of date the first time someone adds a card. This one rule cannot.
+   Everything below it then restores the CONTRAST the blur was providing —
+   translucent-but-opaque-enough fills, so white text never lands on bare
+   photography.
+   ========================================================================== */
+[data-perf='low'] *,
+[data-perf='low'] *::before,
+[data-perf='low'] *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+[data-perf='low'] .nav__inner        { background: rgba(255, 255, 255, 0.96); }
+[data-perf='low'] .nav.on-dark .nav__inner { background: rgba(11, 19, 43, 0.94); }
+[data-perf='low'] .story__eyebrow    { background: rgba(11, 19, 43, 0.92); }
+[data-perf='low'] .glass             { background: rgba(11, 19, 43, 0.9); }
+[data-perf='low'] .modal-scrim       { background: rgba(4, 5, 6, 0.9); }
+[data-perf='low'] .svc               { background: rgba(255, 255, 255, 0.97); }
+[data-perf='low'] .testimonial__card,
+[data-perf='low'] .process__step     { background: rgba(20, 26, 40, 0.9); }
+[data-perf='low'] .btn-watch         { background: rgba(255, 255, 255, 0.94); }
+
+/* The same swap, one step lighter, for phones that DO report as capable: keep
+   the frost but at a radius that is cheap to composite. blur(8px) rather than
+   blur(22px) — the cost of a separable blur scales with the radius in each
+   pass, so this is roughly an eighth of the work for a barely different look. */
+@media (max-width: 767.98px) {
+  .glass { backdrop-filter: blur(8px) saturate(1.2); -webkit-backdrop-filter: blur(8px) saturate(1.2); }
+  .testimonial__card, .process__step { backdrop-filter: blur(8px) saturate(115%); -webkit-backdrop-filter: blur(8px) saturate(115%); }
+  .btn-watch, .intro__skip { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 }

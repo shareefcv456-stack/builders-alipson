@@ -99,3 +99,24 @@ export function BrochureModal({ open, onClose }: { open: boolean; onClose: () =>
     </Modal>
   );
 }
+
+/* Default export so App can pull all three behind ONE dynamic import. They
+   share this module already, so splitting them into three chunks would only add
+   round trips — and any one of them opening means the others are a click away. */
+export default function Modals({
+  quoteOpen, onQuoteClose,
+  brochureOpen, onBrochureClose,
+  videoOpen, onVideoClose,
+}: {
+  quoteOpen: boolean; onQuoteClose: () => void;
+  brochureOpen: boolean; onBrochureClose: () => void;
+  videoOpen: boolean; onVideoClose: () => void;
+}) {
+  return (
+    <>
+      <QuoteModal open={quoteOpen} onClose={onQuoteClose} />
+      <BrochureModal open={brochureOpen} onClose={onBrochureClose} />
+      <VideoModal open={videoOpen} onClose={onVideoClose} />
+    </>
+  );
+}

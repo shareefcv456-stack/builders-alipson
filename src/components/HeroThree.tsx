@@ -157,10 +157,29 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        EXCEPT the camera, which is equivalent to pulling the camera back but
        leaves every authored position in its own units. */
     const isPhone = () => window.innerWidth < 768;
-    const camera = new THREE.PerspectiveCamera(isPhone() ? 65 : 45, 1, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(isPhone() ? 50 : 45, 1, 0.1, 1000);
     const world = new THREE.Group();
-    world.scale.setScalar(isPhone() ? 0.65 : 1);
+    /* 25% smaller than the portrait framing this replaced (0.78). The mobile
+       canvas is a 380px letterbox now, not a full-height portrait slot, so the
+       whole site has to fit a much shorter frame. */
+    world.scale.setScalar(isPhone() ? 0.585 : 1);
     scene.add(world);
+    /* MOBILE FRAMING. Two knobs, both re-evaluated in `resize()` so a rotation
+       across the breakpoint reframes:
+         dolly  scales the orbit radius — under 1 the camera sits CLOSER, so the
+                HQ reads large in a tall viewport instead of as a distant model.
+         panK   scales the copy-clearance pan. On desktop the finale copy is a
+                left-hand card and the building is pushed right to clear it; on a
+                phone that copy is full-width, so the same pan only shoves the
+                building off the edge. Near-zero here keeps it CENTRED. */
+    let dolly = isPhone() ? 0.62 : 1;
+    let panK = isPhone() ? 0 : 1;
+    /* Constant downward tilt on mobile, fed through the SAME reframe path the
+       stats handoff uses (raise the camera, drop the look target). In a 380px
+       letterbox the horizon otherwise sits mid-frame with the site crammed
+       below it; tilting down puts the whole plot — road, gate, landscaping —
+       inside the frame and keeps the ground plane's far edge out of it. */
+    let mLift = isPhone() ? 0.25 : 0;
 
     /* ---- daylight ---------------------------------------------------------- */
     scene.add(new THREE.AmbientLight(0xffffff, 0.8));
@@ -1481,20 +1500,29 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     const gateCam = new THREE.Vector3(), gateLook = new THREE.Vector3();
     /* Hoisted: this runs every frame, so no per-frame allocations. */
     const panDir = new THREE.Vector3(), panRight = new THREE.Vector3();
+    /* Manual yaw from a touch drag, added on top of the scripted orbit and hard
+       clamped — see the touch handlers below. */
+    let yaw = 0, dragging = false;
+    const YAW_MAX = 0.4;
     const update = (t: number, dt = 0, tail = 0) => {
       clock += dt;
       const e = ease(t);
 
       // CAMERA — architectural 3/4. Wide while the site is busy, pushing in for
       // the reveal; framing must clear the whole SITE, not just the building.
-      const ang = mix(-0.62, 0.82, e);
+      // Released drags ease back to the authored framing, so the scene always
+      // settles where the timeline expects it.
+      if (!dragging && yaw) yaw *= Math.max(0, 1 - dt * 1.6);
+      const ang = mix(-0.62, 0.82, e) + yaw;
       const build = ease(span(0.12, 0.84, t)), reveal = ease(span(0.86, 1, t));
-      const rad = mix(mix(23, 27.5, build), 19.5, reveal);
+      const rad = mix(mix(23, 27.5, build), 19.5, reveal) * dolly;
       // HANDOFF REFRAME. Raising the camera while LOWERING the look target
       // tilts the lens down, which lifts the building UP in frame — that is what
       // clears the bottom band for the stats bar. (Tilting the camera up would
       // push the subject down, behind the stats, which is the opposite.)
-      const lift = ease(tail);
+      // Capped at 1 so the mobile tilt and the stats-handoff reframe share one
+      // budget instead of compounding into a camera that flies off the site.
+      const lift = Math.min(1, ease(tail) + mLift);
       camera.position.set(
         Math.sin(ang) * mix(rad, rad + 4.2, lift),
         mix(mix(7.6, 11.6, build), 7.4, reveal) + lift * 3.6,
@@ -1506,7 +1534,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
          lens down so the building rides higher — together that clears the type
          instead of letting the tower run straight through it. Eased in with the
          copy so the build phases keep their original framing. */
-      const copyClear = ease(span(0.30, 0.62, t));
+      const copyClear = ease(span(0.30, 0.62, t)) * panK;
       if (copyClear > 0) {
         panDir.copy(look).sub(camera.position).normalize();
         panRight.crossVectors(panDir, camera.up).normalize();
@@ -1725,8 +1753,11 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       // Re-evaluate on every resize, not just at mount — a phone rotating from
       // portrait to landscape crosses the breakpoint.
       const phone = isPhone();
-      camera.fov = phone ? 65 : 45;
-      world.scale.setScalar(phone ? 0.65 : 1);
+      camera.fov = phone ? 50 : 45;
+      world.scale.setScalar(phone ? 0.585 : 1);
+      dolly = phone ? 0.62 : 1;
+      panK = phone ? 0 : 1;
+      mLift = phone ? 0.25 : 0;
       renderer.setSize(w, h, false);
       composer.setSize(w, h);
       n8ao.setSize(w, h);
@@ -1769,14 +1800,64 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        would cancel the focus on the frame it began. */
     (['wheel', 'touchstart', 'keydown', 'pointerdown'] as const)
       .forEach((e) => window.addEventListener(e, releaseFocus, { passive: true }));
-    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, { threshold: 0 });
+    const io = new IntersectionObserver(([e]) => {
+      visible = e.isIntersecting;
+      /* Pausing the render loop is not enough. A live WebGL layer still costs on
+         every COMPOSITED frame for the rest of the page, which is why the body
+         sections ran at a fraction of their standalone frame rate once the hero
+         had scrolled away. `visibility: hidden` lets the compositor drop the
+         layer; it does not affect layout, so this observer keeps reporting
+         correctly and the scene comes straight back on the way up. */
+      el.style.visibility = visible ? '' : 'hidden';
+    }, { threshold: 0 });
     io.observe(el);
+
+    /* ---- TOUCH ORBIT (phones only) -------------------------------------------------
+       A drag adds a manual yaw on top of the scripted camera, clamped to
+       ±YAW_MAX so the scene can never be spun away from its authored framing.
+
+       IT CAN NEVER LOCK THE PAGE SCROLL, by construction:
+         - listeners are PASSIVE, so preventDefault is impossible;
+         - the canvas host keeps `touch-action: pan-y` and pointer-events: none,
+           so the browser owns vertical panning outright;
+         - a gesture is only claimed once the horizontal delta clearly beats the
+           vertical one, and a vertical-first gesture is handed back for good.
+       Bound to `window` rather than the canvas precisely so no hit-testing
+       changes — nothing in the hero stops being tappable. `visible` gates it, so
+       swipes further down the page are ignored. */
+    let tx = 0, ty = 0, claimed = false;
+    const onTouchStart = (e: TouchEvent) => {
+      if (!visible || !isPhone() || e.touches.length !== 1) return;
+      tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+      dragging = true; claimed = false;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!dragging || e.touches.length !== 1) { dragging = false; return; }
+      const x = e.touches[0].clientX, y = e.touches[0].clientY;
+      const dx = x - tx, dy = y - ty;
+      if (!claimed) {
+        if (Math.abs(dy) > Math.abs(dx)) { dragging = false; return; }  // it's a scroll
+        if (Math.abs(dx) < 8) return;                                    // still ambiguous
+        claimed = true;
+      }
+      yaw = Math.max(-YAW_MAX, Math.min(YAW_MAX, yaw + dx * 0.0035));
+      tx = x; ty = y;
+    };
+    const onTouchEnd = () => { dragging = false; };
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', onTouchEnd, { passive: true });
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
       (['wheel', 'touchstart', 'keydown', 'pointerdown'] as const)
         .forEach((e) => window.removeEventListener(e, releaseFocus));
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchEnd);
       io.disconnect();
       api.current = null;
       scene.traverse((o) => {

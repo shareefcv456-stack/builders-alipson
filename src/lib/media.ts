@@ -15,16 +15,16 @@ const img = (name: string) => `/images/${name}`;
    the same sunset site photo ended up in three sections at once — if you add a
    slot, give it its own photo rather than aliasing an existing one.           */
 export const MEDIA = {
-  heroPoster:   img('hero_background.png'),                       // Gallery — golden-hour site
-  villa:        img('project_grandeur.png'),
-  heights:      img('project_heights.png'),
-  hub:          img('project_hub.png'),
-  interior:     img('interior_living.png'),
-  residency:    img('project_residency.png'),
+  heroPoster:   img('hero_background.webp'),                       // Gallery — golden-hour site
+  villa:        img('project_grandeur.webp'),
+  heights:      img('project_heights.webp'),
+  hub:          img('project_hub.webp'),
+  interior:     img('interior_living.webp'),
+  residency:    img('project_residency.webp'),
   riverside:    img('construction/07-exterior-finishing.webp'),   // Projects — riverside park
   gateway:      img('construction/08-landscaping.webp'),          // Alipson Gate — lit portico + step-lit approach
-  studio:       img('studio_desk.jpg'),                           // Studio — architect drafting an elevation
-  founder:      img('founder_portrait.jpg'),                      // Founder — leadership portrait
+  studio:       img('studio_desk.webp'),                           // Studio — architect drafting an elevation
+  founder:      img('founder_portrait.webp'),                      // Founder — leadership portrait
   team:         img('construction/04-structure.webp'),            // Testimonials thumb — a site at dusk
   workforce:    img('construction/06-glass-installation.webp'),   // Nunny — crews on an active site
   /* Drag-to-compare slider — two genuinely different states of the same site. */

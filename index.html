@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#08090a" />
 
     <title>Alipson Builders — Building Landmarks, Creating Legacies</title>
@@ -14,18 +14,39 @@
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Alipson Builders — Building Landmarks, Creating Legacies" />
     <meta property="og:description" content="A luxury design-build studio crafting iconic landmarks across Kerala." />
-    <meta property="og:image" content="/images/hero_background.png" />
+    <meta property="og:image" content="/images/hero_background.webp" />
     <meta property="og:url" content="https://alipson-builders.vercel.app/" />
     <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 14 L18 82 L37 82 L50 50 L63 82 L82 82 Z' fill='%23c4502e'/%3E%3Cpath d='M50 50 L59 67 L50 84 L41 67 Z' fill='%23c8a45c'/%3E%3C/svg%3E" />
 
+    <!-- LOW-END DEVICE PROBE. Runs before first paint (inline, in <head>) so the
+         glass surfaces never render blurred and then snap opaque.
+
+         `backdrop-filter` is the most expensive thing on this page: each one
+         forces the compositor to re-read everything painted behind it on every
+         frame it is on screen. There is no media query for "slow GPU", so this
+         uses the two signals that exist — reported RAM and core count. Both are
+         absent on Safari, which is deliberately treated as capable rather than
+         low-end: iOS composites backdrop-filter well, and guessing "low" there
+         would strip the effect from every iPhone. -->
+    <script>
+      (function () {
+        var m = navigator.deviceMemory, c = navigator.hardwareConcurrency;
+        if ((m && m <= 4) || (c && c <= 4)) {
+          document.documentElement.setAttribute('data-perf', 'low');
+        }
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
-    <!-- Preload critical hero image (LCP) with high priority -->
-    <link rel="preload" as="image" href="/images/hero_background.png" fetchpriority="high" imagesrcset="/images/hero_background.png 1920w" />
-    
+    <!-- NO hero-image preload. This used to fetch hero_background at
+         fetchpriority=high, but that file is the GALLERY/CTA poster, not the
+         hero: the 3D hero paints a WebGL canvas and the headline, so the
+         preload only stole bandwidth and connection priority from the JS and
+         fonts that the first paint actually waits on. -->
     <!-- Preload critical Google Fonts (subset: only weights actually used) -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" />
     

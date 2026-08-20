@@ -11,11 +11,27 @@ export function useLenis() {
     const noLenis = window.location.search.includes('nolenis');
     if (reduce || noLenis) return;
 
+    /* `lerp`, not `duration` + `easing`. Lenis accepts either, and lerp is the
+       frame-rate-independent one: it eases a fixed FRACTION of the remaining
+       distance each frame, so a 120Hz iPad and a 60Hz phone converge over the
+       same wall-clock time. The duration/easing pair replays a fixed-length
+       curve per scroll event, which is what made fast successive flicks feel
+       like they were queueing. */
     const lenis = new Lenis({
-      duration: 1.15,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      lerp: 0.1,
       smoothWheel: true,
       wheelMultiplier: 1,
+      /* TOUCH. `syncTouch` is v1's name for what the brief calls `smoothTouch`
+         — it keeps the page locked to the finger instead of running the wheel
+         smoothing over a touch drag, which is what causes the rubber-banding
+         and the perceived latency on iOS Safari.
+         `syncTouchLerp` is kept light on purpose. Under syncTouch the finger is
+         driving directly, so heavy smoothing there reads as lag rather than as
+         polish — this is the "light dampening" the brief asks for, not the
+         wheel's easing curve applied to a drag. */
+      syncTouch: true,
+      syncTouchLerp: 0.09,
+      touchInertiaExponent: 1.7,
       touchMultiplier: 1.6,
     });
 

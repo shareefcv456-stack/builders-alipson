@@ -10,7 +10,7 @@ export default function Cta() {
   return (
     <section className="section cta grain">
       <div className="cta__bg">
-        <img src={MEDIA.heroPoster} alt="" aria-hidden />
+        <img src={MEDIA.heroPoster} alt="" aria-hidden loading="lazy" decoding="async" />
       </div>
       <div className="container cta__inner">
         <Reveal><span className="eyebrow eyebrow--center">Start Today</span></Reveal>
