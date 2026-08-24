@@ -10,3 +10,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <App />
   </React.StrictMode>,
 )
+
+/* Drop the static boot gate from index.html once React has painted its own.
+   Two frames, not one: the first rAF fires before the commit's pixels are on
+   screen, so removing there can flash the empty page between the two gates. */
+requestAnimationFrame(() =>
+  requestAnimationFrame(() => document.getElementById('boot')?.remove())
+)

@@ -2,8 +2,33 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
+/**
+ * The app stylesheet is render-blocking, and on this page it has nothing to
+ * block FOR: the only thing in the document before React mounts is the boot
+ * gate, which carries its own inline styles. Loading it at `media="print"` and
+ * flipping it on load takes it off the critical path without deferring it —
+ * it is still requested immediately, in parallel, and it is 20 KB against
+ * ~400 KB of script, so it has always landed long before React can paint.
+ *
+ * Build only. The dev server serves CSS through the module graph for HMR and
+ * there is no <link> in the HTML to rewrite.
+ */
+const nonBlockingCss = () => ({
+  name: 'non-blocking-css',
+  apply: 'build' as const,
+  enforce: 'post' as const,
+  transformIndexHtml(html: string) {
+    return html.replace(
+      /<link rel="stylesheet"[^>]*href="([^"]+\.css)"[^>]*>/g,
+      (_m: string, href: string) =>
+        `<link rel="stylesheet" href="${href}" media="print" onload="this.media='all'">` +
+        `<noscript><link rel="stylesheet" href="${href}"></noscript>`,
+    );
+  },
+});
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), nonBlockingCss()],
   build: {
     rollupOptions: {
       output: {
@@ -22,7 +47,12 @@ export default defineConfig({
           // ONLY through the dynamic import of HeroThree, so it stays out of
           // the initial payload.
           three: ['three', 'n8ao'],
-          animation: ['gsap', 'framer-motion'],
+          /* Split, not merged. Both are eager (gsap pins the hero, framer
+             drives the phase copy), but as one 217 KB chunk they were a single
+             serial download in front of first paint; as two they come down the
+             same connection pool in parallel. */
+          gsap: ['gsap'],
+          motion: ['framer-motion'],
           scroll: ['lenis'],
           react: ['react', 'react-dom'],
           icons: ['lucide-react'],

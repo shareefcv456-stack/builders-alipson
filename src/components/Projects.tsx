@@ -6,7 +6,7 @@ import Reveal from './ui/Reveal';
 import BeforeAfter from './BeforeAfter';
 import AmbientCanvas from './AmbientCanvas';
 import { PROJECTS, PROJECT_FILTERS, type Project } from '../data/site';
-import { media } from '../lib/media';
+import { imgProps } from '../lib/media';
 import { useUI } from '../context/UIContext';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -25,7 +25,11 @@ function Card({ project }: { project: Project }) {
       data-cursor="View"
     >
       <div className="proj__img relative">
-        <img src={media(project.image)} alt={`${project.title} - ${project.category} in ${project.location}`} loading="lazy" className="w-full h-auto object-cover" />
+        {/* No `h-auto` here. That utility carries `!important` and was beating
+            `.proj__img img { height: 100% }`, so the photo sat at its own 16:9
+            ratio inside a 16:11 frame and left a dead grey band under every
+            card — the "empty gaps" in the project grid. */}
+        <img {...imgProps(project.image, '(max-width: 800px) 100vw, 560px')} alt={`${project.title} - ${project.category} in ${project.location}`} className="w-full object-cover" />
         <div className="proj__scrim absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
       </div>
       <span className="proj__tag absolute top-4 left-4 bg-black/75 backdrop-blur-md text-white font-semibold text-xs px-3 py-1 rounded-full border border-white/20">{project.category}</span>
@@ -35,7 +39,10 @@ function Card({ project }: { project: Project }) {
           <span><Ruler size={12} /> {project.area}</span>
           <span>{project.year}</span>
         </div>
-        <h3 className="proj__title font-bold text-2xl mb-2">{project.title}</h3>
+        {/* No `text-2xl`. Like `text-white` and `h-auto` above it, that utility
+            carries `!important` and pinned the title to a flat 1.5rem, killing
+            the clamp() in `.proj__title` that scales it with the viewport. */}
+        <h3 className="proj__title font-bold mb-2">{project.title}</h3>
         <div className="proj__reveal">
           <p>{project.desc}</p>
           <span className="proj__view font-semibold mt-4 inline-flex items-center gap-1">View project <ArrowUpRight size={14} /></span>
@@ -50,7 +57,7 @@ export default function Projects() {
   const shown = filter === 'All' ? PROJECTS : PROJECTS.filter((p) => p.tags.includes(filter));
 
   return (
-    <section id="work" className="section bg-alt grain">
+    <section id="work" className="section section--noir grain">
       <AmbientCanvas variant="cranes" className="z-10" />
       <div className="container relative z-20">
         <div className="projects__head">

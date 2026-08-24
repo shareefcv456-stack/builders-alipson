@@ -2,7 +2,7 @@ import { Star, Play } from 'lucide-react';
 import RevealText from './ui/RevealText';
 import Reveal from './ui/Reveal';
 import { TESTIMONIALS, type Testimonial } from '../data/site';
-import { media, type MediaKey } from '../lib/media';
+import { imgProps, type MediaKey } from '../lib/media';
 import { useUI } from '../context/UIContext';
 
 /* One per testimonial, index-aligned — keep this at least as long as
@@ -23,7 +23,7 @@ function TCard({ t, thumb }: { t: Testimonial; thumb: MediaKey }) {
   return (
     <article className="tcard">
       <button className="tcard__thumb" onClick={openVideo} aria-label={`Watch ${t.name}'s story`}>
-        <img src={media(thumb)} alt="" loading="lazy" />
+        <img {...imgProps(thumb, '(max-width: 800px) 90vw, 340px')} alt="" />
         <span className="tcard__play"><Play size={16} fill="currentColor" /></span>
         <span className="tcard__thumb-lbl">Watch their story</span>
       </button>

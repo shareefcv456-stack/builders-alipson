@@ -40,7 +40,7 @@ export default function Studio() {
   const imgY = useTransform(scrollYProgress, [0, 1], ['-4%', '4%']);
 
   return (
-    <section id="studio" className="section studio grain">
+    <section id="studio" className="section section--noir studio grain">
       <AmbientCanvas variant="blueprint" className="z-10" />
       <div className="container studio__grid relative z-20">
 

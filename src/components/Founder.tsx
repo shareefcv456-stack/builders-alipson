@@ -3,7 +3,7 @@ import RevealText from './ui/RevealText';
 import Reveal from './ui/Reveal';
 import AmbientCanvas from './AmbientCanvas';
 import { FOUNDER, CONTACT } from '../data/site';
-import { media } from '../lib/media';
+import { imgProps } from '../lib/media';
 
 export default function Founder() {
   return (
@@ -14,7 +14,7 @@ export default function Founder() {
         <div className="founder__panel">
           <Reveal dir="scale" className="founder__media">
             <figure className="founder__portrait">
-              <img src={media('founder')} alt={`${FOUNDER.name} — ${FOUNDER.role}`} loading="lazy" />
+              <img {...imgProps('founder', '(max-width: 800px) 90vw, 420px')} alt={`${FOUNDER.name} — ${FOUNDER.role}`} />
             </figure>
           </Reveal>
 

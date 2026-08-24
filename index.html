@@ -39,6 +39,14 @@
       })();
     </script>
 
+    <!-- The phone's LCP element. `StoryScroll` swaps the WebGL hero for this
+         poster on phones and low-end devices and only pulls the 3D chunk down
+         on the first scroll, which makes this image the largest thing the page
+         paints. The media query is what keeps it off desktop, where the poster
+         is never rendered at all. -->
+    <link rel="preload" as="image" href="/images/hero_background-800.webp"
+          media="(max-width: 767px)" fetchpriority="high" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
@@ -50,8 +58,16 @@
     <!-- Preload critical Google Fonts (subset: only weights actually used) -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" />
     
-    <!-- Load Google Fonts stylesheet (subset + optimized with display=swap for FOUT handling) -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" />
+    <!-- NON-BLOCKING. `media="print"` means this sheet does not apply to the
+         screen, so the browser fetches it without holding the first paint; the
+         onload flips it to `all` and the fonts swap in. That matters here
+         because the boot gate below carries its own inline styles and has no
+         reason to wait on a third-party stylesheet three round trips away —
+         and every face is already `display=swap`, so the fallback text was
+         going to paint first regardless. The <noscript> copy keeps the fonts
+         for a scripting-disabled visitor, who will never run the onload. -->
+    <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" /></noscript>
 
     <script type="application/ld+json">
     {
@@ -74,6 +90,61 @@
     </script>
   </head>
   <body>
+    <!-- ======================================================================
+         BOOT GATE — the same closed door React renders, in static HTML.
+
+         This is a single-page app: without it the document is an empty <div>
+         and NOTHING paints until react + gsap + framer-motion have downloaded,
+         parsed and mounted. Measured on a throttled phone that was 3.3s of
+         white screen, and it was simultaneously the First Contentful Paint, the
+         Largest Contentful Paint and the whole Speed Index — one number
+         wearing three hats.
+
+         It is deliberately a COPY of `.story__gate`, not a spinner: the visitor
+         sees the real entrance immediately and React's version takes over
+         underneath it with nothing to notice. Keep the two in sync — if the
+         gate's wordmark or colours change in sections.css, change them here
+         too, or the handoff will flicker.
+
+         Everything is inline. A <link> would be one more round trip in front of
+         the paint this exists to bring forward, which is the entire point.
+         `main.tsx` removes it on the frame after React's first commit.
+         ====================================================================== -->
+    <div id="boot" aria-hidden="true">
+      <style>
+        #boot { position: fixed; inset: 0; z-index: 9999; display: flex;
+          flex-direction: column; align-items: center; justify-content: center;
+          gap: 0.55rem; text-align: center; padding-inline: 6vw;
+          background: linear-gradient(100deg, #0c1220 0%, #1b2335 60%, #0c1220 100%); }
+        /* The closed seam down the middle, glow and all. */
+        #boot::after { content: ''; position: absolute; top: 0; bottom: 0; left: 50%;
+          width: 2px; transform: translateX(-50%);
+          background: linear-gradient(to bottom, transparent 0%, rgba(211,16,24,0.9) 15%,
+            rgba(211,16,24,0.45) 30%, transparent 40%, transparent 60%,
+            rgba(211,16,24,0.45) 70%, rgba(211,16,24,0.9) 85%, transparent 100%);
+          filter: drop-shadow(0 0 6px rgba(211,16,24,0.55)); }
+        #boot svg { display: block; position: relative; z-index: 1; }
+        #boot b { position: relative; z-index: 1; margin-top: 0.6rem;
+          font-family: 'Syne', system-ui, sans-serif; font-weight: 500;
+          letter-spacing: 0.14em; font-size: clamp(1.3rem, 3.6vw, 2.3rem); color: #fff; }
+        #boot i { position: relative; z-index: 1; font-style: normal;
+          font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 600;
+          letter-spacing: 0.5em; font-size: 0.66rem; color: #e52e35; }
+        #boot em { position: relative; z-index: 1; font-style: normal; margin-top: 1.7rem;
+          padding: 0.55rem 1.15rem; border-radius: 100px;
+          border: 1px solid rgba(211,16,24,0.45); background: rgba(211,16,24,0.08);
+          font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 600;
+          font-size: 0.66rem; letter-spacing: 0.3em; text-transform: uppercase; color: #e52e35; }
+      </style>
+      <svg viewBox="0 0 100 100" width="72" height="72">
+        <path d="M50 8 L92 90 L71 90 L50 48 L29 90 L8 90 Z" fill="#d31018" />
+        <path d="M36 68 L64 68 L59.5 58 L40.5 58 Z" fill="#d31018" />
+        <path d="M50 25 L59 60 L50 52 L41 60 Z" fill="#f8f8f6" />
+      </svg>
+      <b>ALIPSON BUILDERS</b>
+      <i>PVT LTD</i>
+      <em>Scroll to Enter</em>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

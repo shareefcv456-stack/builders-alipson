@@ -2,7 +2,7 @@ import { ArrowUpRight, Download } from 'lucide-react';
 import Reveal from './ui/Reveal';
 import RevealText from './ui/RevealText';
 import Magnetic from './ui/Magnetic';
-import { MEDIA } from '../lib/media';
+import { imgProps } from '../lib/media';
 import { useUI } from '../context/UIContext';
 
 export default function Cta() {
@@ -10,7 +10,7 @@ export default function Cta() {
   return (
     <section className="section cta grain">
       <div className="cta__bg">
-        <img src={MEDIA.heroPoster} alt="" aria-hidden loading="lazy" decoding="async" />
+        <img {...imgProps('heroPoster', '100vw')} alt="" aria-hidden />
       </div>
       <div className="container cta__inner">
         <Reveal><span className="eyebrow eyebrow--center">Start Today</span></Reveal>

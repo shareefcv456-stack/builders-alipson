@@ -838,6 +838,12 @@
 .ba__before-lbl, .ba__after-lbl { position: absolute; bottom: 1.2rem; z-index: 3; padding: 0.4rem 0.9rem; border-radius: 100px; font-family: var(--font-grotesk); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--bone-100); }
 .ba__before-lbl { left: 1.2rem; background: rgba(10,12,18,0.55); border: 1px solid rgba(247,242,232,0.16); }
 .ba__after-lbl { right: 1.2rem; background: rgba(211, 16, 24,0.55); border: 1px solid rgba(255,140,140,0.42); }
+@media (max-width: 640px) {
+  .ba__lbl-more { display: none; }
+  .ba__before-lbl, .ba__after-lbl { bottom: 0.7rem; padding: 0.3rem 0.7rem; font-size: 0.6rem; }
+  .ba__before-lbl { left: 0.7rem; }
+  .ba__after-lbl { right: 0.7rem; }
+}
 .ba__handle { position: absolute; top: 0; bottom: 0; z-index: 4; width: 2px; background: rgba(247,242,232,0.9); left: var(--split, 50%); transform: translateX(-50%); box-shadow: 0 0 12px 1px rgba(211, 16, 24,0.65), 0 0 40px 4px rgba(211, 16, 24,0.28); transition: box-shadow 0.35s var(--ease-lux); }
 .ba:hover .ba__handle { box-shadow: 0 0 16px 2px rgba(211, 16, 24,0.85), 0 0 60px 8px rgba(211, 16, 24,0.4); }
 .ba__grip { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 46px; height: 46px; border-radius: 50%; background: var(--bone-100); color: var(--ink-900); display: grid; place-items: center; box-shadow: 0 8px 24px rgba(0,0,0,0.4); transition: transform 0.35s var(--ease-lux), box-shadow 0.35s var(--ease-lux); }
@@ -1458,7 +1464,10 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .gate { background: #F8FAFC; }
 /* The navbar is fixed and was clipping the section title on deep-links and on
    scroll-up. 7rem of top padding clears it at every breakpoint. */
-.gate { padding-top: 7rem; }
+/* 7rem is a desktop lead-in for the section that follows the pinned hero. On a
+   phone that is 112px of empty navy on a page the client already reads as too
+   long — the section's own padding is enough there. */
+.gate { padding-top: clamp(2.5rem, 8vw, 7rem); }
 
 /* Holds the scroll ref that drives the image's parallax zoom. */
 .gate__stage { position: relative; margin-top: 0.5rem; }
@@ -1590,6 +1599,14 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
    subtree that gets dropped along with it. */
 .story__three canvas { display: block; width: 100%; height: 100%;
   transform: translateZ(0); backface-visibility: hidden; }
+
+/* The phone's stand-in for the WebGL scene, on screen only while the 3D chunk
+   is in flight (it is the Suspense fallback — see StoryScroll). It occupies the
+   render's own slot in both layouts, so the stage does not reflow when the real
+   scene takes over. `pointer-events: none` because the gate and the CTAs above
+   it own every interaction here. */
+.story__poster { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%;
+  object-fit: cover; pointer-events: none; }
 
 /* ==========================================================================
    DAYLIGHT STUDIO — 3D hero only (.story--3d). Scoped, because ?flat runs
@@ -1768,7 +1785,7 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
     position: relative; order: 1; inset: auto;
     width: 100%; max-width: none; flex: 0 0 auto;
     padding: 0 var(--pad-x); }
-  .story--3d .story__three {
+  .story--3d :is(.story__three, .story__poster) {
     position: relative; order: 2; inset: auto;
     /* 50vh, capped at 420px. Expressed as a flex BASIS with shrink allowed and
        GROW OFF: the cap is what keeps the render tight instead of stretching to
@@ -1858,7 +1875,18 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   .founder__panel,
   .footer__top,
   .footer__contact { grid-template-columns: 1fr; }
-  .gallery__grid { columns: 1; }
+  /* Two-up, not one. Six full-bleed photo tiles in a single column was 2250px
+     of scroll — nearly three phone screens for one section — and a gallery is
+     scanned, not read. At two columns the tiles are still 170px wide, which is
+     large enough to tell the projects apart. */
+  .gallery__grid { columns: 2; column-gap: 0.7rem; }
+  .gitem { margin-bottom: 0.7rem; }
+  /* The caption overlay is hover-only on desktop; a phone has no hover, so at
+     this size it would never appear at all. Show it, softened. */
+  .gitem__over { opacity: 1; padding: 0.75rem;
+    background: linear-gradient(180deg, transparent 45%, rgba(8, 9, 10, 0.82)); }
+  .gitem__over h3 { font-size: 0.92rem; }
+  .gitem__over span { font-size: 0.58rem; letter-spacing: 0.1em; }
   /* The stats ribbon keeps two-up: four numbers stacked is a scroll, not a
      summary. It is a readout, not a card grid. */
 
@@ -1869,6 +1897,14 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   .gate__card,
   .studio__details,
   .founder__panel { padding: 1.5rem; }
+  /* Interior rhythm, tightened. These gaps were set for a four-up card that is
+     tall and narrow; stacked full-width the same card is short and wide, and
+     the desktop spacing reads as dead air between three lines of text. Roughly
+     45px back per card, over the ~14 stacked cards on the page. */
+  .svc__icon, .gate__card-ic { margin-bottom: 0.9rem; }
+  .svc__rule { margin-bottom: 0.7rem; }
+  .svc__desc { margin-bottom: 1rem; }
+  .svc__title { margin-bottom: 0.6rem; }
   /* Full width inside the container's gutters, and no inherited height floor.
      The desktop layout sizes several of these cards from their neighbour in a
      two-column row; stacked, that floor becomes dead space at the bottom of the
@@ -1977,4 +2013,101 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   .glass { backdrop-filter: blur(8px) saturate(1.2); -webkit-backdrop-filter: blur(8px) saturate(1.2); }
   .testimonial__card, .process__step { backdrop-filter: blur(8px) saturate(115%); -webkit-backdrop-filter: blur(8px) saturate(115%); }
   .btn-watch, .intro__skip { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+}
+
+/* ==========================================================================
+   NOIR SECTIONS — Projects · Studio (About) · Contact
+   --------------------------------------------------------------------------
+   The hero is a dark, glassy stage and the rest of the page is a white paper
+   document; the three sections a visitor actually evaluates the company on were
+   landing on the wrong side of that line. These three now run on the hero's
+   ground so the page reads as one piece.
+
+   TOKENS FIRST, OVERRIDES SECOND. Everything below the token block exists only
+   because that rule hard-codes a light colour instead of reading a token — each
+   one is a rule that should eventually be re-authored against the tokens, at
+   which point the override here can go. Nothing here restyles LAYOUT: if a
+   noir section needs different spacing from its white twin, that is a bug in
+   the section, not in the theme.
+   ========================================================================== */
+.section--noir {
+  --bg:            #0B132B;
+  --bg-rgb:        11, 19, 43;
+  --bg-alt:        #0E1730;
+  --bg-elev:       #101B38;
+  --surface:       rgba(255, 255, 255, 0.055);
+  --surface-2:     rgba(255, 255, 255, 0.085);
+  --border:        rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(var(--accent-rgb), 0.55);
+  --text:          #F8FAFC;
+  --text-soft:     rgba(248, 250, 252, 0.76);
+  --text-mute:     rgba(248, 250, 252, 0.55);
+  --accent-soft:   #ff5a52;   /* the 700-weight red is unreadable on navy */
+  --tint:          rgba(var(--accent-rgb), 0.14);
+  --glass:         rgba(255, 255, 255, 0.06);
+  --glass-brd:     rgba(255, 255, 255, 0.14);
+  --shadow-sm:     0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -16px rgba(0, 0, 0, 0.7);
+  --shadow-xl:     0 2px 6px rgba(0, 0, 0, 0.35), 0 30px 60px -24px rgba(0, 0, 0, 0.8);
+  --shadow:        var(--shadow-xl);
+  background: linear-gradient(180deg, #0B132B 0%, #0E1730 58%, #070B18 100%);
+  color: var(--text);
+}
+/* `.bg-alt` is a utility with its own background; on a noir section it repaints
+   the ground grey and cancels the gradient above. */
+.section--noir.bg-alt, .section--noir.bg-elev { background: none; }
+
+/* The ambient line-work watermark is masked with a WHITE scrim for the paper
+   page. Over navy that scrim is a grey haze across the whole section. */
+.section--noir .ambient-mask { background: rgba(7, 11, 24, 0.55); }
+.section--noir .ambient-bg { opacity: 0.1; }
+
+/* ---- glass card surfaces ------------------------------------------------- */
+/* One rule for every card in the three sections. The blur is the whole point of
+   the treatment, so it is here rather than in the token block — but it is also
+   the most expensive thing a phone composites, so the low-end probe in
+   index.html turns it off and leaves the (already opaque enough) fill. */
+.section--noir :is(.contact__form, .contact__ic, .studio__details, .studio__hl, .field input, .field textarea) {
+  background: var(--glass);
+  border-color: var(--glass-brd);
+  color: var(--text);
+}
+html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details) {
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+}
+
+/* ---- Studio: rules that hard-code the light palette ---------------------- */
+.section--noir .studio__details { box-shadow: var(--shadow-xl); }
+.section--noir :is(.studio__title, .studio__hl h4, .studio__hl strong) { color: var(--text); }
+.section--noir :is(.studio__body, .studio__hl p, .studio__quote) { color: var(--text-soft); }
+.section--noir :is(.studio__eyebrow, .studio__title em, .studio__quote span) { color: var(--accent-soft); }
+.section--noir .studio__eyebrow::before, .section--noir .studio__eyebrow::after { background: var(--accent-soft); }
+.section--noir .studio__hl:hover { background: rgba(var(--accent-rgb), 0.12); }
+.section--noir .studio__cta .btn-ghost { border-color: var(--glass-brd); color: var(--text); }
+.section--noir .studio__cta .btn-ghost:hover { border-color: var(--accent-soft); color: var(--accent-soft); }
+
+/* ---- Projects ------------------------------------------------------------ */
+/* `#work .filter` was ALREADY written for a dark ground — near-white labels on
+   a near-white section, which is why the inactive filters read as blank space.
+   Moving the section to navy is what makes those rules correct; nothing here
+   re-states them. */
+.section--noir .proj { background: var(--glass); border: 1px solid var(--glass-brd); }
+.section--noir .ba { border: 1px solid var(--glass-brd); }
+
+/* ---- Contact ------------------------------------------------------------- */
+/* The map already HAS a dark treatment a few hundred lines up; the unified
+   light theme's override is what cancels it. The `:root` prefix only exists to
+   match that override's specificity — without it a white Google Map is the one
+   bright rectangle in the section. */
+:root .section--noir .contact__map iframe {
+  filter: invert(90%) hue-rotate(180deg) grayscale(0.12) contrast(0.95); }
+.section--noir .contact__map { border-color: var(--glass-brd); }
+.section--noir .field label { color: var(--text-mute); }
+.section--noir .field input:focus, .section--noir .field textarea:focus {
+  border-color: var(--accent-soft); background: var(--surface-2); }
+/* Autofill paints its own near-white block over the glass. An inset shadow is
+   the only thing Chrome lets you repaint it with. */
+.section--noir .field :is(input, textarea):-webkit-autofill {
+  -webkit-text-fill-color: var(--text);
+  -webkit-box-shadow: 0 0 0 1000px #131E3D inset;
 }

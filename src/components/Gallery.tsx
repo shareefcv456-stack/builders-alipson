@@ -4,7 +4,7 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import RevealText from './ui/RevealText';
 import Reveal from './ui/Reveal';
 import { GALLERY } from '../data/site';
-import { media } from '../lib/media';
+import { imgProps, media } from '../lib/media';
 
 export default function Gallery() {
   const [index, setIndex] = useState<number | null>(null);
@@ -43,7 +43,7 @@ export default function Gallery() {
           {GALLERY.map((g, i) => (
             <Reveal key={i} dir="scale" delay={(i % 3) * 0.08}>
               <figure className="gitem cursor-target" onClick={() => setIndex(i)} data-cursor="Open">
-                <img src={media(g.image)} alt={g.title} loading="lazy" />
+                <img {...imgProps(g.image, '(max-width: 800px) 100vw, 380px')} alt={g.title} />
                 <figcaption className="gitem__over">
                   <span>{g.cat}</span>
                   <h3>{g.title}</h3>

@@ -12,7 +12,8 @@ import Ribbon from './Ribbon';
 import HeroLoader from './HeroLoader';
 import HeroWireframe, { P1_T, P2_T, type WireHandle } from './HeroWireframe';
 import type { ThreeHandle } from './HeroThree';
-import { HERO_FRAMES } from '../lib/media';
+import { HERO_FRAMES, HERO_FRAMES_SMALL, MEDIA, mediaSmall } from '../lib/media';
+import { isLite, isPhone } from '../lib/device';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -60,7 +61,11 @@ const GATE_END = 0.08;     // doors finished parting
  *  Derived from GATE_END and the pin runway below rather than restated, so the
  *  navbar (which stays hidden behind the closed gate) cannot drift out of sync
  *  with the gate it is waiting on. */
-const PIN_RUNWAY = () => window.innerHeight * (window.innerWidth < 760 ? 2.2 : 3);
+/* Phone runway cut from 2.2 viewports to 1.3. Every phase beat still gets its
+   own stretch of scroll — the timeline is expressed in fractions, so it simply
+   plays over a shorter runway — but the entrance no longer costs three full
+   swipes before the first section of the site appears. */
+const PIN_RUNWAY = () => window.innerHeight * (window.innerWidth < 760 ? 1.3 : 3);
 export function gateOpenScroll() {
   if (typeof window === 'undefined') return 0;
   return PIN_RUNWAY() * GATE_END;
@@ -160,6 +165,28 @@ export default function StoryScroll() {
   const glow = useRef<HTMLDivElement>(null);
   const three = useRef<ThreeHandle>(null);
   const is3D = useRef(use3D()).current;
+  /* THE 3D SCENE IS NOT PART OF FIRST PAINT ON A PHONE.
+     three.js is 720 KB of script before the scene itself is built, and on a
+     mid-range phone that parse-plus-build is most of the page's blocking time —
+     spent on a canvas the split gate is covering anyway at scroll 0. So on a
+     lite device the stage opens on a poster (one ~106 KB WebP) and the chunk is
+     only requested once the visitor does the thing the gate is asking them to
+     do: scroll, touch, or point at it. Desktop mounts it immediately, as
+     before. `heavy` only ever goes false → true, so the scene never unloads. */
+  const [heavy, setHeavy] = useState(() => !isLite());
+  useEffect(() => {
+    if (heavy) return;
+    const go = () => setHeavy(true);
+    const opts = { once: true, passive: true } as const;
+    window.addEventListener('scroll', go, opts);
+    window.addEventListener('touchstart', go, opts);
+    window.addEventListener('pointerdown', go, opts);
+    return () => {
+      window.removeEventListener('scroll', go);
+      window.removeEventListener('touchstart', go);
+      window.removeEventListener('pointerdown', go);
+    };
+  }, [heavy]);
   const target = useRef(0);   // where scroll wants the playhead
   const cur = useRef(-1);     // where it actually is (eased toward target)
   const { openVideo } = useUI();
@@ -252,7 +279,8 @@ export default function StoryScroll() {
     if (!ctx) return;
 
     // ---- decode every frame up front; they are the film ---------------------
-    const imgs: HTMLImageElement[] = HERO_FRAMES.map((src) => {
+    const frames = isPhone() ? HERO_FRAMES_SMALL : HERO_FRAMES;
+    const imgs: HTMLImageElement[] = frames.map((src) => {
       const im = new Image();
       im.decoding = 'async';
       im.src = src;
@@ -446,11 +474,34 @@ export default function StoryScroll() {
       <div className="story__stage">
         {is3D ? (
           /* Real 3D — one WebGL canvas, camera cranes and orbits as it builds.
-             No fallback element behind it: the ink-900 section colour already
-             shows through while the chunk loads, so there is nothing to flash. */
-          <Suspense fallback={<HeroLoader />}>
-            <HeroThree ref={three} className="story__three" />
-          </Suspense>
+             The poster sits UNDER it rather than being swapped out, so the
+             hand-off is a crossfade the compositor does for free instead of a
+             frame where the stage is empty. */
+          heavy && (
+            /* THE POSTER IS THE SUSPENSE FALLBACK, which is the whole trick: it
+               is on screen for exactly the window the 3D chunk is in flight and
+               not one frame longer, with no readiness flag to keep in sync.
+
+               It is also why it renders at `heavy` rather than at mount. This
+               image is big enough to be the phone's LCP element — the split
+               gate covers it but occlusion does not disqualify an LCP
+               candidate — so painting it at scroll 0 made a decorative
+               placeholder behind an opaque door into the metric the whole page
+               is judged on. Rendered on the first scroll instead, it costs
+               nothing and still does its job, because index.html preloads it at
+               the same media query and it comes back from cache. */
+            <Suspense fallback={isLite()
+              ? <img
+                  className="story__poster"
+                  src={mediaSmall('heroPoster')}
+                  srcSet={`${mediaSmall('heroPoster')} 800w, ${MEDIA.heroPoster} 1024w`}
+                  sizes="100vw" width={1024} height={1024}
+                  alt="" aria-hidden decoding="async" fetchPriority="high"
+                />
+              : <HeroLoader />}>
+              <HeroThree ref={three} className="story__three" />
+            </Suspense>
+          )
         ) : (
           <>
             {/* Scroll-scrubbed construction film */}

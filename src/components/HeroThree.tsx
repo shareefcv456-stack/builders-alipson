@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { N8AOPass } from 'n8ao';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { concreteMaps, asphaltMaps, pavingMaps, grassMaps, facadeTexture, metalRoughness, softDot, blueprintTexture, brandTexture, cityEnvironment } from '../lib/procTex';
@@ -94,8 +95,15 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        exists: the backdrop, the fog, and whether the HDRI is fetched at all. */
     const isPhone = () => window.innerWidth < 768;
 
+    /* PHONE TIER. Every knob below that reads `phoneTier` is a full-frame cost
+       the phone was paying at desktop settings: MSAA on every pixel, a 2× pixel
+       ratio (four times the fragments of 1×), a 2048² soft-shadow pass, and a
+       half-res AO pass on top. Resolved once here rather than re-querying the
+       viewport, so a rotation cannot leave the renderer half-configured. */
+    const phoneTier = isPhone();
+
     const renderer = new THREE.WebGLRenderer({
-      antialias: true, alpha: true, powerPreference: 'high-performance',
+      antialias: !phoneTier, alpha: true, powerPreference: 'high-performance',
     });
     /* Capped at 2 (the dpr={[1, 2]} ceiling), raised from 1.5. That cap was set
        when bloom and depth of field each cost a full-res pass; with both gone
@@ -112,10 +120,14 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        off a broken shader fails silently to a black render instead of logging.
        Anything that would break it is caught the moment you run the dev server. */
     renderer.debug.checkShaderErrors = import.meta.env.DEV;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, phoneTier ? 1.5 : 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
-    renderer.shadowMap.enabled = true;
+    /* Shadows off on a phone. PCFSoft over this many meshes is a second full
+       scene pass; the scene's ambient occlusion and baked contact darkening
+       carry enough grounding at phone size that their absence reads as softer
+       light rather than as a missing effect. */
+    renderer.shadowMap.enabled = !phoneTier;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     /* The sun never moves and the geometry only changes while the playhead does.
        Re-rendering a 2048² shadow map every frame to draw the SAME shadows is
@@ -1527,7 +1539,10 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     // whole frame out.
     n8ao.configuration.gammaCorrection = false;
     n8ao.configuration.color = new THREE.Color(0x0e1420);
-    composer.addPass(n8ao);
+    /* On a phone the AO pass is swapped for a plain RenderPass: N8AO reads the
+       depth buffer and does its own beauty render, so dropping it without a
+       replacement leaves an empty composer and a black canvas. */
+    composer.addPass(phoneTier ? new RenderPass(scene, camera) : n8ao);
     /* NO BLOOM. Nothing in a daylight architectural render glows, so the pass
        has nothing legitimate to pick up — it only ever blew out sunlit concrete
        and glass. Deleting it also buys back a full-res pass per frame. */

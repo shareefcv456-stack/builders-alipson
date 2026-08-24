@@ -3,6 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import { ThemeProvider } from './context/ThemeContext';
 import { UIProvider } from './context/UIContext';
 import { useLenis } from './hooks/useLenis';
+import { isLite } from './lib/device';
 
 import CinematicIntro from './components/CinematicIntro';
 import DroneBackground from './components/DroneBackground';
@@ -35,13 +36,20 @@ const Footer = lazy(() => import('./components/Footer'));
 const Modals = lazy(() => import('./components/Modals'));
 
 export default function App() {
-  /* CinematicIntro plays first on EVERY load and reload: blueprint line-draw →
-     "We don't build buildings." → brand mark, with a Skip intro button. It then
-     hands off to the scroll-driven gate at scroll 0, so a refresh always starts
-     the sequence from the beginning. `?noloader` is the only escape hatch — the
-     old mobile bypass is gone, so phones get the intro too. */
+  /* CinematicIntro plays first on desktop: blueprint line-draw → "We don't
+     build buildings." → brand mark, with a Skip intro button. It then hands off
+     to the scroll-driven gate at scroll 0, so a refresh always starts the
+     sequence from the beginning.
+
+     PHONES SKIP IT. Six seconds of full-screen framer-motion over an empty
+     document is the single largest thing standing between a mobile visitor and
+     the page: nothing below it can paint, the body cannot scroll, and every
+     one of those frames is animation work on the exact CPU that has the least
+     to spare. The scroll-driven gate underneath already opens the site with the
+     brand mark, so the phone loses the three copy beats, not the entrance.
+     `?noloader` still forces the skip anywhere, for screenshots and QA. */
   const [loaded, setLoaded] = useState(
-    () => typeof window !== 'undefined' && window.location.search.includes('noloader')
+    () => typeof window !== 'undefined' && (window.location.search.includes('noloader') || isLite())
   );
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [brochureOpen, setBrochureOpen] = useState(false);
