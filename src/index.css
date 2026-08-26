@@ -186,7 +186,8 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 /* max-width 1200px (--container); padding 1.5rem == px-6. Every
    content block below the hero runs through this one rule, which is what
    keeps their left edges identical down the page. */
-.container { width: 100%; max-width: var(--container); margin: 0 auto; padding-left: 1.5rem; padding-right: 1.5rem; }
+.container { width: 100%; max-width: var(--container); margin: 0 auto; padding-inline: 1rem; }
+@media (min-width: 640px) { .container { padding-inline: 1.5rem; } }
 
 /* Reveal animations start their off-screen elements at translateX(±44px)
    (see ui/Reveal.tsx `left`/`right`), which pushed them past the viewport and
@@ -200,6 +201,12 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
    block BELOW the hero and nothing else — `.story` does not carry it.
    `clip` rather than `hidden` so no scroll container is created. */
 .section, .section--tight { overflow-x: clip; }
+
+/* Anchor targets stop BELOW the fixed nav capsule. `scrollToId` already
+   subtracts NAV_OFFSET, but a native `#hash` load and the scrollIntoView in
+   App.tsx do not — those landed with the heading under the navbar. Keep in
+   sync with NAV_OFFSET in useLenis.ts. */
+main > [id], footer[id], section[id] { scroll-margin-top: 100px; }
 @media (min-width: 640px) { .container { padding-left: 1.5rem; padding-right: 1.5rem; } }
 @media (min-width: 1024px) { .container { padding-left: 2rem; padding-right: 2rem; } }
 /* Opaque white — a crisp page, not a frosted one. This also drops a

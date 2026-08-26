@@ -19,7 +19,9 @@ export default function Clients() {
                 fontWeight: 300,
                 fontSize: 'clamp(1.4rem, 2.6vw, 2rem)',
                 letterSpacing: '0.01em',
-                color: 'rgba(248,248,246,0.78)',
+                /* Was rgba(248,248,246,0.78) — near-white on the white page,
+                   i.e. invisible. Solid deep slate: 16.9:1 on white, AAA. */
+                color: '#0F172A',
                 whiteSpace: 'nowrap',
               }}
             >

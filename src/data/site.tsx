@@ -12,9 +12,13 @@ export const CONTACT = {
   phoneHref: 'tel:+919876543210',
   whatsapp: 'https://wa.me/919876543210',
   email: 'hello@alipsonbuilders.com',
-  address: 'Ambalappadi, Wandoor, Malappuram, Kerala — PIN: 679328',
-  mapEmbed:
-    'https://www.google.com/maps?q=Ambalappadi%2C%20Wandoor%2C%20Kerala%20679328&output=embed',
+  /* Registered office as filed — Alipson Builders Private Limited, incorporated
+     Dec 2024. One source for the address, the embed and the "open in Maps"
+     link, so a change here moves every copy on the page. */
+  address: 'Door No. 14/59, E.T House, Kodikuthiparambu, Pulikkal, Malappuram, Kerala — PIN: 673637',
+  mapQuery: 'E.T House, Kodikuthiparambu, Pulikkal, Malappuram, Kerala 673637',
+  get mapEmbed() { return `https://www.google.com/maps?q=${encodeURIComponent(this.mapQuery)}&output=embed`; },
+  get mapLink() { return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(this.mapQuery)}`; },
 };
 
 export const NAV = [

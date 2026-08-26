@@ -620,8 +620,12 @@
    panel edge is gone — it was clipping the portrait against the card boundary
    rather than reading as a deliberate overlap. */
 .founder__portrait { position: relative; margin: 0; border-radius: 16px; overflow: hidden;
-  aspect-ratio: 4/5; max-height: 400px; width: 100%; background: #0B1120; }
-.founder__portrait img { width: 100%; height: 100%; object-fit: cover; object-position: center;
+  aspect-ratio: 4/5; width: 100%; background: #0B1120; }
+/* NO max-height. With `width: 100%` a height cap silently wins over
+   `aspect-ratio` — the 400px cap turned a 4:5 frame into a 423x400 near-square
+   and `cover` cropped the portrait's head and shoulders to fit it. Bound the
+   frame by WIDTH (see the stacked breakpoint) and the ratio survives. */
+.founder__portrait img { width: 100%; height: 100%; object-fit: cover; object-position: center top;
   filter: contrast(105%) grayscale(100%); }
 
 .founder__editorial { display: flex; flex-direction: column; align-items: flex-start; }
@@ -660,7 +664,7 @@
 @media (max-width: 900px) {
   .founder__panel { grid-template-columns: 1fr; gap: 1.75rem; padding: 1.5rem; }
   .founder__media, .founder__editorial { grid-column: 1 / -1; }
-  .founder__portrait { margin-left: 0; max-height: 420px; }
+  .founder__portrait { margin-left: 0; max-width: 360px; }
   .founder__editorial { align-items: flex-start; }
   .founder__values { margin-left: 0; width: 100%; gap: 1.25rem; }
 }
@@ -1123,6 +1127,12 @@
 .contact__map { margin-top: 1.5rem; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); height: 240px; }
 .contact__map iframe { width: 100%; height: 100%; border: 0; filter: grayscale(0.6) invert(0.9) contrast(0.9); }
 :root[data-theme='light'] .contact__map iframe { filter: grayscale(0.3); }
+.contact__map-load { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.45rem;
+  background: var(--surface-2); color: var(--text-soft); font-family: var(--font-grotesk); font-size: 0.92rem; font-weight: 600;
+  border: 0; cursor: pointer; transition: background-color 0.3s var(--ease-lux), color 0.3s var(--ease-lux); }
+.contact__map-load svg { color: var(--accent-soft); }
+.contact__map-load small { font-weight: 400; font-size: 0.78rem; color: var(--text-mute); max-width: 30ch; text-align: center; }
+.contact__map-load:hover, .contact__map-load:focus-visible { background: var(--tint); color: var(--text); }
 .contact__form { padding: clamp(1.6rem, 4vw, 2.6rem); border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--border); }
 .contact__form h3 { font-family: var(--font-grotesk); font-weight: 600; font-size: 1.5rem; margin-bottom: 0.4rem; }
 .contact__form > p { color: var(--text-mute); font-size: 0.9rem; margin-bottom: 1.8rem; }
@@ -1136,26 +1146,25 @@
 .footer__cta { position: relative; z-index: 1; text-align: center; padding-block: clamp(2rem, 4vw, 3rem); border-bottom: 1px solid var(--border); }
 .footer__cta h2 { font-family: var(--font-display); font-weight: 300; font-size: clamp(2.4rem, 7vw, 5.5rem); line-height: 1; letter-spacing: -0.02em; }
 .footer__cta h2 em { font-style: italic; color: var(--accent-soft); }
-/* Top row — Contact · Quick Links · Map (clean 3-column) */
-.footer__top { position: relative; z-index: 1; display: grid; grid-template-columns: 1.1fr 0.8fr 1.4fr;
-  gap: clamp(2rem, 4vw, 3.5rem); padding: clamp(1.75rem, 3.5vw, 2.75rem) 0 clamp(1.25rem, 2vw, 1.75rem); align-items: stretch; }
-.footer__col--map { display: flex; }
-.footer__col--contact .logo { margin-bottom: 1.4rem; }
+/* Top row — Brand · Quick Links · Contact (clean 3-column) */
+.footer__top { position: relative; z-index: 1; display: grid; grid-template-columns: 1.3fr 0.8fr 1fr;
+  gap: clamp(2rem, 4vw, 3.5rem); padding: clamp(1.75rem, 3.5vw, 2.75rem) 0 clamp(1.25rem, 2vw, 1.75rem); align-items: start; }
+.footer__col--brand .logo { margin-bottom: 1.4rem; }
 /* Solid crimson, not the brand gradient. The mark's paths are filled from an
    SVG gradient, so they are overridden here rather than in the component —
    `:not(:last-of-type)` spares the white rocket core, which is the third path. */
 .footer .logo-name { background: none; -webkit-text-fill-color: #d31018; color: #d31018; }
 .footer .logo-sub { color: #0F172A; }
 .footer .logo svg path:not(:last-of-type) { fill: #d31018; }
-.footer__col--contact h4 { margin-bottom: 1.1rem; }
+.footer__col--contact h4, .footer__col--brand h4 { margin-bottom: 1.1rem; }
 .footer__col .footer__contact-line { display: flex; align-items: flex-start; gap: 0.55rem; color: var(--text-soft); font-size: 0.94rem; margin-bottom: 0.7rem; transition: color 0.3s; }
 .footer__col .footer__contact-line svg { color: var(--accent-soft); flex-shrink: 0; margin-top: 3px; }
 a.footer__contact-line:hover { color: var(--accent-soft); }
 .footer__contact-addr { max-width: 30ch; }
 .footer__col--contact .footer__social { margin-top: 1.4rem; }
-@media (max-width: 900px) { .footer__top { grid-template-columns: 1fr 1fr; } .footer__col--map { grid-column: 1 / -1; } }
+@media (max-width: 900px) { .footer__top { grid-template-columns: 1fr 1fr; } .footer__col--brand { grid-column: 1 / -1; } }
 @media (max-width: 560px) { .footer__top { grid-template-columns: 1fr; } }
-.footer__desc { color: var(--text-mute); font-size: 0.9rem; line-height: 1.7; margin: 1.2rem 0 1.5rem; max-width: 34ch; }
+.footer__desc { color: var(--text-soft); font-size: 0.9rem; line-height: 1.7; margin: 1.2rem 0 1.5rem; max-width: 34ch; }
 .footer__social { display: flex; gap: 0.7rem; }
 .footer__social a { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--border); display: grid; place-items: center; color: var(--text-soft); transition: 0.4s var(--ease-lux); }
 .footer__social a:hover { color: #fff; background: var(--accent); border-color: var(--accent); transform: translateY(-3px); }
@@ -1182,22 +1191,9 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .modal > p { color: var(--text-mute); font-size: 0.9rem; margin-bottom: 1.6rem; }
 
 /* ==========================================================================
-   FOOTER — CONTACT & MAP
+   FOOTER — CONTACT (map removed; the only embed on the page is in <Contact>)
    ========================================================================== */
-.footer__map { position: relative; width: 100%; border-radius: 18px; overflow: hidden; border: 1px solid var(--border); min-height: 280px; box-shadow: var(--shadow); }
-/* Dark-mode map — blends with the near-black footer */
-.footer__map iframe { display: block; width: 100%; height: 100%; min-height: 260px; border: 0; filter: invert(90%) hue-rotate(180deg) grayscale(0.12) contrast(0.95); }
-:root[data-theme='light'] .footer__map iframe { filter: grayscale(0.15) contrast(1.05); }
-.footer__col .footer__map-open { position: absolute; z-index: 2; top: 0.85rem; left: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem;
-  padding: 0.55rem 0.9rem; border-radius: 100px; background: rgba(11,13,15,0.82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(var(--accent-rgb), 0.4); color: #fff; font-family: var(--font-grotesk); font-size: 0.78rem; font-weight: 600;
-  transition: background-color 0.3s var(--ease-lux), border-color 0.3s var(--ease-lux); }
-.footer__col .footer__map-open:hover, .footer__col .footer__map-open:focus { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-/* ==========================================================================
-   RESPONSIVE — FOOTER CONTACT
-   ========================================================================== */
-@media (max-width: 860px) { .footer__contact { grid-template-columns: 1fr; } }
 
 /* ==========================================================================
    STORY SCROLL — GSAP horizontal cinematic hero (gate → scenes → landmark)
@@ -1873,8 +1869,7 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   .contact__grid,
   .intro__grid,
   .founder__panel,
-  .footer__top,
-  .footer__contact { grid-template-columns: 1fr; }
+  .footer__top { grid-template-columns: 1fr; }
   /* Two-up, not one. Six full-bleed photo tiles in a single column was 2250px
      of scroll — nearly three phone screens for one section — and a gallery is
      scanned, not read. At two columns the tiles are still 170px wide, which is
@@ -1958,7 +1953,7 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
      matching `!important` is what takes it. */
   .backdrop-blur-md { backdrop-filter: blur(5px) !important; -webkit-backdrop-filter: blur(5px) !important; }
   .ribbon__cell-edge { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
-  .floater--up, .footer__map-open { backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+  .floater--up { backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
   .btn-ghost { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
 
   /* The 7-stage loop: the animated crimson drop-shadow is a full-frame filter

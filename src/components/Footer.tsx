@@ -1,25 +1,22 @@
-import { Facebook, Instagram, Youtube, ArrowUpRight, Phone, Mail, MapPin } from 'lucide-react';
+import { Facebook, Instagram, Youtube, Phone, Mail, MapPin } from 'lucide-react';
 import Logo from './ui/Logo';
 import { NAV, CONTACT } from '../data/site';
 import { scrollToId } from '../hooks/useLenis';
 
+/* No map here. The Google embed lives once, in <Contact>. A second copy was a
+   second ~1MB maps bundle on the heaviest part of the scroll for no new
+   information — the address and an "Open in Maps" link say the same thing. */
 export default function Footer() {
   return (
     <footer className="footer grain" id="footer">
 
-      {/* Top row — Contact · Quick Links · Map */}
-      <div className="container footer__top grid grid-cols-1 md:grid-cols-3 gap-8" id="location">
-        <div className="footer__col footer__col--contact">
+      <div className="container footer__top" id="location">
+        <div className="footer__col footer__col--brand">
           <Logo />
-          <h4>Visit &amp; Contact</h4>
-          <a className="footer__contact-line" href={CONTACT.phoneHref}><Phone size={14} /> <span>{CONTACT.phone}</span></a>
-          <a className="footer__contact-line" href={`mailto:${CONTACT.email}`}><Mail size={14} /> <span>{CONTACT.email}</span></a>
-          <p className="footer__contact-line footer__contact-addr"><MapPin size={14} /> <span>{CONTACT.address}</span></p>
-          <div className="footer__social">
-            <a href="#" aria-label="Facebook"><Facebook size={17} /></a>
-            <a href="#" aria-label="Instagram"><Instagram size={17} /></a>
-            <a href="#" aria-label="YouTube"><Youtube size={17} /></a>
-          </div>
+          <p className="footer__desc">
+            Building landmarks across Kerala since 1998 — residential, commercial
+            and turnkey interiors, delivered to the drawing.
+          </p>
         </div>
 
         <div className="footer__col footer__col--links">
@@ -33,23 +30,22 @@ export default function Footer() {
           </ul>
         </div>
 
-        <div className="footer__col footer__col--map">
-          <div className="footer__map glass">
-            <a
-              className="footer__map-open"
-              href="https://www.google.com/maps/search/?api=1&query=Ambalappadi%2C%20Wandoor%2C%20Kerala%20679328"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Open in Maps <ArrowUpRight size={14} />
-            </a>
-            <iframe
-              src={CONTACT.mapEmbed}
-              title="Alipson Builders location — Ambalappadi, Wandoor, Kerala 679328"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              allowFullScreen
-            />
+        <div className="footer__col footer__col--contact">
+          <h4>Visit &amp; Contact</h4>
+          <a className="footer__contact-line" href={CONTACT.phoneHref}><Phone size={14} /> <span>{CONTACT.phone}</span></a>
+          <a className="footer__contact-line" href={`mailto:${CONTACT.email}`}><Mail size={14} /> <span>{CONTACT.email}</span></a>
+          <a
+            className="footer__contact-line footer__contact-addr"
+            href={CONTACT.mapLink}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <MapPin size={14} /> <span>{CONTACT.address}</span>
+          </a>
+          <div className="footer__social">
+            <a href="#" aria-label="Facebook"><Facebook size={17} /></a>
+            <a href="#" aria-label="Instagram"><Instagram size={17} /></a>
+            <a href="#" aria-label="YouTube"><Youtube size={17} /></a>
           </div>
         </div>
       </div>
