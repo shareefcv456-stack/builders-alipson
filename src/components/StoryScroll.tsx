@@ -566,7 +566,12 @@ export default function StoryScroll() {
               <p className="story__sub">{PHASES[phase].sub}</p>
             </motion.div>
           </AnimatePresence>
-          <div className="story__cta flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          {/* No `items-stretch` here. That utility carries `!important` (see the
+              shim in index.css) and stretched both pills to the full column on
+              a phone — which left "Watch Story" with its play disc pinned left
+              and a dead 100px of empty pill to the right of the label. Sizing
+              belongs to `.story__cta`, which sizes both buttons to content. */}
+          <div className="story__cta flex flex-col sm:flex-row sm:items-center gap-4">
             <button className="btn btn-primary" onClick={() => scrollToId('work')}>
               Explore Projects <ArrowUpRight size={16} />
             </button>

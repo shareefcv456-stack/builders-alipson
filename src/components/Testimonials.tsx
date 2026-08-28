@@ -18,10 +18,10 @@ const THUMBS: MediaKey[] = [
   'riverside',      // Fathima — apartment, soil test to handover
 ];
 
-function TCard({ t, thumb }: { t: Testimonial; thumb: MediaKey }) {
+function TCard({ t, thumb, dup = false }: { t: Testimonial; thumb: MediaKey; dup?: boolean }) {
   const { openVideo } = useUI();
   return (
-    <article className="tcard">
+    <article className={`tcard ${dup ? 'tcard--dup' : ''}`} aria-hidden={dup || undefined}>
       <button className="tcard__thumb" onClick={openVideo} aria-label={`Watch ${t.name}'s story`}>
         <img {...imgProps(thumb, '(max-width: 800px) 90vw, 340px')} alt="" />
         <span className="tcard__play"><Play size={16} fill="currentColor" /></span>
@@ -55,12 +55,19 @@ export default function Testimonials() {
         </div>
       </div>
       {/* The rail is full-bleed by design, but it has to be boxed by something
-          that clips — otherwise the duplicated track widens the page. */}
+          that clips — otherwise the duplicated track widens the page.
+
+          The second copy of the list exists ONLY to make the marquee loop
+          seamless. On touch the rail becomes a snap carousel instead (see
+          `.tmarquee` in sections.css), where a duplicate set is not a seam
+          trick any more, just the same five quotes served twice — so the copies
+          are tagged here and hidden there. Tagging beats an `:nth-child`
+          selector: this stays correct when TESTIMONIALS changes length. */}
       <div className="tmarquee">
         <div className="marquee" style={{ paddingBlock: '0.5rem' }}>
           <div className="marquee__track">
             {loop.map((t, i) => (
-              <TCard key={i} t={t} thumb={THUMBS[i % THUMBS.length]} />
+              <TCard key={i} t={t} thumb={THUMBS[i % THUMBS.length]} dup={i >= TESTIMONIALS.length} />
             ))}
           </div>
         </div>

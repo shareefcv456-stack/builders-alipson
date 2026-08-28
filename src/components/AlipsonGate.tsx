@@ -37,14 +37,14 @@ export default function AlipsonGate() {
   return (
     <section id="gateway" className="section gate">
       <div className="container">
-        <div className="section-head section-head--center">
-          <Reveal><span className="eyebrow eyebrow--center">The Alipson Gate</span></Reveal>
-          <RevealText
-            className="title gate__title"
-            lines={[<>The Gateway to Luxury Living</>, <><em>Signature Entry Architecture</em></>]}
-          />
-        </div>
-
+        {/* THE SECTION HEAD LIVES INSIDE THE IMAGE. It used to sit above the
+            banner as a centred block, which pushed the photo a full heading's
+            height down the page and left the image itself captioned only at the
+            bottom. Overlaid on the top-left it does both jobs at once — names
+            the section and gives the banner its title.
+            The badge pill that used to sit in this corner ("01 / Signature
+            Gateway") is gone: it said less than the heading now standing in its
+            place, and two stacked labels in one corner is clutter. */}
         <div className="gate__stage" ref={stageRef}>
           <Reveal dir="scale">
             <figure className="gate__visual">
@@ -54,7 +54,13 @@ export default function AlipsonGate() {
                 style={{ scale: zoom }}
                 loading="lazy"
               />
-              <span className="gate__tag">01 / Signature Gateway</span>
+              <div className="gate__head">
+                <Reveal><span className="eyebrow gate__eyebrow">The Alipson Gate</span></Reveal>
+                <RevealText
+                  className="title gate__title"
+                  lines={[<>The Gateway to Luxury Living</>, <><em>Signature Entry Architecture</em></>]}
+                />
+              </div>
               <figcaption className="gate__caption">
                 <b>Signature Entrance</b>
                 <span>Stone piers · lit portico · step-lit approach</span>

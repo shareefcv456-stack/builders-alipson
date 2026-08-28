@@ -46,13 +46,19 @@
   display: flex; align-items: center; justify-content: space-between;
   height: 72px; margin: 1rem auto; max-width: 1200px;
   border-radius: 9999px; padding-inline: 1.75rem;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  /* The brief's rgba(255,255,255,0.12) is the DARK-theme border; on the light
-     capsule it is invisible against a white page. Same weight, slate instead. */
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 10px 34px -20px rgba(15, 23, 42, 0.28);
+  /* GLASSMORPHISM. blur(12px) as specified. The FILL is 0.55, not the 0.1-0.15
+     in the brief: this capsule is `position: fixed` and passes over a navy
+     founder panel, a navy contact block and a dark hero — at 0.15 the slate nav
+     links land on near-black and become unreadable. 0.55 still shows the page
+     moving through the glass, which is the point of the treatment, and keeps
+     every label above 7:1 on the darkest thing it crosses. */
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  /* The white stroke is what actually reads as glass; the slate hairline under
+     it keeps the capsule's edge visible against a white section. */
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 10px 34px -20px rgba(15, 23, 42, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 0 0 1px rgba(15, 23, 42, 0.06);
   transition: 0.5s var(--ease-lux);
 }
 /* Scrolled only tightens it — the capsule itself is the resting state now. */
@@ -73,6 +79,9 @@
 @media (max-width: 1080px) {
   .nav__links, .nav__right .btn { display: none; }
   .nav__toggle { display: grid; }
+  /* Nothing sits right of the toggle once the CTA is hidden, so the capsule's
+     1.75rem gutter just parks it in from the edge. Pull it flush. */
+  .nav__inner { padding-right: 0.55rem; }
 }
 
 /* ---- MOBILE MENU --------------------------------------------------------- */
@@ -162,23 +171,23 @@
 .split-line { display: block; overflow: hidden; padding-bottom: 0.05em; }
 .hero__title .hl { display: block; will-change: transform; }
 
-/* Glowing crimson "Watch Story" button — glow lives on the play disc only
-   (box-shadow), so the button never changes size or shifts on any state. */
+/* "Watch Story" — NO GLOW. The play disc used to run a pulsing crimson
+   box-shadow (`watchGlow`), which bled a red halo out over the 3D render behind
+   the pill and read as a blur rather than as a highlight. The disc is now a
+   flat crimson circle seated tight against the pill's left edge: 6px of padding
+   all round it, so the gap left of the icon matches the gap above and below. */
 .btn-watch { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 0.7rem;
-  height: 52px; padding: 0 1.5rem 0 0.5rem; border-radius: 100px;
+  height: 52px; padding: 0 1.5rem 0 0.375rem; border-radius: 100px;
   border: 1px solid rgba(var(--accent-rgb), 0.35); color: var(--text); background-color: rgba(255,255,255,0.72);
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   font-family: var(--font-grotesk); font-weight: 600; font-size: 0.9rem; letter-spacing: 0.02em; white-space: nowrap;
   transition: background-color 0.35s var(--ease-lux), border-color 0.35s var(--ease-lux); }
-.btn-watch__play { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%;
+.btn-watch__play { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
   background: var(--accent); color: #fff; flex-shrink: 0; padding-left: 2px;
-  animation: watchGlow 2.6s ease-in-out infinite; }
+  box-shadow: none; transition: background-color 0.35s var(--ease-lux); }
 .btn-watch:hover { border-color: var(--accent); background-color: rgba(var(--accent-rgb), 0.12); }
+.btn-watch:hover .btn-watch__play { background: var(--accent-deep); box-shadow: none; }
 .btn-watch:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-@keyframes watchGlow {
-  0%, 100% { box-shadow: 0 0 16px -3px rgba(var(--accent-rgb), 0.7); }
-  50%      { box-shadow: 0 0 26px 0 rgba(var(--accent-rgb), 0.95); }
-}
 .hero__sub { margin-top: 1.2rem; display: flex; flex-wrap: wrap; gap: 0.45rem 1.15rem; color: rgba(248,248,246,0.9); font-family: var(--font-grotesk); font-size: clamp(0.92rem, 1.25vw, 1.12rem); letter-spacing: 0.01em; }
 .hero__sub span { position: relative; }
 .hero__sub span:not(:last-child)::after { content: '·'; position: absolute; right: -0.72rem; color: var(--accent-soft); }
@@ -211,14 +220,38 @@
 @media (max-width: 720px) { .hero__scroll { display: none; } }
 @media (max-height: 680px) { .hero__scroll { display: none; } }
 
-/* Video tour modal */
-.modal--wide { width: min(880px, 100%); padding: 0; overflow: hidden; }
-.video-modal { position: relative; aspect-ratio: 16/9; background: #000; }
-.video-modal video { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Video tour modal — a standard responsive 16:9 player, not a cropped strip.
+   THE IFRAME HAD NO RULE. Only `.video-modal video` was styled, so the YouTube
+   embed fell back to its intrinsic 300x150 default and sat as a small box in
+   the corner of the 16:9 frame with its controls cut off. Both the <video> and
+   the <iframe> now fill the frame; the iframe is `contain`, never `cover`, so
+   the player chrome is never cropped. */
+/* Width is capped by the VIEWPORT HEIGHT as well as by 1120px: a 16:9 player
+   plus its caption has to fit inside the modal's own `max-height: 90vh`, and on
+   a short laptop screen a full-width player does not. Shrinking the width is
+   what keeps the player a true 16:9 instead of letterboxing it. */
+/* `overflow: visible` so the close button can sit ABOVE the player. Inside the
+   frame it landed on YouTube's own settings gear in the top-right corner —
+   two overlapping controls, and ours near-invisible against the black video.
+   `.video-modal` does the corner rounding now that the modal no longer clips. */
+.modal--wide { width: min(1120px, 100%, calc((90vh - 170px) * 16 / 9)); padding: 0; overflow: visible; }
+.modal--wide .video-modal { border-radius: var(--radius-lg) var(--radius-lg) 0 0; overflow: hidden; }
+.modal--wide .video-modal__cap { border-radius: 0 0 var(--radius-lg) var(--radius-lg); background: var(--bg-elev); }
+.video-modal { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; }
+.video-modal :is(video, iframe) { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+.video-modal video { object-fit: cover; }
 .video-modal__cap { padding: 1.3rem clamp(1.4rem, 3vw, 2rem) 1.6rem; }
 .video-modal__cap h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.4rem; margin-bottom: 0.3rem; }
 .video-modal__cap p { color: var(--text-mute); font-size: 0.9rem; }
-.modal--wide .modal-x { background: rgba(13,13,13,0.55); backdrop-filter: blur(6px); color: #fff; border-color: rgba(255,255,255,0.25); }
+.modal--wide .modal-x { top: -3.25rem; right: 0; background: rgba(13,13,13,0.55);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  color: #fff; border-color: rgba(255,255,255,0.3); }
+.modal--wide .modal-x:hover { background: var(--accent); border-color: var(--accent); }
+/* Under ~640px tall there is no room above the player; put it back inside, in
+   the LEFT corner, which YouTube leaves empty. */
+@media (max-height: 640px) {
+  .modal--wide .modal-x { top: 0.75rem; right: auto; left: 0.75rem; }
+}
 
 /* ==========================================================================
    STATS RIBBON
@@ -390,64 +423,115 @@
 /* `will-change` names what actually animates. `transform` is listed too because
    it is the hint that keeps the layer promoted for the whole loop — naming only
    the dash properties lets the compositor drop and re-create the layer. */
-.studio__st { stroke-dasharray: var(--dash); stroke-dashoffset: var(--dash);
+.studio__st { stroke-dasharray: var(--dash);
   will-change: transform, stroke-dashoffset, opacity; }
-.studio__st--1 { --dash: 2600; stroke: rgba(255,255,255,0.55); stroke-width: 1;   animation: studioS1 8s linear infinite; }
-.studio__st--2 { --dash: 2000; stroke: #FFFFFF;                stroke-width: 1.6; animation: studioS2 8s linear infinite; }
-.studio__st--3 { --dash: 3400; stroke: #FFFFFF;                stroke-width: 1.8; animation: studioS3 8s linear infinite; }
-.studio__st--4 { --dash: 3000; stroke: rgba(255,255,255,0.9);  stroke-width: 1.5; animation: studioS4 8s linear infinite; }
-.studio__st--5 { --dash: 3400; stroke: #d31018;                stroke-width: 1.3; animation: studioS5 8s linear infinite; }
-.studio__st--6 { --dash: 1900; stroke: #d31018;                stroke-width: 1.7; animation: studioS6 8s linear infinite; }
+.studio__st { stroke-dashoffset: var(--dash); }
+.studio__st--1 { --dash: 2600; stroke: rgba(255,255,255,0.55); stroke-width: 1;   animation: studioS1 var(--build-clock) linear infinite; }
+.studio__st--2 { --dash: 2000; stroke: #FFFFFF;                stroke-width: 1.6; animation: studioS2 var(--build-clock) linear infinite; }
+.studio__st--3 { --dash: 3400; stroke: #FFFFFF;                stroke-width: 1.8; animation: studioS3 var(--build-clock) linear infinite; }
+.studio__st--4 { --dash: 3000; stroke: rgba(255,255,255,0.9);  stroke-width: 1.5; animation: studioS4 var(--build-clock) linear infinite; }
+.studio__st--5 { --dash: 3400; stroke: #d31018;                stroke-width: 1.3; animation: studioS5 var(--build-clock) linear infinite; }
+.studio__st--6 { --dash: 1900; stroke: #d31018;                stroke-width: 1.7; animation: studioS6 var(--build-clock) linear infinite; }
 
-/* 8s clock:  1s=12.5%  2s=25%  3s=37.5%  4.5s=56.25%  5.5s=68.75%
-              6.5s=81.25%  7s=87.5%  8s=100%                            */
-@keyframes studioS1 {  /* plot + axes + dims   0 → 1s   */
+/* ==========================================================================
+   THE BUILD CLOCK — FAST BUILD, LONG HOLD
+   --------------------------------------------------------------------------
+   The old 8s cycle spent 6.5s of it building and 1.5s finished, so on arriving
+   at the section the odds were better than 4:1 that you were looking at an
+   unfinished shell — and the finished building, which is the whole point of the
+   panel, was the state you saw least.
+
+   The cycle is inverted now. Same six stages, same order, but the entire build
+   lands in the FIRST 31% (~2.8s of 9s) and the remaining ~6s holds the
+   completed plan lit. Arrive at any random moment and you are about twice as
+   likely to see the finished building as to catch it going up.
+
+   Every stage window below is a share of `--build-clock`, so retiming the whole
+   sequence is one number:
+     3.9% = 0.35s   8.3% = 0.75s   13.3% = 1.2s
+     20%  = 1.8s    25.5% = 2.3s   31%   = 2.8s     (build complete)
+     36%  = 3.2s  (sweep clears)   96%   = 8.6s     (hold ends, fade out)
+   ========================================================================== */
+/* DECLARED ON `.studio__frame`, NOT `.studio__sheet`. The phase caption is a
+   SIBLING of the sheet, not a descendant, so from the sheet the variable does
+   not reach it — `animation: var(--build-clock) linear infinite` then resolves
+   to an invalid value, the whole shorthand is dropped, and the caption sits
+   inert on "Foundation" while the drawing runs. The frame is the nearest
+   ancestor of both. */
+.studio__frame { --build-clock: 9s; }
+
+@keyframes studioS1 {  /* plot + axes + dims      0 → 0.35s */
   0%   { stroke-dashoffset: var(--dash); }
-  12.5%, 96% { stroke-dashoffset: 0; opacity: 1; }
+  3.9%, 96% { stroke-dashoffset: 0; opacity: 1; }
   100% { stroke-dashoffset: 0; opacity: 0; }
 }
-@keyframes studioS2 {  /* foundation           1 → 2s   */
-  0%, 12.5% { stroke-dashoffset: var(--dash); }
-  25%, 96%  { stroke-dashoffset: 0; opacity: 1; }
+@keyframes studioS2 {  /* foundation           0.35 → 0.75s */
+  0%, 3.9% { stroke-dashoffset: var(--dash); }
+  8.3%, 96% { stroke-dashoffset: 0; opacity: 1; }
+  100%     { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes studioS3 {  /* columns              0.75 → 1.2s  */
+  0%, 8.3%   { stroke-dashoffset: var(--dash); }
+  13.3%, 96% { stroke-dashoffset: 0; opacity: 1; }
+  100%       { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes studioS4 {  /* slabs + walls         1.2 → 1.8s  */
+  0%, 13.3% { stroke-dashoffset: var(--dash); }
+  20%, 96%  { stroke-dashoffset: 0; opacity: 1; }
   100%      { stroke-dashoffset: 0; opacity: 0; }
 }
-@keyframes studioS3 {  /* columns              2 → 3s   */
-  0%, 25%   { stroke-dashoffset: var(--dash); }
-  37.5%, 96%{ stroke-dashoffset: 0; opacity: 1; }
+@keyframes studioS5 {  /* glazing + louvers     1.8 → 2.3s  */
+  0%, 20%    { stroke-dashoffset: var(--dash); }
+  25.5%, 96% { stroke-dashoffset: 0; opacity: 1; }
+  100%       { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes studioS6 {  /* roof truss + crown    2.3 → 2.8s  */
+  0%, 25.5% { stroke-dashoffset: var(--dash); }
+  31%, 96%  { stroke-dashoffset: 0; opacity: 1; }
   100%      { stroke-dashoffset: 0; opacity: 0; }
-}
-@keyframes studioS4 {  /* slabs + walls        3 → 4.5s */
-  0%, 37.5%  { stroke-dashoffset: var(--dash); }
-  56.25%, 96%{ stroke-dashoffset: 0; opacity: 1; }
-  100%       { stroke-dashoffset: 0; opacity: 0; }
-}
-@keyframes studioS5 {  /* glazing + louvers    4.5 → 5.5s */
-  0%, 56.25% { stroke-dashoffset: var(--dash); }
-  68.75%, 96%{ stroke-dashoffset: 0; opacity: 1; }
-  100%       { stroke-dashoffset: 0; opacity: 0; }
-}
-@keyframes studioS6 {  /* roof truss + crown   5.5 → 6.5s */
-  0%, 68.75% { stroke-dashoffset: var(--dash); }
-  81.25%, 96%{ stroke-dashoffset: 0; opacity: 1; }
-  100%       { stroke-dashoffset: 0; opacity: 0; }
 }
 
-/* Stage 7 — crimson sweep base→roof, then the finished plan holds lit for 1s. */
-/* The one genuinely transform-animated layer in the sequence — GPU all the way. */
-.studio__beam { opacity: 0; animation: studioBeam 8s linear infinite;
-  will-change: transform, opacity; }
-@keyframes studioBeam {
-  0%, 81.25% { transform: translateY(392px); opacity: 0; }
-  83%        { opacity: 1; }
-  87.5%      { transform: translateY(-24px); opacity: 1; }
-  90%        { transform: translateY(-24px); opacity: 0; }
-  100%       { transform: translateY(-24px); opacity: 0; }
+/* Phase caption, on the same clock as the drawing. Foundation covers stages
+   1–2, Framing 3–4, and Finish lights as the glazing goes in and then STAYS
+   lit for the whole hold — so the caption agrees with the panel's resting
+   state instead of resetting under a finished building. */
+.studio__phase { animation: var(--build-clock) linear infinite; }
+.studio__phase:nth-child(1) { animation-name: studioPh1; }
+.studio__phase:nth-child(2) { animation-name: studioPh2; }
+.studio__phase:nth-child(3) { animation-name: studioPh3; }
+@keyframes studioPh1 {
+  0%, 8.2%   { color: #FFFFFF; }
+  8.3%, 100% { color: rgba(255, 255, 255, 0.42); }
 }
-.studio__plan { animation: studioGlow 8s linear infinite; will-change: filter; }
+@keyframes studioPh2 {
+  0%, 8.2%    { color: rgba(255, 255, 255, 0.42); }
+  8.3%, 19.9% { color: #FFFFFF; }
+  20%, 100%   { color: rgba(255, 255, 255, 0.42); }
+}
+@keyframes studioPh3 {
+  0%, 19.9% { color: rgba(255, 255, 255, 0.42); }
+  20%, 100% { color: #FFFFFF; }
+}
+
+/* Stage 7 — crimson sweep base→roof as the roof tops out, then the finished
+   plan holds lit for the rest of the cycle.
+   The one genuinely transform-animated layer in the sequence — GPU all the way. */
+.studio__beam { opacity: 0; will-change: transform, opacity;
+  animation: studioBeam var(--build-clock) linear infinite; }
+@keyframes studioBeam {
+  0%, 25.5% { transform: translateY(392px); opacity: 0; }
+  27%       { opacity: 1; }
+  33%       { transform: translateY(-24px); opacity: 1; }
+  36%       { transform: translateY(-24px); opacity: 0; }
+  100%      { transform: translateY(-24px); opacity: 0; }
+}
+.studio__plan { will-change: filter; animation: studioGlow var(--build-clock) linear infinite; }
+/* The glow lands with the sweep and then holds — it is what makes the finished
+   plan read as "complete" for the ~6s it sits there, rather than just static. */
 @keyframes studioGlow {
-  0%, 81.25% { filter: none; }
-  87.5%, 96% { filter: drop-shadow(0 0 10px rgba(211, 16, 24, 0.8)); }
-  100%       { filter: drop-shadow(0 0 10px rgba(211, 16, 24, 0)); }
+  0%, 25.5% { filter: none; }
+  33%, 96%  { filter: drop-shadow(0 0 10px rgba(211, 16, 24, 0.8)); }
+  100%      { filter: drop-shadow(0 0 10px rgba(211, 16, 24, 0)); }
 }
 
 /* Overlays sit above every animated path (badge z-index is set on its own
@@ -521,33 +605,61 @@
 
 .studio__body { margin-top: 1rem; color: #475569; font-size: 0.92rem; line-height: 1.7; }
 
-/* ---- feature rows -------------------------------------------------------- */
-.studio__highlights { list-style: none; margin: 1.2rem 0 0; padding: 0; }
-.studio__hl { position: relative; display: flex; gap: 0.9rem; align-items: flex-start;
-  padding: 0.7rem 0.8rem 0.85rem; border-radius: 14px;
-  background: transparent;
-  transition: translate 0.4s var(--ease-lux), background-color 0.4s var(--ease-lux); }
-/* Light separator between rows, with a red segment that grows on hover. */
-.studio__hl::before { content: ''; position: absolute; left: 0.8rem; right: 0.8rem; bottom: 0;
-  height: 1px; background: #EEF2F7; }
-.studio__hl::after { content: ''; position: absolute; left: 0.8rem; bottom: 0;
-  height: 2px; width: 0; background: #d31018;
-  transition: width 0.45s var(--ease-lux); }
-.studio__highlights > *:last-child .studio__hl::before { display: none; }
+/* ---- VALUE STEPPER ------------------------------------------------------- */
+/* Three boxed cards became one vertical stepper, on the same mechanism as
+   `.ptimeline` in <Process>: an absolutely positioned rail behind the icon
+   column, and a crimson `.studio__hl-fill` whose scaleY is driven by scroll.
+   The icons ARE the nodes — the rail is tucked behind their centres — so the
+   stepper costs one extra element rather than a node per row. */
+.studio__highlights { position: relative; list-style: none; margin: 1.2rem 0 0; padding: 0; }
+/* `--border`, not a hard-coded #E8EDF4: this panel is a `.section--noir`, where
+   that light hairline reads as a bright white bar down the middle of the card.
+   The token is already dark-aware. */
+.studio__hl-rail { position: absolute; left: 21px; top: 34px; bottom: 34px; width: 2px;
+  margin-left: -1px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.studio__hl-fill { position: absolute; inset: 0; transform-origin: top;
+  background: linear-gradient(180deg, #d31018, #e52e35);
+  box-shadow: 0 0 12px rgba(211, 16, 24, 0.45); }
+.studio__hl-row { position: relative; z-index: 1; }
 
+.studio__hl { position: relative; display: flex; gap: 0.9rem; align-items: flex-start;
+  padding: 0.7rem 0 0.85rem; background: transparent;
+  transition: translate 0.4s var(--ease-lux); }
+
+/* The icon is the node, so it needs an opaque fill — the rail runs behind it. */
 .studio__hl-icon { flex-shrink: 0; display: grid; place-items: center; width: 42px; height: 42px;
-  border-radius: 14px; background: #F1F5F9; border: 1px solid #E8EDF4; color: #0B132B;
+  border-radius: 50%; background: #FFFFFF; border: 1px solid #E8EDF4; color: #0B132B;
   transition: transform 0.4s var(--ease-lux), background-color 0.4s var(--ease-lux),
               color 0.4s var(--ease-lux), border-color 0.4s var(--ease-lux); }
-.studio__hl-txt { display: block; }
+.studio__hl-txt { display: block; padding-top: 0.15rem; }
+/* `--accent-soft`: the 700-weight brand red drops under 3:1 on the noir panel
+   this stepper actually sits on. The token is the lighter red on dark. */
+.studio__hl-step { display: block; font-family: var(--font-grotesk); font-style: normal;
+  font-weight: 700; font-size: 0.66rem; letter-spacing: 0.18em; color: var(--accent-soft);
+  margin-bottom: 0.25rem; }
 .studio__hl h4 { font-family: var(--font-grotesk); font-weight: 700; font-size: 0.98rem;
   color: #0B132B; margin-bottom: 0.2rem; }
 .studio__hl p { color: #475569; font-size: 0.86rem; line-height: 1.6; }
 
-.studio__hl:hover { translate: 5px 0; background: rgba(211, 16, 24, 0.035); }
-.studio__hl:hover::after { width: calc(100% - 1.6rem); }
-.studio__hl:hover .studio__hl-icon { transform: scale(1.08);
-  background: rgba(211, 16, 24, 0.10); border-color: rgba(211, 16, 24, 0.28); color: #d31018; }
+/* Pointer-only. On a touch screen `:hover` sticks after a tap and the row stays
+   nudged 5px right until you tap something else — see the global touch rules at
+   the end of this file. */
+@media (hover: hover) and (pointer: fine) {
+  .studio__hl:hover { translate: 5px 0; }
+  .studio__hl:hover .studio__hl-icon { transform: scale(1.08);
+    background: rgba(211, 16, 24, 0.10); border-color: rgba(211, 16, 24, 0.28); color: #d31018; }
+}
+
+/* Phase caption — Foundation / Framing / Finish. Sits on the sheet's bottom
+   edge; which one is lit is driven by `studioPh1..3` on the build clock, up
+   with the keyframes it has to stay in step with. */
+.studio__phases { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0;
+  display: flex; justify-content: center; gap: clamp(0.5rem, 2vw, 1.1rem);
+  padding: 0.7rem 0.6rem;
+  background: linear-gradient(180deg, transparent, rgba(6, 10, 22, 0.72) 55%); }
+.studio__phase { font-family: var(--font-grotesk); font-weight: 600;
+  font-size: clamp(0.56rem, 1.6vw, 0.68rem); letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42); white-space: nowrap; }
 
 /* ---- CTAs ---------------------------------------------------------------- */
 .studio__cta { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-top: 1.4rem; }
@@ -642,31 +754,82 @@
   font-size: clamp(1rem, 1.5vw, 1.15rem); line-height: 1.45; color: #FFFFFF; max-width: 46ch; }
 .founder__text { margin-top: 0.85rem; font-size: 0.92rem; line-height: 1.65; color: #CBD5E1; max-width: 54ch; }
 
-.founder__sign { margin-top: 1.1rem; padding-bottom: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.1); width: 100%; }
+/* SIGNATURE BLOCK. The role line under the signature is the tightest piece of
+   type in the section — 0.72rem, 0.14em tracking, uppercase, and on a phone it
+   wrapped mid-phrase as "FOUNDERS · ALIPSON BUILDERS, / KERALA" hard against
+   the rule below it. More air above the rule, looser leading, and the tracking
+   eased so the line has somewhere to break that is not mid-organisation. */
+.founder__sign { margin-top: 1.4rem; padding-bottom: 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.1); width: 100%; }
 .founder__sign-mark { display: block; font-family: var(--font-display); font-style: italic;
-  font-weight: 300; font-size: clamp(1.6rem, 2.6vw, 2rem); line-height: 1; color: #FFFFFF; }
-.founder__sign small { display: block; margin-top: 0.5rem; font-size: 0.72rem;
-  letter-spacing: 0.14em; text-transform: uppercase; color: #64748B; }
+  font-weight: 300; font-size: clamp(1.6rem, 2.6vw, 2rem); line-height: 1.1; color: #FFFFFF; }
+.founder__sign small { display: block; margin-top: 0.6rem; font-size: 0.72rem;
+  line-height: 1.7; letter-spacing: clamp(0.06em, 0.4vw, 0.14em);
+  text-transform: uppercase; color: #94A3B8;
+  /* Keeps "ALIPSON BUILDERS, KERALA" together and breaks after the middot. */
+  text-wrap: balance; }
 
-.founder__social { margin-top: 1rem; padding-bottom: 1.5rem;
-  display: flex; align-items: center; flex-wrap: wrap; gap: 0.7rem; width: 100%; }
-.founder__social > a { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+/* Even gap, even discs. `flex-wrap` is gone: with only three 34px icons there
+   is nothing to wrap on any viewport, and it was what let the row reflow
+   unevenly when the stat list still shared this line. 40px discs clear the 24px
+   WCAG 2.2 AA target with room to spare on touch. */
+.founder__social { margin-top: 1.25rem; padding-bottom: 1.5rem;
+  display: flex; align-items: center; gap: 0.75rem; width: 100%; }
+.founder__social > a { width: 40px; height: 40px; flex: 0 0 40px; border-radius: 50%;
+  display: grid; place-items: center;
   color: #d31018; border: 1px solid rgba(255,255,255,0.14); transition: 0.3s var(--ease-lux); }
-.founder__social > a:hover { background: #d31018; border-color: #d31018; color: #FFFFFF; }
+@media (hover: hover) and (pointer: fine) {
+  .founder__social > a:hover { background: #d31018; border-color: #d31018; color: #FFFFFF; }
+}
 
-.founder__values { display: flex; flex-wrap: wrap; gap: 1.35rem; margin: 0 0 0 auto; padding: 0; list-style: none; }
+/* ONE ROW, THREE EQUAL COLUMNS. These used to be the tail of `.founder__social`,
+   sharing a wrapping flex row with the three social discs — so each stat got
+   whatever width was left over and its label broke into three or four stacked
+   lines ("YEARS OF / TRUSTED / CRAFTSMANSHIP"). They are their own row now, and
+   `1fr` each is what guarantees the three sit level instead of wrapping. */
+/* The Reveal wrapper. `.founder__editorial` is a flex column with
+   `align-items: flex-start`, so every child is fit-content by default and the
+   grid inside would collapse to its widest stat. */
+.founder__values-row { width: 100%; }
+/* THREE ACROSS AT EVERY WIDTH — the 2-up phone fallback that used to sit at the
+   bottom of this block is gone. It broke the set into 2 + 1 and left "Kerala"
+   dangling alone on a second row, which read as a layout bug rather than as a
+   deliberate wrap.
+   Fitting three columns into a 240px phone panel is a TYPE problem, not a grid
+   problem, so the number, the label, the tracking and the gap all scale with
+   the viewport. `minmax(0, 1fr)` rather than `1fr` is what actually lets them:
+   a bare `1fr` floors each column at its longest word's min-content width, so
+   CRAFTSMANSHIP would force the row wider than the panel and the label would
+   break a letter at a time. */
+.founder__values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(0.5rem, 2.5vw, 1.5rem); width: 100%; margin: 1.4rem 0 0; padding: 1.4rem 0 0;
+  border-top: 1px solid rgba(255,255,255,0.1); list-style: none; }
+.founder__value { min-width: 0; }
 .founder__value b { display: block; font-family: var(--font-display); font-weight: 700;
-  font-size: 1.35rem; line-height: 1; color: #d31018; }
-.founder__value span { display: block; margin-top: 0.25rem; font-size: 0.68rem;
-  letter-spacing: 0.1em; text-transform: uppercase; color: #64748B; max-width: 16ch; }
+  font-size: clamp(1.05rem, 4.6vw, 1.7rem); line-height: 1; color: #d31018; }
+.founder__value span { display: block; margin-top: 0.4rem;
+  font-size: clamp(0.58rem, 2.15vw, 0.7rem); line-height: 1.45;
+  letter-spacing: clamp(0.01em, 0.35vw, 0.1em);
+  text-transform: uppercase; color: #94A3B8; max-width: none;
+  /* CRAFTSMANSHIP is 13 characters and cannot fit a 74px column at any size
+     still worth reading, so it has to break — the only question is where.
+     `hyphens: manual` honours the U+00AD soft hyphen carried in the label text
+     (see FOUNDER.values) and breaks NOWHERE else, giving "CRAFTS-/MANSHIP".
+     `hyphens: auto` was tried first and does nothing in Chrome, which ships no
+     hyphenation dictionary and fell back to "CRAFTSMANS/HIP". What is
+     deliberately absent is `word-break: break-all` — that is the rule that
+     produces the one-letter-per-line column this is meant to prevent. */
+  overflow-wrap: normal; word-break: normal;
+  hyphens: manual; -webkit-hyphens: manual; }
 
 /* Stacked: portrait sits cleanly above the copy, no negative offset to clip. */
 @media (max-width: 900px) {
   .founder__panel { grid-template-columns: 1fr; gap: 1.75rem; padding: 1.5rem; }
+  /* Every 1px of panel padding is 1px off each stat column. */
+  @media (max-width: 380px) { .founder__panel { padding: 1.5rem 1rem; } }
   .founder__media, .founder__editorial { grid-column: 1 / -1; }
   .founder__portrait { margin-left: 0; max-width: 360px; }
   .founder__editorial { align-items: flex-start; }
-  .founder__values { margin-left: 0; width: 100%; gap: 1.25rem; }
+  .founder__values { margin-left: 0; width: 100%; }
 }
 
 /* ==========================================================================
@@ -830,7 +993,11 @@
 .proj__loc span svg { color: var(--accent-soft); }
 .proj__title { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.5rem, 2.6vw, 2.1rem); color: #fff; text-shadow: 0 2px 18px rgba(0,0,0,0.5); }
 .proj__reveal { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.6s var(--ease-lux), opacity 0.5s, margin 0.5s; }
-.proj:hover .proj__reveal { max-height: 120px; opacity: 1; margin-top: 0.6rem; }
+/* Pointer-only. On touch there is no hover to open this with — the mobile block
+   further down puts the copy permanently on screen instead. */
+@media (hover: hover) and (pointer: fine) {
+  .proj:hover .proj__reveal { max-height: 120px; opacity: 1; margin-top: 0.6rem; }
+}
 .proj__reveal p { color: rgba(247,242,232,0.74); font-size: 0.86rem; line-height: 1.6; }
 .proj__view { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.7rem; font-family: var(--font-grotesk); font-size: 0.8rem; color: var(--accent-soft); }
 
@@ -1049,7 +1216,82 @@
 /* ==========================================================================
    TESTIMONIALS
    ========================================================================== */
+/* ==========================================================================
+   TRUSTED COLLABORATORS
+   --------------------------------------------------------------------------
+   Was a row of bare display-face names sliding past on the white page, with a
+   ~130px hole between it and "Client Voices". Each name is a chip now: one
+   fixed height, one padding, muted slate at rest so the strip reads as a quiet
+   band rather than seven competing headlines, and brand red on hover. The
+   section's own bottom padding is what closed the gap — `.section` below it
+   already brings `--section-py`, so the extra 4.5rem here was doubled spacing.
+   ========================================================================== */
+.collab { padding-block: clamp(2rem, 4vw, 2.75rem) clamp(1rem, 2vw, 1.5rem); }
+.collab__head { margin-bottom: 1.25rem; }
+.collab .marquee__track { gap: clamp(1.75rem, 4vw, 3.25rem); padding-right: clamp(1.75rem, 4vw, 3.25rem); align-items: center; }
+/* The shared 8%/92% mask is a PERCENTAGE, so on a 320px phone the fade is only
+   ~25px — shorter than one chip, which therefore hits the edge still fully
+   opaque and looks sliced. A fixed 96px ramp fades the same distance on every
+   screen, which is the distance a chip actually needs to disappear over. */
+.collab .marquee {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 96px, #000 calc(100% - 96px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 96px, #000 calc(100% - 96px), transparent);
+}
+/* NO BOX. The bordered card around each name turned a logo strip into a row of
+   buttons — seven outlined rectangles competing with the section beneath them.
+   A partner strip is marks on the page ground, so the chrome is gone and only
+   the mark, the name and the desaturation are left. */
+.collab__item {
+  display: inline-flex; align-items: center; gap: 0.7rem;
+  height: 46px; flex-shrink: 0;
+  font-family: var(--font-grotesk); font-weight: 600;
+  font-size: clamp(0.95rem, 1.5vw, 1.1rem); letter-spacing: 0.01em; white-space: nowrap;
+  /* Slate at rest — the logo-grid convention of desaturating partner marks so
+     none of them outshouts the page they are borrowed onto. */
+  color: #64748B; opacity: 0.72;
+  transition: color 0.35s var(--ease-lux), opacity 0.35s var(--ease-lux);
+}
+.collab__mark { width: 34px; height: 34px; flex-shrink: 0; }
+.collab__mark rect { fill: none; stroke: currentColor; stroke-width: 1.5; opacity: 0.5; }
+.collab__mark text { fill: currentColor; font-family: var(--font-display);
+  font-size: 17px; font-weight: 700; }
+/* Pointer-only: on touch the tapped item would otherwise stay red and lifted
+   until something else was tapped, in a strip that is scrolling underneath. */
+@media (hover: hover) and (pointer: fine) {
+  .collab__item:hover { color: var(--accent); opacity: 1; }
+  .collab__item:hover .collab__mark rect { opacity: 1; }
+}
+
 .tmarquee { max-width: 100%; margin: 0 auto; overflow: hidden; }
+/* The track centres its children by default, so cards of different quote
+   lengths floated at different heights and the rail looked ragged. Stretch. */
+.tmarquee .marquee__track { align-items: stretch; }
+
+/* TOUCH: A SNAP CARROUSEL, NOT A MARQUEE.
+   An auto-scrolling rail can never present a card squarely — on a phone every
+   quote is permanently sliced by both viewport edges and there is no way to
+   hold one still to read it, because the only "pause" was hover and hover does
+   not exist here. So on a coarse pointer the animation stops and the rail
+   becomes a swipeable carousel that snaps each card to CENTRE.
+   The inline padding is what lets the first and last card reach the middle:
+   a card is 84vw, so 8vw of runway either side centres it exactly. */
+@media (hover: none), (pointer: coarse) {
+  .tmarquee .marquee {
+    overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 8vw;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    /* The edge fade hides the neighbouring cards' hard cuts; with snapping the
+       focused card sits in the clear middle of it. */
+    -webkit-mask-image: none; mask-image: none;
+  }
+  .tmarquee .marquee::-webkit-scrollbar { display: none; }
+  .tmarquee .marquee__track {
+    animation: none; transform: none;
+    gap: 0.9rem; padding-inline: 8vw; padding-right: 8vw;
+  }
+  .tmarquee .tcard { scroll-snap-align: center; scroll-snap-stop: always; }
+  /* Loop duplicates are dead weight in a carousel — see Testimonials.tsx. */
+  .tmarquee .tcard--dup { display: none; }
+}
 .tcard { flex: 0 0 min(84vw, 380px); padding: 1.6rem; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--border); display: flex; flex-direction: column; }
 .tcard__thumb { position: relative; display: block; width: 100%; aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; margin-bottom: 1.1rem; }
 .tcard__thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s var(--ease-lux); filter: brightness(0.72) saturate(0.95); }
@@ -1097,8 +1339,13 @@
 .faq__item { border-bottom: 1px solid var(--border); margin-bottom: 0.75rem; }
 .faq__q { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 2rem; text-align: left; padding: 1.25rem 1.75rem; font-family: var(--font-grotesk); font-weight: 500; font-size: clamp(1.05rem, 2vw, 1.35rem); color: var(--text); transition: color 0.3s; }
 .faq__q:hover { color: var(--accent-soft); }
-.faq__ic { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); display: grid; place-items: center; color: var(--accent-soft); transition: 0.4s var(--ease-lux); }
-.faq__item.open .faq__ic { transform: rotate(45deg); background: var(--accent); color: #fff; border-color: var(--accent); }
+/* A bare chevron that flips 180deg — no disc, no border, no fill swap. The old
+   circular "+" rotated 45deg into an "x", which reads as "dismiss", not
+   "collapse". */
+.faq__ic { flex-shrink: 0; display: grid; place-items: center; color: var(--accent);
+  transition: transform 0.4s var(--ease-lux), color 0.3s; }
+.faq__item.open .faq__ic { transform: rotate(180deg); }
+.faq__q:hover .faq__ic { color: var(--accent-soft); }
 .faq__a { overflow: hidden; }
 .faq__a p { padding: 0 1.75rem 1.25rem; color: #334155; font-size: 1.05rem; line-height: 1.6; max-width: 62ch; }
 
@@ -1141,8 +1388,18 @@
 /* ==========================================================================
    FOOTER
    ========================================================================== */
-.footer { position: relative; background: var(--ink-850); border-top: 1px solid var(--border); overflow: hidden; }
-:root[data-theme='light'] .footer { background: var(--bg-alt); }
+/* DEEP NAVY. The dark treatment moved here from <Contact>, which is a clean
+   white section now — so the page ends on one continuous dark block instead of
+   a navy contact panel dropping onto a near-white footer. `.footer` also
+   carries `section--noir` in the markup, which is what re-points --text,
+   --border, --surface and friends at their dark values; the only thing this
+   rule still owns is the ground itself. The light-theme override that used to
+   sit under it is gone — it was the rule painting the footer white. */
+.footer { position: relative; background: #0B132B;
+  border-top: 1px solid rgba(255, 255, 255, 0.08); overflow: hidden; }
+/* The gradient and the whole dark token set come from `section--noir` on the
+   element (it is declared further down, so it wins on source order); the flat
+   #0B132B above is the floor if that class is ever dropped. */
 .footer__cta { position: relative; z-index: 1; text-align: center; padding-block: clamp(2rem, 4vw, 3rem); border-bottom: 1px solid var(--border); }
 .footer__cta h2 { font-family: var(--font-display); font-weight: 300; font-size: clamp(2.4rem, 7vw, 5.5rem); line-height: 1; letter-spacing: -0.02em; }
 .footer__cta h2 em { font-style: italic; color: var(--accent-soft); }
@@ -1153,9 +1410,17 @@
 /* Solid crimson, not the brand gradient. The mark's paths are filled from an
    SVG gradient, so they are overridden here rather than in the component —
    `:not(:last-of-type)` spares the white rocket core, which is the third path. */
-.footer .logo-name { background: none; -webkit-text-fill-color: #d31018; color: #d31018; }
-.footer .logo-sub { color: #0F172A; }
-.footer .logo svg path:not(:last-of-type) { fill: #d31018; }
+/* Brand red and crisp off-white, matching the navbar mark. #FF2E2E rather than
+   the navbar's own #d31018: the 700-weight red is the same ink, but on navy it
+   drops under 3:1 and goes muddy — #FF2E2E is that red re-lit for a dark ground
+   and reads as the same colour beside it. The wordmark and the "BUILDERS"
+   sub-line are both pure #FFFFFF, as in the header. */
+.footer .logo-name { background: none; -webkit-text-fill-color: #FF2E2E; color: #FF2E2E; }
+.footer .logo-sub { color: #FFFFFF; }
+.footer .logo svg path:not(:last-of-type) { fill: #FF2E2E; }
+.footer .footer__col h4 { color: #FFFFFF; }
+.footer .footer__contact-line svg { color: #FF2E2E; }
+.footer :is(a.footer__contact-line, .footer__col a):hover { color: #FF2E2E; }
 .footer__col--contact h4, .footer__col--brand h4 { margin-bottom: 1.1rem; }
 .footer__col .footer__contact-line { display: flex; align-items: flex-start; gap: 0.55rem; color: var(--text-soft); font-size: 0.94rem; margin-bottom: 0.7rem; transition: color 0.3s; }
 .footer__col .footer__contact-line svg { color: var(--accent-soft); flex-shrink: 0; margin-top: 3px; }
@@ -1283,7 +1548,16 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   font-family: var(--font-grotesk); text-wrap: balance;
   font-size: 1.1rem;
   line-height: 1.6; color: #E2E8F0; opacity: 0.9; }
-.story__cta { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; pointer-events: auto; }
+/* `align-items: flex-start` is load-bearing, not tidying. The markup stacks
+   these into a column on a phone (`flex-col`), and a flex container's default
+   cross-axis alignment is `stretch` — so in column direction both pills grew to
+   the full text column. On "Explore Projects" that reads as a deliberate
+   full-width button; on "Watch Story" it left the play disc pinned to the left
+   edge, the label beside it, and ~100px of empty pill trailing off to the
+   right. Both size to their content now, and both stay left-aligned under a
+   left-aligned headline. */
+.story__cta { margin-top: 2rem; display: flex; flex-wrap: wrap; align-items: flex-start;
+  gap: 1rem; pointer-events: auto; }
 /* The copy block is absolutely positioned and its height changes with each
    phase's line count; anchoring the CTAs to the block's own flow (rather than
    the viewport) is what stops them jumping as the text swaps. */
@@ -1468,38 +1742,66 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 /* Holds the scroll ref that drives the image's parallax zoom. */
 .gate__stage { position: relative; margin-top: 0.5rem; }
 
+/* FULL IMAGE, NO CROP. The source is 1672x941 — a 16:9 photo — and this frame
+   was forcing it into 21:9 with `object-fit: cover`, which threw away about a
+   quarter of the picture's height off the top and bottom. There is no fixed
+   ratio here now: the image sets the frame's height at its own proportions, so
+   what ships is what was shot. `max-height` is gone with it — the cap was the
+   other half of the crop. */
 .gate__visual { position: relative; width: 100%; border-radius: 20px; overflow: hidden;
-  aspect-ratio: 21/9; max-height: 400px; box-shadow: var(--shadow-xl); }
-@media (max-width: 700px) { .gate__visual { aspect-ratio: 16/10; max-height: 300px; } }
-.gate__visual img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit;
+  box-shadow: var(--shadow-xl); }
+.gate__visual img { display: block; width: 100%; height: auto; border-radius: inherit;
   will-change: transform; }
-.gate__visual::after { content: ''; position: absolute; inset: 0; pointer-events: none;
-  border-radius: inherit;
-  background: linear-gradient(180deg, transparent 46%, rgba(11, 19, 43, 0.78) 100%); }
-/* Dark-glass architectural tag, anchored inside the image's top-left. */
-.gate__tag { position: absolute; z-index: 2;
-  top: clamp(1rem, 3vw, 1.6rem); left: clamp(1rem, 3vw, 2rem);
-  padding: 0.5rem 0.9rem; border-radius: 10px;
-  font-family: var(--font-grotesk); font-weight: 600; font-size: 0.7rem;
-  letter-spacing: 0.16em; text-transform: uppercase; color: #FFFFFF;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.14); }
-/* No blur available (or the OS asked for less transparency): go opaque rather
-   than leave white text on a bright sky. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .gate__tag { background: rgba(15, 23, 42, 0.88); }
-}
-@media (prefers-reduced-transparency: reduce) {
-  .gate__tag { backdrop-filter: none; -webkit-backdrop-filter: none;
-    background: rgba(15, 23, 42, 0.92); }
-}
+/* TWO scrims, because there is now text at both ends of the image. The bottom
+   one carries `.gate__caption` and was already here; the top one carries the
+   section heading that moved inside the frame. Both fade to transparent in the
+   middle so the photo is only darkened where words actually sit — a flat wash
+   over the whole image would mute the picture the section is showcasing. */
+.gate__visual::before, .gate__visual::after { content: ''; position: absolute;
+  left: 0; right: 0; pointer-events: none; border-radius: inherit; z-index: 1; }
+.gate__visual::before { top: 0; height: 62%;
+  background: linear-gradient(180deg, rgba(4, 8, 20, 0.82) 0%, rgba(4, 8, 20, 0.42) 45%, transparent 100%); }
+.gate__visual::after { bottom: 0; height: 54%;
+  background: linear-gradient(0deg, rgba(11, 19, 43, 0.78) 0%, transparent 100%); }
+
+/* ---- section heading, overlaid top-left ---------------------------------- */
+.gate__head { position: absolute; z-index: 2;
+  top: clamp(1.1rem, 3.5vw, 2.4rem); left: clamp(1.1rem, 3.5vw, 2.6rem);
+  right: clamp(1.1rem, 3.5vw, 2.6rem); max-width: 34ch; }
+.gate__eyebrow { color: #FFFFFF; margin-bottom: 0.5rem; }
+.gate__eyebrow::before { background: var(--accent-soft); opacity: 1; }
+/* White on photography, so it carries its own shadow rather than trusting the
+   scrim alone — a bright sky can still come through the top of the gradient. */
+.gate__title { color: #FFFFFF; text-shadow: 0 2px 20px rgba(0, 0, 0, 0.55); }
+.gate__title em { color: var(--accent-soft); font-style: italic; }
+
 
 .gate__caption { position: absolute; z-index: 2; left: clamp(1rem, 3vw, 2rem); bottom: clamp(1rem, 3vw, 1.8rem);
   display: flex; flex-direction: column; gap: 0.2rem; }
 .gate__caption b { font-family: var(--font-grotesk); font-weight: 600; font-size: 1.05rem; color: #fff; }
 .gate__caption span { font-family: var(--font-grotesk); font-size: 0.76rem; letter-spacing: 0.08em;
   text-transform: uppercase; color: rgba(255,255,255,0.72); }
+
+/* A PHONE HAS NO ROOM FOR BOTH LABELS. Keeping the image uncropped means the
+   frame is 16:9 of the column width — 201px tall at 390px wide — and the
+   heading landed straight on top of `.gate__caption`. The caption is the one
+   that goes: "Signature Entrance / stone piers · lit portico" restates the
+   heading now sitting above it, so nothing is lost.
+   THIS BLOCK MUST STAY BELOW `.gate__caption`. That rule sets `display: flex`
+   at the same specificity, so from any earlier position the `display: none`
+   here loses on source order and the caption comes back. */
+@media (max-width: 700px) {
+  .gate__caption { display: none; }
+  .gate__head { top: 0.85rem; left: 0.9rem; right: 0.9rem; max-width: none; }
+  .gate__eyebrow { margin-bottom: 0.3rem; font-size: 0.6rem; letter-spacing: 0.16em; }
+  /* Sized off the FRAME (vw), not the page, so it stays inside the top scrim as
+     the banner shrinks. `!important` only because `.title` is set by the
+     utility shim, which carries it too. */
+  .gate__title { font-size: clamp(1rem, 5vw, 1.4rem) !important; line-height: 1.2; }
+  /* With the caption gone the bottom scrim has nothing to carry — soften it so
+     it stops darkening the lower third of the photo for no reason. */
+  .gate__visual::after { height: 34%; background: linear-gradient(0deg, rgba(11, 19, 43, 0.5), transparent); }
+}
 
 /* ---- geometric facet palette (card corner pattern) ----------------------- */
 .gf-dark { fill: #0B132B; }
@@ -1885,6 +2187,52 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   /* The stats ribbon keeps two-up: four numbers stacked is a scroll, not a
      summary. It is a readout, not a card grid. */
 
+  /* ---- PROJECT CARDS: A READABLE BOTTOM PLATE ---------------------------- */
+  /* The overlay was three free-floating frosted pills scattered across the
+     middle of a busy construction photo — location and area wrapping onto
+     separate lines, "2025" stranded on a third, and the title fighting whatever
+     was behind it. Nothing was pinned to anything.
+     Now the meta block is one plate at the foot of the card: a full-width
+     gradient mask carries title + location + area, always visible, always in
+     the same place regardless of what the photo is doing behind it. */
+  .proj__img { aspect-ratio: 4/3; }
+  .proj__scrim { background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.5) 62%, rgba(0,0,0,0.9) 100%); }
+  .proj__meta { left: 0; right: 0; bottom: 0; padding: 2.5rem 1.1rem 1.1rem;
+    /* The plate's own mask, on top of the card scrim: the scrim fades over the
+       whole photo, this one guarantees contrast under the text specifically. */
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,0.62) 26%, rgba(0,0,0,0.94)); }
+  .proj__title { font-size: 1.3rem; line-height: 1.25; text-shadow: none; }
+  /* No pills. Their frosted fills read as clutter once the plate behind them is
+     already opaque, and each pill was its own flex item, which is what let
+     "2025" wrap onto a line of its own. One row, one weight. */
+  .proj__loc { gap: 0.25rem 0.85rem; margin-bottom: 0.45rem; font-size: 0.72rem; }
+  .proj__loc span { padding: 0; background: none; backdrop-filter: none;
+    -webkit-backdrop-filter: none; color: rgba(255,255,255,0.82); }
+  /* The description is hover-only on a pointer device. On touch there is no
+     hover, so it would never open — show it, clamped to three lines so a long
+     one cannot push the plate over half the photo. */
+  .proj__reveal { max-height: none; opacity: 1; overflow: visible; margin-top: 0.55rem; }
+  .proj__reveal p { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden; font-size: 0.82rem; color: rgba(255,255,255,0.72); }
+  .proj__view { margin-top: 0.5rem; font-size: 0.75rem; }
+  .proj__tag { top: 0.9rem; left: 0.9rem; font-size: 0.62rem; padding: 0.32rem 0.7rem; }
+
+  /* ---- SECTION-HEAD → CONTENT GAPS --------------------------------------- */
+  /* Measured on a 390px viewport before touching anything: 60px between the
+     bottom of "under one roof." and the top of card 01, and 40px between the
+     Process lede and the first timeline node — on top of the section's own
+     40px of padding either side. At desktop those gaps are proportionate to a
+     1200px column; on a phone they are a third of a screen of nothing.
+     `.svcs__head` also carried 32px of dead height from the flex row whose
+     other child (`.svcs__nav`) is `display: none` at this width. */
+  .svcs__head { display: block; margin-bottom: 1rem; }
+  .svcs__nav { display: none; }
+  #process .section-head { margin-bottom: 0.75rem; }
+  #process .lede { margin-top: 0.9rem; }
+  .ptimeline { margin-top: 1.25rem; }
+  /* The CTA under the capabilities grid sat 48px clear of it. */
+  .svcs__foot { margin-top: 1.75rem; }
+
   /* Touch-friendly padding — p-6 — on every card that stacks above. A full-width
      card can afford the room a four-up card could not. */
   .svc,
@@ -1944,9 +2292,16 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   /* `.nav__inner`, NOT `.nav`. The blur is declared on the inner capsule; a rule
      on the header only ADDED a second blurred layer on top of the 16px one it
      was meant to be replacing. */
-  .nav__inner { backdrop-filter: blur(8px) saturate(140%); -webkit-backdrop-filter: blur(8px) saturate(140%); }
+  /* CONTENT BLEED. At the desktop 0.55 fill, whatever the capsule was passing
+     over read straight through it — the founder panel's social discs and the
+     contact copy both ghosted up between the logo and the menu button, which is
+     what the "header bleeding through" report is. A phone capsule is also far
+     smaller relative to what is behind it, so there is much less glass to sell
+     the effect and much more to go wrong. 0.88 keeps the frost and the blur but
+     stops the page reading through it. */
+  .nav__inner { background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(12px) saturate(140%); -webkit-backdrop-filter: blur(12px) saturate(140%); }
   .faq__item { backdrop-filter: blur(6px) saturate(115%); -webkit-backdrop-filter: blur(6px) saturate(115%); }
-  .gate__tag { backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
   /* The utility itself, not the one component using it: `.backdrop-blur-md`
      carries `!important`, so a component-level rule cannot win — and capping it
      here fixes every future user of the class too. Later cascade position plus
@@ -2105,4 +2460,40 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
 .section--noir .field :is(input, textarea):-webkit-autofill {
   -webkit-text-fill-color: var(--text);
   -webkit-box-shadow: 0 0 0 1000px #131E3D inset;
+}
+
+/* ==========================================================================
+   TOUCH DEVICES — NOTHING IMPORTANT BEHIND A HOVER
+   --------------------------------------------------------------------------
+   A touch screen has no hover. What it has is a `:hover` that LATCHES on tap
+   and stays latched until you tap something else, which is worse than having
+   none: the transition fires late, on the wrong element, and sticks.
+
+   Two different problems, two different fixes:
+
+   1. HOVER-REVEALED CONTENT must render in its resting state, because there is
+      no interaction that will ever reveal it. Those are the rules below.
+   2. HOVER-ONLY DECORATION (lifts, nudges, colour swaps) is wrapped at its own
+      declaration site in `@media (hover: hover) and (pointer: fine)` — grep for
+      that query. It is done there rather than unwound here because a blanket
+      `:hover { all: unset }` cannot know which half of a rule was decorative.
+
+   `pointer: coarse` rather than a width breakpoint: a 1024px tablet is a touch
+   device and a 700px-wide desktop window is not, and it is the input that
+   decides whether hover exists, not the viewport.
+   ========================================================================== */
+@media (hover: none), (pointer: coarse) {
+  /* Gallery captions, project copy and the testimonial thumb label are all
+     "appears on hover" on a pointer device. Resting state = visible. */
+  .gitem__over { opacity: 1; }
+  .proj__reveal { max-height: none; opacity: 1; overflow: visible; margin-top: 0.55rem; }
+
+  /* Card lifts. `.tcard` and friends share one hover-lift rule; on touch it
+     fires on tap and the card stays raised behind the modal it just opened. */
+  :is(.tcard, .contact__form, .proj, .ba, .svc, .collab__item, .studio__hl):hover {
+    transform: none; translate: none; }
+
+  /* The 3D-tilt/scale on the studio sheet, same reason. */
+  .studio__stack:hover .studio__sheet { scale: 1; }
+  .studio__visual:hover .studio__bp { opacity: 0.55; }
 }

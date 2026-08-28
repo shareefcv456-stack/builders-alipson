@@ -60,7 +60,7 @@ export default function Contact() {
   );
 
   return (
-    <section id="contact" className="section section--noir grain">
+    <section id="contact" className="section grain">
       <div className="container contact__grid">
         <div className="contact__info">
           <Reveal><span className="eyebrow">Contact</span></Reveal>

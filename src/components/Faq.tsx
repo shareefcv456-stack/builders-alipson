@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import RevealText from './ui/RevealText';
 import Reveal from './ui/Reveal';
 import { FAQS } from '../data/site';
@@ -21,7 +21,7 @@ export default function Faq() {
               <div className={`faq__item ${isOpen ? 'open' : ''}`} key={i}>
                 <button className="faq__q" onClick={() => setOpen(isOpen ? null : i)} aria-expanded={isOpen}>
                   {f.q}
-                  <span className="faq__ic"><Plus size={16} /></span>
+                  <span className="faq__ic"><ChevronDown size={20} strokeWidth={2.25} /></span>
                 </button>
                 <AnimatePresence initial={false}>
                   {isOpen && (

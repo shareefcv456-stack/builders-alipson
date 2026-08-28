@@ -103,7 +103,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     const phoneTier = isPhone();
 
     const renderer = new THREE.WebGLRenderer({
-      antialias: !phoneTier, alpha: true, powerPreference: 'high-performance',
+      antialias: true, alpha: true, powerPreference: 'high-performance',
     });
     /* Capped at 2 (the dpr={[1, 2]} ceiling), raised from 1.5. That cap was set
        when bloom and depth of field each cost a full-res pass; with both gone
@@ -120,7 +120,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        off a broken shader fails silently to a black render instead of logging.
        Anything that would break it is caught the moment you run the dev server. */
     renderer.debug.checkShaderErrors = import.meta.env.DEV;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, phoneTier ? 1.5 : 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
     /* Shadows off on a phone. PCFSoft over this many meshes is a second full
@@ -1517,7 +1517,19 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        rather than retuned. Airborne dust below carries the atmosphere instead. */
 
     /* ---- post-processing --------------------------------------------------------- */
-    const composer = new EffectComposer(renderer);
+    /* THE COMPOSER'S OWN RENDER TARGET IS WHERE THE ALIASING WAS COMING FROM.
+       `antialias: true` on the context only ever applies to the DEFAULT
+       framebuffer — and nothing renders there, because every frame goes through
+       the composer's offscreen target first. That target defaults to
+       `samples: 0`, so the whole scene was drawn with MSAA off no matter what
+       the context flag said: hard stair-stepped edges on every scaffold pole,
+       kerb and window mullion, which reads as a low-resolution canvas.
+       Hand the composer a target with MSAA on and the edges resolve. */
+    const rtSamples = phoneTier ? 2 : 4;
+    const composerRT = new THREE.WebGLRenderTarget(1, 1, {
+      type: THREE.HalfFloatType, samples: rtSamples,
+    });
+    const composer = new EffectComposer(renderer, composerRT);
     /* AMBIENT OCCLUSION — N8AO, not three's SSAOPass.
        SSAOPass was tried here and removed: it cost ~15fps AND smeared dark
        streaks off every tree and light pole, because its depth-discontinuity

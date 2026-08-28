@@ -8,7 +8,7 @@ import { scrollToId } from '../hooks/useLenis';
    information — the address and an "Open in Maps" link say the same thing. */
 export default function Footer() {
   return (
-    <footer className="footer grain" id="footer">
+    <footer className="footer section--noir grain" id="footer">
 
       <div className="container footer__top" id="location">
         <div className="footer__col footer__col--brand">

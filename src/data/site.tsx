@@ -134,7 +134,10 @@ export const FOUNDER = {
   name: 'K. M. Mathew',
   role: 'Founders · Alipson Builders, Kerala',
   values: [
-    { k: '15+', v: 'Years of trusted craftsmanship' },
+    // U+00AD soft hyphen: invisible at every width where the word fits, and the
+    // one sanctioned break point when the 3-across stat row is 74px per column
+    // on a 320px phone. Without it the browser breaks it as "CRAFTSMANS/HIP".
+    { k: '15+', v: 'Years of trusted crafts\u00ADmanship' },
     { k: '100%', v: 'On-time, on-budget delivery' },
     { k: 'Kerala', v: 'Deep-rooted local expertise' },
   ],

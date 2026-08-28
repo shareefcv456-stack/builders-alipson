@@ -33,11 +33,33 @@ function BlueprintArt() {
   );
 }
 
+const PHASE_LABELS = ['Foundation', 'Framing', 'Finish'];
+
 export default function Studio() {
   const visualRef = useRef<HTMLDivElement>(null);
+  const stepsRef = useRef<HTMLUListElement>(null);
   const { openQuote, openBrochure } = useUI();
   const { scrollYProgress } = useScroll({ target: visualRef, offset: ['start end', 'end start'] });
   const imgY = useTransform(scrollYProgress, [0, 1], ['-4%', '4%']);
+
+  /* THE BUILD IS A TIMED LOOP, NOT A SCROLL SCRUB — and the loop is weighted so
+     the FINISHED building is what is on screen almost all the time.
+     Scrubbing tied the sequence to scroll position, which meant the only way to
+     see the completed structure was to scroll the panel most of the way past
+     the viewport; land on the section and stop, and you were stuck looking at
+     bare foundations. Back on a clock, the whole build now takes ~2.8s of a 9s
+     cycle and the remaining ~6s holds the finished plan. The timing lives
+     entirely in the CSS keyframes (`@keyframes studioS1..S6`) — nothing here
+     drives it, which is why all six motion values and the phase-tracking state
+     that used to sit in this component are gone.
+     `<Deferred>` mounts this section about a viewport early, so the animation
+     starts a beat before the panel is actually reached. */
+
+  /* The value stepper's rail fill — same pattern as <Process>. */
+  const { scrollYProgress: stepsProgress } = useScroll({
+    target: stepsRef, offset: ['start 85%', 'end 65%'],
+  });
+  const stepFill = useTransform(stepsProgress, [0, 1], [0, 1]);
 
   return (
     <section id="studio" className="section section--noir studio grain">
@@ -50,9 +72,9 @@ export default function Studio() {
 
           <Reveal dir="up" className="studio__stack">
             <motion.figure className="studio__frame" style={{ y: imgY }}>
-              {/* 7-stage construction time-lapse on one 8s clock. Each stage is
-                  its own dash-drawn layer; the shared clock is what keeps the
-                  sequence from drifting apart. */}
+              {/* 6-stage construction sequence on one shared 9s clock. Every
+                  stage is a dash-drawn layer whose window is set in the CSS
+                  keyframes; the build lands complete at ~2.8s and holds. */}
               <svg className="studio__sheet" viewBox="0 0 400 500" aria-hidden="true" focusable="false">
                 <defs>
                   <linearGradient id="studioBeam" x1="0" y1="1" x2="0" y2="0">
@@ -105,10 +127,23 @@ export default function Studio() {
                   </g>
                 </g>
 
-                {/* 7 — laser sweep */}
+                {/* Laser sweep — same 9s clock, sweeping base→roof as the last
+                    stage tops out. */}
                 <rect className="studio__beam" x="52" y="0" width="296" height="120" fill="url(#studioBeam)" />
               </svg>
               <span className="studio__scrim" aria-hidden="true" />
+
+              {/* Phase caption. The sequence draws six stages but reads as three
+                  acts, and without naming them the panel is a pretty line
+                  animation rather than a claim about how the work is done.
+                  Which one is lit is a CSS animation on the same clock as the
+                  drawing — there is no React state behind it, so the caption
+                  cannot drift out of step with what the lines are doing. */}
+              <div className="studio__phases" aria-hidden="true">
+                {PHASE_LABELS.map((label) => (
+                  <span className="studio__phase" key={label}>{label}</span>
+                ))}
+              </div>
 
               {/* diagonal navy wedge, top-right */}
               <svg className="studio__cut" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
@@ -153,12 +188,22 @@ export default function Studio() {
               </p>
             </Reveal>
 
-            <ul className="studio__highlights">
+            {/* A STEPPER, not three boxes. Same mechanism as <Process>: a rail
+                behind the nodes with a crimson fill scaled by scroll progress,
+                and each step revealing as the fill reaches it. The rail is the
+                only new part — the icon, title and copy are the same nodes the
+                cards had. `amount: 0.6` on each step is what syncs the reveal
+                to the fill rather than to the list entering the viewport. */}
+            <ul className="studio__highlights" ref={stepsRef}>
+              <div className="studio__hl-rail" aria-hidden="true">
+                <motion.div className="studio__hl-fill" style={{ scaleY: stepFill }} />
+              </div>
               {HIGHLIGHTS.map((h, i) => (
-                <Reveal dir="up" delay={0.36 + i * 0.1} key={h.title}>
+                <Reveal dir="up" delay={0} amount={0.6} key={h.title} className="studio__hl-row">
                   <li className="studio__hl">
                     <span className="studio__hl-icon"><h.icon size={20} strokeWidth={1.9} /></span>
                     <span className="studio__hl-txt">
+                      <em className="studio__hl-step">0{i + 1}</em>
                       <h4>{h.title}</h4>
                       <p>{h.desc}</p>
                     </span>

@@ -113,9 +113,14 @@ export default function Services() {
         </Stagger>
 
         <Reveal delay={0.1}>
+          {/* A solid crimson CTA, not the underline text link this was. It is the
+              only conversion point at the bottom of the longest section on the
+              page, and `.ul-link` rendered it as body-sized grey text that read
+              as a footnote. `.btn-primary` is the same button the hero and the
+              studio card already use — no new style, just the right one. */}
           <div className="svcs__foot">
-            <button className="ul-link" onClick={() => scrollToId('contact')}>
-              Discuss your requirement <ArrowUpRight size={15} />
+            <button className="btn btn-primary svcs__cta" onClick={() => scrollToId('contact')}>
+              Discuss your requirement <ArrowUpRight size={16} />
             </button>
           </div>
         </Reveal>

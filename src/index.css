@@ -334,8 +334,14 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
    -------------------------------------------------------------------------- */
 .marquee { display: flex; overflow: hidden; user-select: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
 .marquee__track { display: flex; flex-shrink: 0; gap: clamp(2rem, 5vw, 4.5rem); align-items: center; padding-right: clamp(2rem, 5vw, 4.5rem); animation: marquee 38s linear infinite; }
-.marquee--rev .marquee__track { animation-direction: reverse; gap: clamp(4rem, 8vw, 8rem); padding-right: clamp(4rem, 8vw, 8rem); }
-.marquee:hover .marquee__track { animation-play-state: paused; }
+/* PAUSE ON HOVER IS FOR MICE ONLY. On a touch screen a tap sets `:hover` and
+   leaves it set, so tapping a testimonial to open its video froze the rail —
+   and it stayed frozen, because nothing takes the hover back until you tap
+   somewhere else. `pointer: fine` is the query that means "there is a real
+   cursor here", which is exactly the condition under which pausing helps. */
+@media (hover: hover) and (pointer: fine) {
+  .marquee:hover .marquee__track { animation-play-state: paused; }
+}
 /* The track holds the list TWICE, so one loop is half its width. At -100% the
    whole track slid off and the right-hand side went blank for the back half of
    every cycle — that was the "empty white space". Keep this in sync with the
@@ -368,7 +374,17 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
    page — a deliberate trade for the room, and still clear of the 24px WCAG 2.2
    AA minimum. */
 @media (max-width: 767.98px) {
-  .floaters { right: 1rem; bottom: 1rem; gap: 0.6rem; z-index: 950; }
+  /* A ROW, not a column. The vertical stack was 40x139 hard against the right
+     edge, so it sat on top of three or four lines of whatever was beside it —
+     the founder's pull-quote and the testimonial card text, both measured.
+     Laid along the bottom edge the same three buttons intrude 40px instead of
+     139px, and they do it at the bottom of the viewport, which is the part a
+     reader has already passed rather than the middle of the paragraph they are
+     on. `row-reverse` keeps WhatsApp in the corner, where the thumb expects it.
+     z-index stays under the modal scrim (1000) so an open video still covers
+     them; it only clears page content and the mobile nav sheet. */
+  .floaters { flex-direction: row-reverse; align-items: center;
+    right: 0.75rem; bottom: 0.75rem; gap: 0.6rem; z-index: 940; }
   .floater { width: 40px; height: 40px; box-shadow: 0 8px 20px -6px rgba(0,0,0,0.45);
     backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .floater svg { width: 18px; height: 18px; }

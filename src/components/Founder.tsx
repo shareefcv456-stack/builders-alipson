@@ -52,16 +52,22 @@ export default function Founder() {
                 <a href={CONTACT.whatsapp} target="_blank" rel="noreferrer" aria-label="WhatsApp"><MessageCircle size={17} /></a>
                 <a href="#" aria-label="Facebook"><Facebook size={17} /></a>
                 <a href="#" aria-label="Instagram"><Instagram size={17} /></a>
-
-                <ul className="founder__values">
-                  {FOUNDER.values.map((v) => (
-                    <li className="founder__value" key={v.v}>
-                      <b>{v.k}</b>
-                      <span>{v.v}</span>
-                    </li>
-                  ))}
-                </ul>
               </div>
+            </Reveal>
+
+            {/* Its own row, NOT the tail of `.founder__social`. Sharing that
+                wrapping flex line with the three social discs is what left each
+                stat with whatever width was left over and broke every label
+                into a stacked column. */}
+            <Reveal dir="up" delay={0.4} className="founder__values-row">
+              <ul className="founder__values">
+                {FOUNDER.values.map((v) => (
+                  <li className="founder__value" key={v.v}>
+                    <b>{v.k}</b>
+                    <span>{v.v}</span>
+                  </li>
+                ))}
+              </ul>
             </Reveal>
           </div>
         </div>
