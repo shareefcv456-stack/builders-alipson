@@ -976,8 +976,12 @@
 #work .filter { color: rgba(248, 248, 246, 0.82); border-color: rgba(255, 255, 255, 0.2); }
 #work .filter:hover { color: #fff; border-color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.06); }
 #work .filter.active { color: #fff; background: var(--accent); border-color: var(--accent); }
-.projects__grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.4rem; }
-@media (max-width: 800px) { .projects__grid { grid-template-columns: 1fr; } }
+.projects__grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+/* 768px, not the 800 that was here — one breakpoint for "this is a phone",
+   shared with the `max-width: 767.98px` block that restyles the card overlay.
+   Two thresholds 32px apart meant a 780px window got the single column but
+   kept the desktop card treatment. */
+@media (max-width: 767.98px) { .projects__grid { grid-template-columns: 1fr; gap: 1.5rem; } }
 .proj { position: relative; border-radius: var(--radius-lg); overflow: hidden; cursor: pointer; background: var(--surface); }
 .proj__img { position: relative; aspect-ratio: 16/11; overflow: hidden; }
 .proj__img img { width: 100%; height: 100%; object-fit: cover; transition: transform 1.1s var(--ease-lux), filter 0.8s; filter: saturate(0.92); }
@@ -2195,27 +2199,77 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
      Now the meta block is one plate at the foot of the card: a full-width
      gradient mask carries title + location + area, always visible, always in
      the same place regardless of what the photo is doing behind it. */
+  /* ---- THE CARD FACE CARRIES TWO THINGS ---------------------------------- */
+  /* Place and name. That is the whole overlay.
+     Category, area, year and the description are not shortened here, they are
+     MOVED — into the sheet that opens on tap (`.psheet`). A phone card is a
+     thumbnail with a label on it; every extra line was another strip of a
+     photograph the section exists to show. */
   .proj__img { aspect-ratio: 4/3; }
-  .proj__scrim { background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.5) 62%, rgba(0,0,0,0.9) 100%); }
-  .proj__meta { left: 0; right: 0; bottom: 0; padding: 2.5rem 1.1rem 1.1rem;
-    /* The plate's own mask, on top of the card scrim: the scrim fades over the
-       whole photo, this one guarantees contrast under the text specifically. */
-    background: linear-gradient(180deg, transparent, rgba(0,0,0,0.62) 26%, rgba(0,0,0,0.94)); }
-  .proj__title { font-size: 1.3rem; line-height: 1.25; text-shadow: none; }
-  /* No pills. Their frosted fills read as clutter once the plate behind them is
-     already opaque, and each pill was its own flex item, which is what let
-     "2025" wrap onto a line of its own. One row, one weight. */
-  .proj__loc { gap: 0.25rem 0.85rem; margin-bottom: 0.45rem; font-size: 0.72rem; }
-  .proj__loc span { padding: 0; background: none; backdrop-filter: none;
-    -webkit-backdrop-filter: none; color: rgba(255,255,255,0.82); }
-  /* The description is hover-only on a pointer device. On touch there is no
-     hover, so it would never open — show it, clamped to three lines so a long
-     one cannot push the plate over half the photo. */
-  .proj__reveal { max-height: none; opacity: 1; overflow: visible; margin-top: 0.55rem; }
-  .proj__reveal p { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
-    overflow: hidden; font-size: 0.82rem; color: rgba(255,255,255,0.72); }
-  .proj__view { margin-top: 0.5rem; font-size: 0.75rem; }
-  .proj__tag { top: 0.9rem; left: 0.9rem; font-size: 0.62rem; padding: 0.32rem 0.7rem; }
+  /* Scoped through `.proj__loc` on purpose: the base rule is `.proj__loc span`,
+     which is (0,1,1) and outranks a bare `.proj__area` at (0,1,0) — so the
+     unscoped version of this lost the cascade and the area and year stayed on
+     the card face. */
+  .proj__tag,
+  .proj__loc .proj__area,
+  .proj__loc .proj__year,
+  .proj__reveal p { display: none; }
+
+  /* The scrim is gone as a separate layer — with the tag no longer in the top
+     corner there is nothing up there to protect, and it was the first of the
+     two stacked masks that made the old card so dark. */
+  .proj__scrim { background: none; }
+
+  /* ONE gradient, over the BOTTOM THIRD only: black/80 → black/20 →
+     transparent. Everything above 33% is the photograph, untouched. */
+  .proj__meta { left: 0; right: 0; bottom: 0; top: auto; height: 33%;
+    padding: 0 1rem 0.9rem;
+    background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 55%, transparent 100%);
+    /* Two rows: the badge, then name and CTA on a shared baseline. The DOM
+       order is loc → title → reveal, which `grid-template-areas` re-seats
+       without a second markup path for one breakpoint. */
+    display: grid; align-content: end; column-gap: 0.75rem;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: 'place  place'
+                         'title  cta'; }
+  /* Location badge — the one place a frosted pill still earns its keep, since
+     it sits where the gradient is at its weakest. */
+  .proj__loc { grid-area: place; gap: 0; margin-bottom: 0.4rem; font-size: 0.7rem; }
+  .proj__place { display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.26rem 0.6rem; border-radius: 100px; color: #FFFFFF;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.18); }
+  .proj__title { grid-area: title; align-self: end; font-size: 1.25rem; line-height: 1.2;
+    margin-bottom: 0; text-shadow: 0 1px 12px rgba(0,0,0,0.6); }
+  /* `.proj__reveal` is now only a wrapper for the CTA — its paragraph is
+     hidden above, so the box collapses to the button. */
+  .proj__reveal { grid-area: cta; align-self: end; justify-self: end;
+    max-height: none; opacity: 1; overflow: visible; margin: 0; }
+  .proj__view { margin: 0; font-size: 0.75rem; white-space: nowrap; }
+
+  /* ---- FLOATER KEEP-OUT AT THE FOOT OF THE SECTION ----------------------- */
+  /* The FAB row is `position: fixed`, so nothing in the document can move it
+     off the content it passes over mid-scroll — but it CAN be given somewhere
+     harmless to land at the end of the section. 7rem clears the 40px buttons
+     plus their 1rem inset with room to spare, so the last card's CTA is never
+     the thing sitting under them when the scroll stops. */
+  #work { padding-bottom: 7rem; }
+
+  /* ---- FILTER CHIPS: ONE SCROLLING ROW ----------------------------------- */
+  /* Four chips wrapped onto two rows at 390px, which put "Commercial Buildings"
+     alone on a second line and pushed the grid down. One row that scrolls
+     sideways keeps the set readable as a set. The scrollbar is hidden because
+     a 4px track under 4 chips reads as a rendering artefact; the chips are cut
+     off mid-row at the right edge, which is the affordance that says "more". */
+  .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    /* Full-bleed: the row scrolls edge to edge rather than stopping inside the
+       container's gutter, and the padding restores the gutter as start/end
+       runway so the first and last chip still line up with the heading. */
+    margin-inline: calc(var(--pad-x) * -1); padding-inline: var(--pad-x);
+    padding-bottom: 0.5rem; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filter { flex: 0 0 auto; }
 
   /* ---- SECTION-HEAD → CONTENT GAPS --------------------------------------- */
   /* Measured on a 390px viewport before touching anything: 60px between the
@@ -2496,4 +2550,60 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
   /* The 3D-tilt/scale on the studio sheet, same reason. */
   .studio__stack:hover .studio__sheet { scale: 1; }
   .studio__visual:hover .studio__bp { opacity: 0.55; }
+}
+
+/* ==========================================================================
+   PROJECT DETAIL SHEET
+   --------------------------------------------------------------------------
+   Everything the phone card stopped showing — category, built-up area,
+   completion year, description — lives here, one tap from the card face. It
+   reuses `<Modal>` wholesale (scrim, Escape, body scroll-lock, enter/exit) and
+   only restyles the panel, which is why it is a `className` and not a second
+   modal component.
+   ========================================================================== */
+/* `height: auto` is required, not tidying. `imgProps` emits width AND height
+   attributes (for CLS), and the height attribute maps to the CSS `height`
+   property — so without this the image renders at its intrinsic 941px and the
+   `aspect-ratio` below is ignored, because both axes are already definite. */
+.psheet__img { display: block; width: 100%; height: auto; aspect-ratio: 16/10;
+  object-fit: cover; border-radius: 14px; margin-bottom: 1.15rem; }
+.psheet__cat { display: inline-block; padding: 0.3rem 0.7rem; border-radius: 100px;
+  background: rgba(var(--accent-rgb), 0.12); color: var(--accent);
+  font-family: var(--font-grotesk); font-weight: 600; font-size: 0.64rem;
+  letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 0.6rem; }
+.psheet__title { font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(1.45rem, 4.5vw, 1.9rem); line-height: 1.15; color: var(--text);
+  margin-bottom: 1.1rem; }
+
+/* Two-up spec grid. `dt` is the quiet label, `dd` the value — a description
+   list because that is literally what this is, and it gives the sheet a
+   sensible reading order in a screen reader for free. */
+.psheet__specs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 1rem; margin: 0 0 1.2rem; padding: 1rem 0;
+  border-block: 1px solid var(--border); }
+.psheet__specs dt { display: flex; align-items: center; gap: 0.35rem;
+  font-family: var(--font-grotesk); font-size: 0.64rem; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-mute); margin-bottom: 0.25rem; }
+.psheet__specs dt svg { color: var(--accent); }
+.psheet__specs dd { margin: 0; font-family: var(--font-grotesk); font-weight: 600;
+  font-size: 0.92rem; color: var(--text); }
+.psheet__desc { color: var(--text-soft); font-size: 0.92rem; line-height: 1.65;
+  margin-bottom: 1.4rem; }
+.psheet__cta { width: 100%; justify-content: center; }
+
+/* A BOTTOM SHEET ON A PHONE. Same panel, docked to the bottom edge and pinned
+   to the viewport's short side, so it opens where the thumb already is and
+   never becomes a floating box the user has to reach up to. `100dvh`, not
+   `vh`: the dynamic unit is the one that accounts for the mobile browser's
+   collapsing address bar, so the sheet cannot end up taller than the screen. */
+@media (max-width: 767.98px) {
+  .modal-scrim:has(.modal--sheet) { place-items: end center; padding: 0; }
+  .modal--sheet { width: 100%; max-height: 88dvh;
+    border-radius: 22px 22px 0 0; padding: 1.4rem 1.15rem calc(1.4rem + env(safe-area-inset-bottom)); }
+  /* Grab handle — the affordance that says "this drags/dismisses downward",
+     and it doubles as the visual break between sheet and scrim. */
+  .modal--sheet::before { content: ''; display: block; width: 38px; height: 4px;
+    border-radius: 4px; background: var(--border-strong); margin: -0.35rem auto 1rem; }
+  .modal--sheet .modal-x { top: 0.9rem; right: 0.9rem; width: 34px; height: 34px; }
+  .psheet__img { aspect-ratio: 16/9; margin-bottom: 1rem; }
 }

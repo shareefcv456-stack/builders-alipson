@@ -7,11 +7,17 @@ export default function Modal({
   onClose,
   children,
   wide = false,
+  className = '',
 }: {
   open: boolean;
   onClose: () => void;
   children: ReactNode;
   wide?: boolean;
+  /* Lets a caller restyle the panel — the project sheet uses it to dock to the
+     bottom edge on a phone. Everything else about the modal (scrim, Escape,
+     body scroll-lock, enter/exit) is the same, which is the whole reason this
+     is a prop rather than a second component. */
+  className?: string;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -36,7 +42,7 @@ export default function Modal({
           onClick={(e) => e.target === e.currentTarget && onClose()}
         >
           <motion.div
-            className={`modal ${wide ? 'modal--wide' : ''}`}
+            className={`modal ${wide ? 'modal--wide' : ''} ${className}`}
             initial={{ opacity: 0, y: 30, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.98 }}

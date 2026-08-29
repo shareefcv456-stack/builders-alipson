@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { MapPin, Ruler, ArrowUpRight } from 'lucide-react';
+import { MapPin, Ruler, ArrowUpRight, Calendar, Tag } from 'lucide-react';
 import RevealText from './ui/RevealText';
 import Reveal from './ui/Reveal';
+import Modal from './ui/Modal';
 import BeforeAfter from './BeforeAfter';
 import AmbientCanvas from './AmbientCanvas';
 import { PROJECTS, PROJECT_FILTERS, type Project } from '../data/site';
@@ -11,13 +12,43 @@ import { useUI } from '../context/UIContext';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-function Card({ project }: { project: Project }) {
+/* The card face carries a location and a name and nothing else on a phone.
+   Everything it used to stack on top of the photograph — category, area, year,
+   the description — lives in here, one tap away. On desktop this is a centred
+   dialog; on a phone `.modal--sheet` docks it to the bottom edge as a drawer. */
+function ProjectSheet({ open, project, onClose }: {
+  open: boolean; project: Project | null; onClose: () => void;
+}) {
   const { openQuote } = useUI();
+  return (
+    <Modal open={open} onClose={onClose} className="modal--sheet">
+      {project && (
+        <div className="psheet">
+          <img {...imgProps(project.image, '(max-width: 800px) 100vw, 520px')} alt="" className="psheet__img" />
+          <span className="psheet__cat">{project.category}</span>
+          <h3 className="psheet__title">{project.title}</h3>
+          <dl className="psheet__specs">
+            <div><dt><MapPin size={14} /> Location</dt><dd>{project.location}</dd></div>
+            <div><dt><Ruler size={14} /> Built-up area</dt><dd>{project.area}</dd></div>
+            <div><dt><Calendar size={14} /> Completion</dt><dd>{project.year}</dd></div>
+            <div><dt><Tag size={14} /> Category</dt><dd>{project.category}</dd></div>
+          </dl>
+          <p className="psheet__desc">{project.desc}</p>
+          <button className="btn btn-primary psheet__cta" onClick={() => { onClose(); openQuote(); }}>
+            Enquire about this project <ArrowUpRight size={16} />
+          </button>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function Card({ project, onOpen }: { project: Project; onOpen: () => void }) {
   return (
     <motion.article
       layout
       className="proj cursor-target rounded-2xl overflow-hidden shadow-xl"
-      onClick={openQuote}
+      onClick={onOpen}
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
@@ -34,10 +65,13 @@ function Card({ project }: { project: Project }) {
       </div>
       <span className="proj__tag absolute top-4 left-4 bg-black/75 backdrop-blur-md text-white font-semibold text-xs px-3 py-1 rounded-full border border-white/20">{project.category}</span>
       <div className="proj__meta p-6">
+        {/* Named, not `:nth-child`. The phone face keeps ONLY the place and
+            drops area and year into the sheet, and a positional selector for
+            that would silently target the wrong span the day this row changes. */}
         <div className="proj__loc font-medium text-sm mb-3">
-          <span><MapPin size={12} /> {project.location}</span>
-          <span><Ruler size={12} /> {project.area}</span>
-          <span>{project.year}</span>
+          <span className="proj__place"><MapPin size={12} /> {project.location}</span>
+          <span className="proj__area"><Ruler size={12} /> {project.area}</span>
+          <span className="proj__year">{project.year}</span>
         </div>
         {/* No `text-2xl`. Like `text-white` and `h-auto` above it, that utility
             carries `!important` and pinned the title to a flat 1.5rem, killing
@@ -45,7 +79,17 @@ function Card({ project }: { project: Project }) {
         <h3 className="proj__title font-bold mb-2">{project.title}</h3>
         <div className="proj__reveal">
           <p>{project.desc}</p>
-          <span className="proj__view font-semibold mt-4 inline-flex items-center gap-1">View project <ArrowUpRight size={14} /></span>
+          {/* A <button>, not the <span> this was: it is the card's stated
+              affordance, so it has to be focusable and announce itself. The
+              click is the card's own handler either way — `stopPropagation`
+              only keeps the card from firing it twice. */}
+          <button
+            type="button"
+            className="proj__view font-semibold mt-4 inline-flex items-center gap-1"
+            onClick={(e) => { e.stopPropagation(); onOpen(); }}
+          >
+            View project <ArrowUpRight size={14} />
+          </button>
         </div>
       </div>
     </motion.article>
@@ -54,9 +98,24 @@ function Card({ project }: { project: Project }) {
 
 export default function Projects() {
   const [filter, setFilter] = useState('All');
+  /* TWO pieces of state, deliberately. `open` drives the modal; `detail` holds
+     the LAST opened project and is never cleared. Closing on `setDetail(null)`
+     alone would blank the panel's contents on the first frame of the exit
+     animation, so the sheet would collapse to an empty box on its way out. */
+  const [detail, setDetail] = useState<Project | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const openDetail = (p: Project) => { setDetail(p); setSheetOpen(true); };
   const shown = filter === 'All' ? PROJECTS : PROJECTS.filter((p) => p.tags.includes(filter));
 
   return (
+    /* THE SHEET IS A SIBLING OF THE SECTION, NOT A CHILD. `.section` carries
+       `isolation: isolate`, which opens a stacking context — and inside one,
+       the modal's `z-index: 1000` is only ever compared against its siblings in
+       that section. The fixed navbar (z-800) and the floating action buttons
+       (z-940) live outside it and so painted straight over the open sheet.
+       Hoisting it out of the section puts it back on the page's own stacking
+       order, where 1000 means what it says. */
+    <>
     <section id="work" className="section section--noir grain">
       <AmbientCanvas variant="cranes" className="z-10" />
       <div className="container relative z-20">
@@ -83,7 +142,7 @@ export default function Projects() {
         <motion.div className="projects__grid" layout>
           <AnimatePresence mode="popLayout">
             {shown.map((p) => (
-              <Card key={p.title} project={p} />
+              <Card key={p.title} project={p} onOpen={() => openDetail(p)} />
             ))}
           </AnimatePresence>
         </motion.div>
@@ -101,5 +160,7 @@ export default function Projects() {
         </Reveal>
       </div>
     </section>
+    <ProjectSheet open={sheetOpen} project={detail} onClose={() => setSheetOpen(false)} />
+    </>
   );
 }
