@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowUpRight, Download } from 'lucide-react';
 import Reveal from './ui/Reveal';
@@ -60,6 +60,36 @@ export default function Studio() {
     target: stepsRef, offset: ['start 85%', 'end 65%'],
   });
   const stepFill = useTransform(stepsProgress, [0, 1], [0, 1]);
+
+  /* THE RAIL IS MEASURED, NOT GUESSED. It has to start at the centre of icon 01
+     and stop dead at the centre of icon 03 — and the distance from the last
+     icon's centre to the bottom of the list is whatever the last step's
+     description happens to wrap to, which no CSS offset can know. The old
+     `top: 34px; bottom: 34px` was a guess against a two-line description and
+     measured 45px of red bleeding out under icon 03.
+     Measured from the DOM instead, and re-measured whenever the list resizes
+     (font loading, rotation, a copy edit). */
+  const [rail, setRail] = useState<{ top: number; height: number } | null>(null);
+  useLayoutEffect(() => {
+    const list = stepsRef.current;
+    if (!list) return;
+    const measure = () => {
+      const icons = list.querySelectorAll<HTMLElement>('.studio__hl-icon');
+      if (icons.length < 2) return;
+      const base = list.getBoundingClientRect().top;
+      const centre = (el: HTMLElement) => {
+        const r = el.getBoundingClientRect();
+        return r.top - base + r.height / 2;
+      };
+      const first = centre(icons[0]);
+      const last = centre(icons[icons.length - 1]);
+      setRail({ top: first, height: last - first });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(list);
+    return () => ro.disconnect();
+  }, []);
 
   return (
     <section id="studio" className="section section--noir studio grain">
@@ -195,20 +225,37 @@ export default function Studio() {
                 cards had. `amount: 0.6` on each step is what syncs the reveal
                 to the fill rather than to the list entering the viewport. */}
             <ul className="studio__highlights" ref={stepsRef}>
-              <div className="studio__hl-rail" aria-hidden="true">
+              <div
+                className="studio__hl-rail"
+                aria-hidden="true"
+                style={rail ? { top: rail.top, height: rail.height, bottom: 'auto' } : undefined}
+              >
                 <motion.div className="studio__hl-fill" style={{ scaleY: stepFill }} />
               </div>
+              {/* Standalone cards, and each one dims to 0.7 once it leaves the
+                  read position rather than staying lit. `once: false` is what
+                  makes it a scroll state instead of a one-shot entrance, so the
+                  active step tracks the rail fill on the way back up too. */}
               {HIGHLIGHTS.map((h, i) => (
-                <Reveal dir="up" delay={0} amount={0.6} key={h.title} className="studio__hl-row">
-                  <li className="studio__hl">
-                    <span className="studio__hl-icon"><h.icon size={20} strokeWidth={1.9} /></span>
-                    <span className="studio__hl-txt">
-                      <em className="studio__hl-step">0{i + 1}</em>
-                      <h4>{h.title}</h4>
-                      <p>{h.desc}</p>
-                    </span>
-                  </li>
-                </Reveal>
+                <motion.li
+                  className="studio__hl"
+                  key={h.title}
+                  variants={{
+                    rest: { opacity: 0.7, borderColor: 'rgba(255,255,255,0.10)' },
+                    active: { opacity: 1, borderColor: 'rgba(211,16,24,0.30)' },
+                  }}
+                  initial="rest"
+                  whileInView="active"
+                  viewport={{ amount: 0.7, once: false }}
+                  transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <span className="studio__hl-icon"><h.icon size={20} strokeWidth={1.9} /></span>
+                  <span className="studio__hl-txt">
+                    <em className="studio__hl-step">0{i + 1}</em>
+                    <h4>{h.title}</h4>
+                    <p>{h.desc}</p>
+                  </span>
+                </motion.li>
               ))}
             </ul>
 

@@ -339,8 +339,11 @@
   border-color: #d31018;
   box-shadow: 0 12px 24px -6px rgba(211, 16, 24, 0.12);
 }
+/* Centred on both axes, so a one-line label and a two-line label sit optically
+   level in equal-height boxes instead of both starting flush to the top. */
 .ribbon__cell-face {
   position: relative; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 1rem 0.85rem;
   border-radius: 12px;
   text-align: center;
@@ -614,17 +617,33 @@
 .studio__highlights { position: relative; list-style: none; margin: 1.2rem 0 0; padding: 0; }
 /* `--border`, not a hard-coded #E8EDF4: this panel is a `.section--noir`, where
    that light hairline reads as a bright white bar down the middle of the card.
-   The token is already dark-aware. */
-.studio__hl-rail { position: absolute; left: 21px; top: 34px; bottom: 34px; width: 2px;
-  margin-left: -1px; background: var(--border); border-radius: 2px; overflow: hidden; }
+   The token is already dark-aware.
+   `top` and `height` are written from JS (see the rail measurement in
+   Studio.tsx) so the line stops exactly on icon 03's centre. The offsets here
+   are the pre-measurement fallback for the frame before layout is read. */
+.studio__hl-rail { position: absolute; left: 26px; top: 34px; bottom: 34px; width: 2px;
+  margin-left: -1px; background: var(--border); border-radius: 2px; overflow: hidden;
+  z-index: 0; }
 .studio__hl-fill { position: absolute; inset: 0; transform-origin: top;
   background: linear-gradient(180deg, #d31018, #e52e35);
   box-shadow: 0 0 12px rgba(211, 16, 24, 0.45); }
-.studio__hl-row { position: relative; z-index: 1; }
 
-.studio__hl { position: relative; display: flex; gap: 0.9rem; align-items: flex-start;
-  padding: 0.7rem 0 0.85rem; background: transparent;
-  transition: translate 0.4s var(--ease-lux); }
+/* THREE CARDS, NOT ONE BOX. `.studio__hl` used to be a transparent row, and the
+   noir theme's blanket rule (`.section--noir :is(… .studio__hl …)`) gave each
+   one the same glass fill — three touching rectangles with no gaps between
+   them, which read as a single continuous panel wrapped around the stepper.
+   Each row is a card in its own right now, and the margin between them does the
+   separating. The border colour is deliberately NOT final here: framer-motion
+   animates it between the rest and active states, so declaring it twice would
+   just be a value that never wins. */
+.studio__hl { position: relative; z-index: 1;
+  display: flex; gap: 0.9rem; align-items: flex-start;
+  padding: 1rem 1.1rem; margin-bottom: 0.85rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  transition: background-color 0.4s var(--ease-lux); }
+.studio__highlights > li:last-child { margin-bottom: 0; }
 
 /* The icon is the node, so it needs an opaque fill — the rail runs behind it. */
 .studio__hl-icon { flex-shrink: 0; display: grid; place-items: center; width: 42px; height: 42px;
@@ -645,7 +664,9 @@
    nudged 5px right until you tap something else — see the global touch rules at
    the end of this file. */
 @media (hover: hover) and (pointer: fine) {
-  .studio__hl:hover { translate: 5px 0; }
+  /* Background, not `translate`: framer-motion owns this element's transform
+     for the rest/active animation and an inline transform beats a CSS rule. */
+  .studio__hl:hover { background: rgba(255, 255, 255, 0.08); }
   .studio__hl:hover .studio__hl-icon { transform: scale(1.08);
     background: rgba(211, 16, 24, 0.10); border-color: rgba(211, 16, 24, 0.28); color: #d31018; }
 }
@@ -892,9 +913,21 @@
               backdrop-filter 0.4s var(--ease-lux);
   will-change: translate; }
 
-/* CAD backdrop, behind the card's own content. */
+/* CAD backdrop, behind the card's own content. `isolation: isolate` on `.svc`
+   is what keeps this z-index: -1 inside the card instead of escaping behind the
+   section, so the two work as a pair — do not remove one without the other. */
 .svc__sketch { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%;
   pointer-events: none; }
+/* The copy sits on its own layer above the sketch. `z-index: -1` alone already
+   put the sketch behind, but the strokes still ran straight through the
+   descender space of the body text and made it fussy to read at phone size;
+   the fill below is a local scrim, so the line-work fades out behind words and
+   stays visible everywhere else. */
+.svc__title, .svc__rule, .svc__desc, .svc__more, .svc__icon, .svc__num {
+  position: relative; z-index: 1; }
+.svc__desc { border-radius: 6px;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.55); }
 
 .svc__num { position: absolute; top: 1.5rem; right: 1.6rem;
   font-family: var(--font-grotesk); font-weight: 600; font-size: 0.85rem;
@@ -1851,7 +1884,10 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   transition: color 0.35s var(--ease-lux); }
 .gate__card h3::after { content: ''; display: block; width: 28px; height: 2px;
   background: #d31018; margin-top: 0.6rem; }
-.gate__card p { font-size: 0.88rem; line-height: 1.65; color: #475569; margin-bottom: 1.4rem;
+/* #374151 (gray-700), up from #475569 (slate-600): 10.4:1 on the white card
+   against 7.5:1. Both pass AA; the darker one is the one that holds up on a
+   phone screen at arm's length in daylight. */
+.gate__card p { font-size: 0.88rem; line-height: 1.65; color: #374151; margin-bottom: 1.4rem;
   transition: color 0.35s var(--ease-lux); }
 
 .gate__more { margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center;
@@ -2074,9 +2110,26 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
      Only the two in-flow layers are re-positioned — the gate, the scrim, the
      grade and the stats bar stay absolute, so the gate still parts over the
      whole stage and the stats still rise from the bottom. */
+  /* 90svh, not a full viewport. The stage is a flex COLUMN here (copy, then
+     render), so a 100svh box left a band of dead navy under the render before
+     the stats bar, and the hero met the section below it a screen-height later
+     than it needed to.
+     Safe to shorten: the GSAP pin runway is `window.innerHeight * 1.3` (see
+     PIN_RUNWAY in StoryScroll), computed from the VIEWPORT, not from this
+     element, so the scroll choreography is untouched. Desktop keeps 100svh.
+
+     GATED ON `min-height: 800px`, and that guard is load-bearing. When WebGL is
+     unavailable the hero falls back to `.story--static`, which pins the stats
+     bar visible at the bottom of the stage instead of translating it off — and
+     on a short phone (320x568, 320x700) that bar ALREADY overlaps the CTA by
+     60-190px before anything here changes. Taking height away makes a bug that
+     is not mine measurably worse, so short viewports keep the full stage. */
+  @media (min-height: 800px) {
+    .story, .story--3d .story__stage { height: 90svh; min-height: 90svh; }
+  }
   .story--3d .story__stage {
     display: flex; flex-direction: column; justify-content: flex-start;
-    padding-top: clamp(4.5rem, 11vh, 7rem); }
+    padding-top: clamp(3.25rem, 8vh, 5rem); }
   /* The stage turns dark so the render's own sky continues into the band above
      it. Recolouring the copy for a light ground was the alternative and it is
      the worse one: the headline, accent, eyebrow pill, sub and Watch Story
@@ -2145,7 +2198,13 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
      numbers stacked into a column is a scroll, not a summary. Sized down to
      match — the desktop cap does not apply here, the cards take the full
      column. */
-  .ribbon__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+  /* `grid-auto-rows: 1fr` is the whole fix for "the boxes are different sizes".
+     Grid rows size INDEPENDENTLY, so the 2x2 measured 99px on row one and 114px
+     on row two — the two labels that wrap ("YEARS COMBINED EXPERTISE", "CLIENT
+     SATISFACTION") set the second row's height on their own. `1fr` makes both
+     rows share the tallest, and the cards were already stretching within a row. */
+  .ribbon__grid { grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 1fr; gap: 0.75rem; }
   .ribbon__grid.container { padding-inline: 1rem; }
   .ribbon__cell-face { padding: 1rem 0.75rem; }
   .ribbon__num { font-size: 1.5rem; padding-bottom: 0.4rem; }
@@ -2157,7 +2216,13 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
      40px plus a 1rem inset — about 3.5rem of the bottom-right corner — and in a
      2×2 grid that corner is a card, not a margin. Desktop reserves the same room
      with a `padding-right` at ≥1024px; two-up needs it on the other axis. */
-  .story__stats { padding-top: 0.75rem; padding-bottom: 6.75rem; }
+  /* 4.5rem, down from 6.75rem. This is the fixed floaters' keep-out, and it was
+     sized when they were a 139px-tall COLUMN in the corner; they are a 40px row
+     now (see `.floaters` in index.css), so 2.25rem of it was reserving space
+     for buttons that no longer reach up there. That 36px is the other half of
+     closing the hero's dead band — the stats block sits at the bottom of the
+     stage, so its own padding was part of the void above it. */
+  .story__stats { padding-top: 0.75rem; padding-bottom: 4.5rem; }
   .story__cue { margin-bottom: 0.7rem; font-size: 0.6rem; letter-spacing: 0.2em; }
 
   /* ---- 2 · SINGLE-COLUMN CARD GRIDS -------------------------------------- */
@@ -2470,7 +2535,10 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
    the treatment, so it is here rather than in the token block — but it is also
    the most expensive thing a phone composites, so the low-end probe in
    index.html turns it off and leaves the (already opaque enough) fill. */
-.section--noir :is(.contact__form, .contact__ic, .studio__details, .studio__hl, .field input, .field textarea) {
+/* `.studio__hl` is NOT in this list any more: it owns its own card surface (see
+   the stepper block above), and this rule's shared glass fill is exactly what
+   fused the three steps into one continuous panel. */
+.section--noir :is(.contact__form, .contact__ic, .studio__details, .field input, .field textarea) {
   background: var(--glass);
   border-color: var(--glass-brd);
   color: var(--text);
