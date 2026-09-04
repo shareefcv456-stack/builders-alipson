@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:3d": "tsc src/lib/traffic.ts src/lib/traffic.check.ts src/lib/vehicle.ts src/lib/vehicle.check.ts src/lib/models.ts src/lib/models.check.ts --outDir node_modules/.cache/check --module es2022 --target es2022 --moduleResolution bundler --strict --skipLibCheck && node node_modules/.cache/check/traffic.check.js && node node_modules/.cache/check/vehicle.check.js && node node_modules/.cache/check/models.check.js"
   },
   "dependencies": {
     "framer-motion": "^12.42.2",

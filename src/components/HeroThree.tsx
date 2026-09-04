@@ -184,7 +184,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     const envScene = cityEnvironment(SUN);
     const envRT = pmrem.fromScene(envScene, 0.02);
     scene.environment = envRT.texture;
-    scene.environmentIntensity = 0.6;
+    scene.environmentIntensity = 1.15;
     let hdrRT: THREE.WebGLRenderTarget | null = null;
     /* DESKTOP ONLY. The file is 1MB of RGBE that has to be DECODED ON THE MAIN
        THREAD — a scroll profile caught `RGBE_ReadPixels_RLE` and
@@ -203,7 +203,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
         // REFLECTIONS ONLY — the flat gradient stays the visible sky so the
         // backdrop is an even studio field rather than a photographic horizon.
         scene.environment = hdrRT.texture;
-        scene.environmentIntensity = 0.6;
+        scene.environmentIntensity = 1.15;
         hdr.dispose();
       },
       undefined,
@@ -241,7 +241,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     applyBackdrop();
 
     /* ---- daylight ---------------------------------------------------------- */
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.22));
     const sun = new THREE.DirectionalLight(0xffffff, 1.5);
     // High and slightly front-left: long enough shadows to read the massing,
     // short enough that they never cross the copy in frame-left.
@@ -285,13 +285,13 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     const rebarMat = new THREE.MeshStandardMaterial({ color: 0x6e4535, roughness: 0.45, metalness: 0.85, roughnessMap: metalRough });
     // Glass, to spec: ior 1.5, transmission 0.95, roughness 0.05.
     const glassMat = new THREE.MeshPhysicalMaterial({
-      color: 0x8fb3cf, roughness: 0.05, metalness: 0.1,
+      color: 0xcbdae6, roughness: 0.03, metalness: 0.1,
       transmission: 0.9, thickness: 1.2, ior: 1.5, reflectivity: 0.9,
       // Clearcoat is the lacquer layer: a second, sharper specular on top of the
       // transmissive glass. It is what makes architectural glazing catch a hard
       // sun highlight instead of reading as tinted cellophane.
       clearcoat: 1, clearcoatRoughness: 0.03,
-      transparent: true, side: THREE.DoubleSide, envMapIntensity: 1.0,
+      transparent: true, side: THREE.DoubleSide, envMapIntensity: 1.8,
     });
     const ledMat = new THREE.MeshStandardMaterial({ color: 0xf2f4f6, roughness: 0.4, metalness: 0.1 });
     const lampMat = new THREE.MeshStandardMaterial({ color: ACCENT, roughness: 0.4, metalness: 0.1 });
@@ -421,7 +421,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     const HEDGE = 26;
     const hedgeIM = new THREE.InstancedMesh(
       new THREE.BoxGeometry(0.58, 0.42, 0.34),
-      new THREE.MeshStandardMaterial({ color: 0x3f6b40, roughness: 0.97, flatShading: true }),
+      new THREE.MeshStandardMaterial({ color: 0x3f6b40, roughness: 0.97 }),
       HEDGE
     );
     hedgeIM.castShadow = hedgeIM.receiveShadow = true;
@@ -934,7 +934,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
        "low-poly game tree". Here each tree carries 16-22 small clumps at varied
        radius, height and scale, which is what breaks the sphere silhouette. */
     const barkMat = new THREE.MeshStandardMaterial({ color: 0x5b4636, roughness: 1 });
-    const leafMat = new THREE.MeshStandardMaterial({ color: 0x4a7a49, roughness: 0.92, flatShading: true });
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x4a7a49, roughness: 0.92 });
 
     type Clump = { p: THREE.Vector3; s: THREE.Vector3; tint: number };
     type Tree = { pos: THREE.Vector3; rot: number; tall: number; clumps: Clump[] };
@@ -976,7 +976,7 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
     const trunkIM = new THREE.InstancedMesh(
       upright(new THREE.CylinderGeometry(0.055, 0.12, 1.6, 7), 1.6), barkMat, TREES.length
     );
-    const canopyIM = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), leafMat, CLUMP_TOTAL);
+    const canopyIM = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 2), leafMat, CLUMP_TOTAL);
     canopyIM.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CLUMP_TOTAL * 3), 3);
     trunkIM.castShadow = canopyIM.castShadow = true;
     canopyIM.receiveShadow = true;
@@ -1006,8 +1006,8 @@ const HeroThree = forwardRef<ThreeHandle, { className?: string }>(function HeroT
       });
     }
     const shrubIM = new THREE.InstancedMesh(
-      new THREE.IcosahedronGeometry(1, 1),
-      new THREE.MeshStandardMaterial({ color: 0x3f6b40, roughness: 0.95, flatShading: true }),
+      new THREE.IcosahedronGeometry(1, 2),
+      new THREE.MeshStandardMaterial({ color: 0x3f6b40, roughness: 0.95 }),
       SHRUBS.length
     );
     shrubIM.castShadow = shrubIM.receiveShadow = true;

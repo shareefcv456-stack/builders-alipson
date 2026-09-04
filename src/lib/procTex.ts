@@ -577,86 +577,59 @@ export function facadeTexture(size = 256): { map: THREE.Texture; emissive: THREE
  * download when a 1024px canvas reads identically at this camera distance.
  */
 export function brandTexture(w = 1024, h = 256): { map: THREE.Texture; alpha: THREE.Texture } {
-  /* TWO canvases, not one. The colour sheet feeds `map`; a white-on-transparent
-     copy feeds `alphaMap`. They cannot be the same image: three samples the
-     GREEN channel for an alpha mask, and crimson (#d31018) has green 16 — reuse
-     the colour sheet as the mask and the red parts of the wordmark vanish. */
-  const sheet = (mark: string, name: string, sub: string) => {
-    const c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    const g = c.getContext('2d')!;
+  /* THE REAL ARTWORK, not a redraw. Loaded from /brand/alipson-logo.png and
+     CONTAIN-FITTED into the canvas, so the lockup keeps its 831:337 aspect
+     whatever aspect the sign plane happens to be — a cover fit or a stretch
+     would distort the mark, which the brand does not allow.
+
+     Two canvases, as before: the colour sheet feeds `map`, and a white-on-black
+     copy of the artwork's own alpha feeds `alphaMap`, because three samples the
+     GREEN channel for an alpha mask and the wordmark's brick red would drop out
+     if the colour sheet were reused as the mask.
+
+     The load is async and the textures are returned immediately; the canvases
+     are painted and flagged `needsUpdate` when the image lands, so callers stay
+     synchronous and no sign has to wait for a promise. */
+  const colour = document.createElement('canvas');
+  colour.width = w; colour.height = h;
+  const mask = document.createElement('canvas');
+  mask.width = w; mask.height = h;
+
+  const map = new THREE.CanvasTexture(colour);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.anisotropy = 16;
+  const alpha = new THREE.CanvasTexture(mask);
+  alpha.anisotropy = 16;
+
+  const img = new Image();
+  img.decoding = 'async';
+  img.onload = () => {
+    const g = colour.getContext('2d')!;
+    const gm = mask.getContext('2d')!;
+    const s = Math.min(w / img.width, h / img.height);
+    const dw = img.width * s, dh = img.height * s;
+    const dx = (w - dw) / 2, dy = (h - dh) / 2;
+
     g.clearRect(0, 0, w, h);
-    /* Every coordinate below is authored against a 1024×256 sheet. Scaling the
-       context means a bigger canvas actually raises the resolution instead of
-       drawing the same small artwork into one corner of it. */
-    g.scale(w / 1024, h / 256);
+    g.drawImage(img, dx, dy, dw, dh);
 
-    /* Faint blueprint watermark ruling across the panel face — reads as a
-       composite sheet rather than blank white at close range. Drawn first so
-       the wordmark sits on top of it. */
-    g.save();
-    g.globalAlpha = 0.08;
-    g.strokeStyle = '#ffffff';
-    g.lineWidth = 1;
-    for (let x = 24; x < 1024; x += 34) { g.beginPath(); g.moveTo(x, 12); g.lineTo(x, 244); g.stroke(); }
-    for (let y = 24; y < 256; y += 34) { g.beginPath(); g.moveTo(12, y); g.lineTo(1012, y); g.stroke(); }
-    g.restore();
+    // Cleared, NOT filled: compositing over black would make every pixel opaque
+    // and the mask would come back solid white.
+    gm.clearRect(0, 0, w, h);
+    gm.drawImage(img, dx, dy, dw, dh);
+    const d = gm.getImageData(0, 0, w, h);
+    for (let i = 0; i < d.data.length; i += 4) {
+      const a = d.data[i + 3];
+      d.data[i] = d.data[i + 1] = d.data[i + 2] = a;
+      d.data[i + 3] = 255;
+    }
+    gm.putImageData(d, 0, 0);
 
-    // The "A" mark: a chevron with a notch, matching the site's LogoMark.
-    const mx = 118, my = 128, s = 74;
-    g.fillStyle = mark;
-    g.beginPath();
-    g.moveTo(mx, my - s);
-    g.lineTo(mx - s * 0.82, my + s * 0.86);
-    g.lineTo(mx - s * 0.34, my + s * 0.86);
-    g.lineTo(mx, my - s * 0.06);
-    g.lineTo(mx + s * 0.34, my + s * 0.86);
-    g.lineTo(mx + s * 0.82, my + s * 0.86);
-    g.closePath();
-    g.fill();
-    // Inner diamond, knocked out so the mark reads at a distance.
-    g.globalCompositeOperation = 'destination-out';
-    g.beginPath();
-    g.moveTo(mx, my - s * 0.02);
-    g.lineTo(mx + s * 0.2, my + s * 0.36);
-    g.lineTo(mx, my + s * 0.74);
-    g.lineTo(mx - s * 0.2, my + s * 0.36);
-    g.closePath();
-    g.fill();
-    g.globalCompositeOperation = 'source-over';
-
-    g.textBaseline = 'middle';
-    /* Subtle crimson back-glow behind ALIPSON only — the canvas equivalent of
-       text-shadow: 0 0 12px rgba(211, 16, 24,0.4). Cleared before BUILDERS so the
-       slate line stays crisp. */
-    g.fillStyle = name;
-    g.font = '800 82px "Syne", "Manrope", sans-serif';
-    g.letterSpacing = '10px';
-    g.shadowColor = 'rgba(211, 16, 24, 0.6)';
-    g.shadowBlur = 14;
-    g.fillText('ALIPSON', 214, my - 26);
-    g.shadowBlur = 0;
-    g.shadowColor = 'transparent';
-    g.fillStyle = sub;
-    g.font = '700 46px "Plus Jakarta Sans", sans-serif';
-    g.letterSpacing = '10px';
-    g.fillText('BUILDERS', 218, my + 40);
-    return c;
+    map.needsUpdate = true;
+    alpha.needsUpdate = true;
   };
+  img.src = '/brand/alipson-logo.png';
 
-  /* Mark and ALIPSON in brand crimson at 800; BUILDERS in slate-black at 700
-     with 0.15em (6px) tracking. BUILDERS was 600-weight and mostly anti-aliased edge at
-     render scale — in crimson it measured 2.78:1 against the white board,
-     against ALIPSON's 14.25:1. The heavier weight, wider tracking and slate
-     fill are what make it readable at billboard distance. */
-  const colour = sheet('#d31018', '#d31018', '#FFFFFF');
-  const mask = sheet('#ffffff', '#ffffff', '#ffffff');
-
-  const mk = (c: HTMLCanvasElement, srgb: boolean) => {
-    const t = new THREE.CanvasTexture(c);
-    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = 16;   // read at a grazing angle for most of the shot
-    return t;
-  };
-  return { map: mk(colour, true), alpha: mk(mask, false) };
+  return { map, alpha };
 }
+

@@ -22,7 +22,6 @@ export default function Contact() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
-  const [mapOn, setMapOn] = useState(false);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const next = { ...values, [k]: e.target.value };
@@ -82,20 +81,17 @@ export default function Contact() {
             </div>
           </Reveal>
           <Reveal delay={0.15}>
-            {/* The only map on the page, and it costs nothing until asked for.
-                `loading="lazy"` does not help here: <Deferred> mounts this
-                section a viewport early, so the embed used to pull ~1MB of
-                Google JS onto the main thread mid-scroll. Click to load. */}
+            {/* The map renders directly — no click-to-load gate. It is still
+                the ONLY map on the page and it still carries `loading="lazy"`,
+                so the iframe is not fetched until it is near the viewport. */}
             <div className="contact__map">
-              {mapOn ? (
-                <iframe src={CONTACT.mapEmbed} loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Alipson Builders location" allowFullScreen />
-              ) : (
-                <button type="button" className="contact__map-load" onClick={() => setMapOn(true)}>
-                  <MapPin size={18} />
-                  <span>Show map</span>
-                  <small>{CONTACT.address}</small>
-                </button>
-              )}
+              <iframe
+                src={CONTACT.mapEmbed}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title={`Alipson Builders — ${CONTACT.address}`}
+                allowFullScreen
+              />
             </div>
           </Reveal>
         </div>

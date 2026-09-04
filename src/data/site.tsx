@@ -31,12 +31,14 @@ export const NAV = [
 ];
 
 /* ---- STATS -------------------------------------------------------------- */
-export type Stat = { value: number; suffix: string; label: string };
+/* Icons are drawn from the set this file already imports for Services and
+   Highlights, so the stat cards add no weight to the icons chunk. */
+export type Stat = { value: number; suffix: string; label: string; icon: LucideIcon };
 export const STATS: Stat[] = [
-  { value: 150, suffix: '+', label: 'Projects Delivered' },
-  { value: 100, suffix: '%', label: 'On-Time Completion' },
-  { value: 15, suffix: '+', label: 'Years Combined Expertise' },
-  { value: 100, suffix: '%', label: 'Client Satisfaction' },
+  { value: 150, suffix: '+', label: 'Projects Delivered', icon: Building2 },
+  { value: 100, suffix: '%', label: 'On-Time Completion', icon: Clock },
+  { value: 15, suffix: '+', label: 'Years Combined Expertise', icon: Award },
+  { value: 100, suffix: '%', label: 'Client Satisfaction', icon: Users },
 ];
 
 /* ---- SERVICES ----------------------------------------------------------- */

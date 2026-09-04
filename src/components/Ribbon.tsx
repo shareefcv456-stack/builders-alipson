@@ -19,6 +19,7 @@ const item = {
 
 function Cell({ stat, index }: { stat: Stat; index: number }) {
   const { value, ref } = useCountUp(stat.value);
+  const Icon = stat.icon;
   return (
     <motion.div
       className="ribbon__cell"
@@ -41,6 +42,12 @@ function Cell({ stat, index }: { stat: Stat; index: number }) {
           glow cannot live on either of them. */}
       <div className="ribbon__cell-edge">
         <div className="ribbon__cell-face">
+          {/* Decorative: the label already says what the figure is, so an
+              accessible name here would only make a screen reader read each
+              card twice. */}
+          <span className="ribbon__icon" aria-hidden>
+            <Icon size={17} strokeWidth={1.75} />
+          </span>
           <div className="ribbon__num">
             {/* Count-up runs off this span's own IntersectionObserver, so it
                 starts when the card is on screen — not when the pinned hero

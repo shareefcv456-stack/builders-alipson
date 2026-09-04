@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 /**
  * Mounts a below-the-fold section only once it is close to the viewport, so its
@@ -17,6 +17,13 @@ import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
  *
  * `minHeight` reserves space so the page does not collapse to nothing and then
  * grow as sections arrive — the scrollbar stays roughly honest either way.
+ *
+ * IT IS PUBLISHED AS A CUSTOM PROPERTY, not as an inline `min-height`, and that
+ * is the whole point: an inline height cannot be reached by a media query, so
+ * the desktop-calibrated 100dvh reservations were also reserving a FULL PHONE
+ * VIEWPORT of blank per section. Roughly 800px of nothing, several times down
+ * the page. As a variable, `.deferred-slot` can cap it per breakpoint (see
+ * sections.css) while desktop keeps the value each caller asked for.
  */
 export default function Deferred({
   id, minHeight = '70dvh', children,
@@ -38,6 +45,13 @@ export default function Deferred({
     return () => io.disconnect();
   }, [show]);
 
-  if (show) return <Suspense fallback={<div style={{ minHeight }} aria-hidden />}>{children}</Suspense>;
-  return <div ref={slot} id={id} style={{ minHeight }} aria-hidden />;
+  const slotStyle = { '--slot-h': minHeight } as CSSProperties;
+  if (show) {
+    return (
+      <Suspense fallback={<div className="deferred-slot" style={slotStyle} aria-hidden />}>
+        {children}
+      </Suspense>
+    );
+  }
+  return <div ref={slot} id={id} className="deferred-slot" style={slotStyle} aria-hidden />;
 }

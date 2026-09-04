@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, X, ArrowUpRight } from 'lucide-react';
 import Logo from './ui/Logo';
@@ -16,6 +16,24 @@ export default function Navbar() {
   const [active, setActive] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const { openQuote } = useUI();
+  const bar = useRef<HTMLElement>(null);
+
+  /* PUBLISH THE BAR'S REAL HEIGHT as `--nav-h`, so the page can offset anchor
+     targets by what the navbar ACTUALLY measures rather than by a number typed
+     into the stylesheet. It was 100px there against a bar that is 104px tall at
+     the top of the page and 92px once it condenses — so every in-page link
+     landed its heading four pixels underneath the navbar with no gap at all.
+     A ResizeObserver keeps it right through the condense, a rotation, a font
+     swap or any future change to the bar's padding. */
+  useEffect(() => {
+    const el = bar.current;
+    if (!el) return;
+    const write = () => document.documentElement.style.setProperty('--nav-h', `${Math.round(el.getBoundingClientRect().height)}px`);
+    write();
+    const ro = new ResizeObserver(write);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     /* Scrollspy: the active item is the LAST nav section whose top has crossed
@@ -73,7 +91,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className={`nav ${scrolled ? 'scrolled' : ''} ${past ? 'is-in' : ''}`} aria-hidden={!past}>
+      <header ref={bar} className={`nav ${scrolled ? 'scrolled' : ''} ${past ? 'is-in' : ''}`} aria-hidden={!past}>
         <div className="nav__inner">
           <a href="#hero" onClick={(e) => { e.preventDefault(); go('hero'); }} data-cursor="Home">
             <Logo compact={scrolled} />

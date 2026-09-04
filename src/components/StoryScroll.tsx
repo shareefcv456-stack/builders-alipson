@@ -11,7 +11,7 @@ import { isCapture } from '../lib/capture';
 import Ribbon from './Ribbon';
 import HeroLoader from './HeroLoader';
 import HeroWireframe, { P1_T, P2_T, type WireHandle } from './HeroWireframe';
-import type { ThreeHandle } from './HeroThree';
+import type { ThreeHandle } from './HeroSite';
 import { HERO_FRAMES, HERO_FRAMES_SMALL, MEDIA, mediaSmall } from '../lib/media';
 import { isLite, isPhone } from '../lib/device';
 
@@ -19,12 +19,15 @@ gsap.registerPlugin(ScrollTrigger);
 
 /* three is ~150KB gzipped — lazy so the flat hero never pays for it, and so it
    is never in the critical path for first paint. */
-const HeroThree = lazy(() => import('./HeroThree'));
+const HeroSite = lazy(() => import('./HeroSite'));
 
 /**
  * TWO HERO RENDERERS, ONE TIMELINE.
  *
- *   default   real 3D — three.js scene with a craning, orbiting camera
+ *   default   real 3D — HeroSite: one continuous scroll-driven construction,
+ *             blueprint → excavation → frame → facade → finished landmark.
+ *             Its own phase map lives in that file; everything below (pin,
+ *             gate, copy, tail) is renderer-agnostic.
  *   ?flat     the authored SVG drawing over the photographic frame sequence
  *
  * Both are driven by the identical playhead, phase map, pin, gate and copy
@@ -32,8 +35,26 @@ const HeroThree = lazy(() => import('./HeroThree'));
  * switch, not architecture — once one is chosen, delete the other and this
  * flag with it.
  */
-const use3D = () =>
-  typeof window === 'undefined' || !window.location.search.includes('flat');
+/**
+ * THREE RENDERERS, ONE TIMELINE. Everything below — the pin, the Lenis sync,
+ * the damped playhead, the phase copy, the stats and the section hand-off — is
+ * renderer-agnostic and shared. Only the thing being painted differs.
+ *
+ *   default   3D — HeroSite, the scroll-driven construction scene.
+ *   ?flat     the authored SVG drawing over the photographic frame sequence.
+ *   ?video    a scrubbed <video>. Opt-in, because the hero is the 3D scene.
+ *
+ * `?video` needs `public/assets/timelapse.mp4`, which is not in the repo. Until
+ * it is, the element fails to load and the mode falls back to 3D — so the flag
+ * is safe to add to a URL today, it simply shows the normal hero.
+ */
+type HeroMode = 'three' | 'flat' | 'video';
+const pickMode = (): HeroMode => {
+  const q = typeof window === 'undefined' ? '' : window.location.search;
+  if (q.includes('video')) return 'video';
+  if (q.includes('flat')) return 'flat';
+  return 'three';
+};
 
 const N = HERO_FRAMES.length;
 /* ---- CONSTRUCTION TIMELINE ------------------------------------------------
@@ -61,11 +82,16 @@ const GATE_END = 0.08;     // doors finished parting
  *  Derived from GATE_END and the pin runway below rather than restated, so the
  *  navbar (which stays hidden behind the closed gate) cannot drift out of sync
  *  with the gate it is waiting on. */
-/* Phone runway cut from 2.2 viewports to 1.3. Every phase beat still gets its
-   own stretch of scroll — the timeline is expressed in fractions, so it simply
-   plays over a shorter runway — but the entrance no longer costs three full
-   swipes before the first section of the site appears. */
-const PIN_RUNWAY = () => window.innerHeight * (window.innerWidth < 760 ? 1.3 : 3);
+/* MOVIE PACING. 4.6 viewports of runway on top of the 1-viewport section — a
+   ~560vh experience, at the top of the 400–600vh the brief asks for. Eight
+   camera scenes and eight construction stages across three viewports were
+   arriving faster than any of them could be read.
+
+   The phone gets 3.2 rather than the same 5.6: a swipe covers far more of the
+   runway than a wheel notch does, so matching the desktop number would make the
+   phone SLOWER in scroll-gestures, not slower in time. Every phase beat is
+   expressed as a fraction, so both play the identical timeline. */
+const PIN_RUNWAY = () => window.innerHeight * (window.innerWidth < 760 ? 3.2 : 5.6);
 export function gateOpenScroll() {
   if (typeof window === 'undefined') return 0;
   return PIN_RUNWAY() * GATE_END;
@@ -76,10 +102,16 @@ const PHASE_4_END = 0.85;  // facade closed, interior lights up
  *  runway: the building holds complete, the headline fades, and only then does
  *  the pin release — so the text can never share the viewport with the stats. */
 const BUILD_END = 0.9;
-/** The phase-4 climax line runs 85%→95%, so the copy holds later than the
- *  building finishes. It must still be fully clear before the pin releases at
- *  1.0 or it lands on top of the stats ribbon. */
-const COPY_OUT = 0.95;
+/** When the headline starts to leave, as a fraction of the WHOLE trigger — the
+ *  gsap beats below are fractions of the timeline's own duration, which is
+ *  scrubbed across the entire pin, so these are trigger fractions and not build
+ *  fractions. It clears just after the build ends, because everything after
+ *  that belongs to the gate, the car and the road: a headline still sitting over
+ *  the frame while the hero car drives out is the one thing that would stop act
+ *  two reading as a shot rather than as a slide. */
+const COPY_OUT = 0.72;
+/** …and how long it takes to go. Short: it is leaving, not being animated. */
+const COPY_FADE = 0.08;
 /** Phase 1 and 2 edges (0.20 / 0.40). Derived from the drawing's own phase
  *  boundaries rather than restated, so the two files cannot drift out of sync. */
 const PHASE_1_END = GATE_END + P1_T * (PHASE_3_END - GATE_END);
@@ -101,41 +133,59 @@ if (import.meta.env.DEV) {
  *  keep it light — stack two heavy dampers and the hero feels detached. */
 const EASE = 0.12;
 
-/** The construction occupies the first 75% of the pinned scroll. The remaining
- *  25% is the HANDOFF TAIL: the stats bar rises over the still-pinned canvas and
- *  the camera reframes the finished landmark above it. Splitting it this way
- *  keeps every phase fraction above expressed against the construction, so the
- *  verified phase map does not move when the tail's length changes. */
-const BUILD_FRACTION = 0.75;
-/** Tail window, in trigger progress. Starts slightly after the build ends so the
- *  copy has cleared before the stats begin to rise. */
-const TAIL_FROM = 0.78;
+/**
+ * TWO ACTS ON ONE PIN.
+ *
+ *   0 → 0.70   THE BUILD. The construction playhead runs 0..1 across this, so
+ *              every phase fraction in HeroSite stays expressed against the
+ *              construction and does not move when act two changes length.
+ *   0.70 → 1   THE OUTRO. One continuous shot: the stats settle over the
+ *              finished property, the camera drops to reveal the gate, the gate
+ *              opens, the hero car lights up and drives out onto the road, the
+ *              camera follows it, and the frame hands over to the section
+ *              below. Nothing here is a cut — it is the same scene, still
+ *              scrubbed by the same scroll.
+ *
+ * Both are pure functions of trigger progress, so scrolling UP runs the gate
+ * shut and reverses the car for free.
+ */
+const BUILD_FRACTION = 0.70;
 
 /**
  * Left-hand copy, keyed to construction progress. `at` is the scroll fraction
  * the beat takes over at. `accent` is the tail of the headline that carries the
  * brand red — kept as a separate field so the string stays one sentence.
  */
+/* Four words per beat, changing AT the stage they name — keyed to the phase map
+   in HeroSite: foundation 0–0.12, columns 0.12–0.28, frame 0.28–0.62, facade
+   0.62–0.88, handover 0.88–1. The copy is the caption; the render is the story,
+   so every beat is short enough to read in one glance and then get out of the
+   way of the building. */
 const PHASES = [
   {
     at: 0,
-    title: 'Solid ', accent: 'Foundations',
-    sub: 'Laying the groundwork with engineered precision and uncompromised strength.',
+    title: 'From ', accent: 'Vision',
+    sub: 'Every Alipson landmark starts as a set of lines on bare ground.',
   },
   {
-    at: 0.25,
-    title: 'Architectural ', accent: 'Precision',
-    sub: 'Raising multi-story steel frameworks and reinforced concrete structures.',
+    at: 0.10,
+    title: 'Built With ', accent: 'Precision',
+    sub: 'Footings, grade beams and reinforcement, set out to the millimetre.',
   },
   {
-    at: 0.6,
-    title: 'Modern ', accent: 'Aesthetics',
-    sub: 'Wrapping structures in smart reflective glass and premium finishes.',
+    at: 0.30,
+    title: 'Structure In ', accent: 'Motion',
+    sub: 'Columns rise, beams span, slabs cast — floor after floor.',
   },
   {
-    at: 0.85,
-    title: 'Building Landmarks, ', accent: 'Delivering Trust.',
-    sub: 'Transforming vision into iconic reality.',
+    at: 0.64,
+    title: 'Engineered ', accent: 'To Last',
+    sub: 'Stone, glass and detail, closed around a frame built to outlive us.',
+  },
+  {
+    at: 0.88,
+    title: 'From Vision ', accent: 'To Structure',
+    sub: 'Alipson Builders — landmarks, delivered.',
   },
 ] as const;
 
@@ -150,12 +200,15 @@ const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const span = (a: number, b: number, v: number) => clamp01((v - a) / (b - a));
 
 /** `?hero=0.35` freezes the whole hero on one playhead value — for screenshots
- *  and QA of a single phase, mirroring `?introstep=` on the cinematic intro. */
-const pinnedHero = () => {
+ *  and QA of a single phase, mirroring `?introstep=` on the cinematic intro.
+ *  `?hero=1&outro=0.6` freezes act two as well, which is the only way to hold a
+ *  single frame of the gate/car shot still enough to look at. */
+const pinnedAt = (key: string) => {
   if (typeof window === 'undefined') return null;
-  const v = new URLSearchParams(window.location.search).get('hero');
+  const v = new URLSearchParams(window.location.search).get(key);
   return v === null || v === '' || Number.isNaN(+v) ? null : clamp01(+v);
 };
+const pinnedHero = () => pinnedAt('hero');
 
 export default function StoryScroll() {
   const root = useRef<HTMLElement>(null);
@@ -164,7 +217,16 @@ export default function StoryScroll() {
   const plate = useRef<HTMLDivElement>(null);
   const glow = useRef<HTMLDivElement>(null);
   const three = useRef<ThreeHandle>(null);
-  const is3D = useRef(use3D()).current;
+  const video = useRef<HTMLVideoElement>(null);
+  const mode = useRef<HeroMode>(pickMode()).current;
+  /* A missing or undecodable file drops back to the 3D hero rather than
+     leaving a black rectangle where the hero was. Since the mp4 is not in the
+     repo yet, this IS the live path for `?video` today. */
+  const [videoFailed, setVideoFailed] = useState(false);
+  const active: HeroMode = mode === 'video' && videoFailed ? 'three' : mode;
+  /* Every existing guard in this file keys off `is3D`, and all of them mean
+     "the WebGL scene is the renderer" — which the video mode is not. */
+  const is3D = active === 'three';
   /* THE 3D SCENE IS NOT PART OF FIRST PAINT ON A PHONE.
      three.js is 720 KB of script before the scene itself is built, and on a
      mid-range phone that parse-plus-build is most of the page's blocking time —
@@ -191,8 +253,9 @@ export default function StoryScroll() {
   const cur = useRef(-1);     // where it actually is (eased toward target)
   const { openVideo } = useUI();
   const pinned = useRef(pinnedHero()).current;
+  const pinnedOut = useRef(pinnedAt('outro')).current;
   const [phase, setPhase] = useState(() => phaseAt(pinnedHero() ?? 0));
-  const tail = useRef(0);       // 0..1 across the stats handoff
+  const outro = useRef(0);      // 0..1 across act two — stats, gate, car, road
   const stats = useRef<HTMLDivElement>(null);
   const cue = useRef<HTMLDivElement>(null);
   const still = pinned === null && (isCapture() || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches));
@@ -220,34 +283,109 @@ export default function StoryScroll() {
   useEffect(() => {
     if (!is3D) return;
     let raf = 0;
-    if (still) { three.current?.update(1); return; }
+    if (still) { three.current?.update(1, 0.34); return; }
     const loop = () => {
       raf = requestAnimationFrame(loop);
       const t = pinned ?? target.current;
       if (cur.current < 0) cur.current = t;
       else cur.current += (t - cur.current) * EASE;
       if (Math.abs(t - cur.current) < 0.0002) cur.current = t;
-      three.current?.update(cur.current, tail.current);
+      three.current?.update(cur.current, pinnedOut ?? outro.current);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [is3D, still, pinned]);
+  }, [is3D, still, pinned, pinnedOut]);
 
-  /** Stats bar + scroll cue ride the tail. Style writes only — running this
-   *  through React state would re-render the tree on every frame of the
-   *  handoff, which is the one place the scroll must stay glassy. */
+  /**
+   * VIDEO SCRUB. Same damped playhead as the other two renderers — `cur` eases
+   * toward the scroll target, and the frame shown is that number times the
+   * duration. Nothing here plays: `play()` is never called, the element is only
+   * ever seeked, which is what makes the scroll the transport.
+   *
+   * THE SEEK GUARD IS THE WHOLE TRICK. Assigning `currentTime` while a seek is
+   * still in flight cancels it and starts another, and at 60 fps that is a
+   * decoder that never lands a frame — the classic "scrubbing video stutters"
+   * bug. One seek at a time, and only when the target has moved more than a
+   * frame's worth, so a resting scroll issues none at all.
+   */
+  useEffect(() => {
+    if (active !== 'video') return;
+    const v = video.current;
+    if (!v) return;
+
+    let raf = 0, dur = 0, seeking = false;
+    const onMeta = () => { dur = v.duration || 0; };
+    const onSeeked = () => { seeking = false; };
+    const onError = () => setVideoFailed(true);
+    v.addEventListener('loadedmetadata', onMeta);
+    v.addEventListener('seeked', onSeeked);
+    v.addEventListener('error', onError);
+    if (v.readyState >= 1) onMeta();
+
+    const loop = () => {
+      raf = requestAnimationFrame(loop);
+      if (!dur) return;
+      const t = still ? 1 : (pinned ?? target.current);
+      if (cur.current < 0) cur.current = t;
+      else cur.current += (t - cur.current) * EASE;
+      if (Math.abs(t - cur.current) < 0.0002) cur.current = t;
+      const want = clamp01(cur.current) * dur;
+      // A frame at 30fps. Below this the seek would land on the frame already
+      // on screen, so it is pure decoder work for no visible change.
+      if (!seeking && Math.abs(v.currentTime - want) > 1 / 30) {
+        seeking = true;
+        v.currentTime = want;
+      }
+    };
+    raf = requestAnimationFrame(loop);
+    return () => {
+      cancelAnimationFrame(raf);
+      v.removeEventListener('loadedmetadata', onMeta);
+      v.removeEventListener('seeked', onSeeked);
+      v.removeEventListener('error', onError);
+    };
+  }, [active, still, pinned]);
+
+  /** Stats bar, scroll cue and the section bridge ride act two. Style writes
+   *  only — running this through React state would re-render the tree on every
+   *  frame of the handoff, which is the one place the scroll must stay glassy. */
   useEffect(() => {
     if (still) return;
     let raf = 0;
     const loop = () => {
       raf = requestAnimationFrame(loop);
-      const k = tail.current;
+      const k = outro.current;
+      /* THE BAR RISES, THEN DUCKS FOR THE CAR, THEN COMES BACK.
+         It used to rise once and hold for the rest of the pin, on the reasoning
+         that the four figures are hero content rather than a transition effect.
+         That is still true — but the car exit runs from o 0.40 to 0.96 and
+         crosses the LOWER FOREGROUND, which is exactly the band the bar
+         occupies, so holding meant the payoff of the whole sequence played
+         behind four opaque cards.
+         So the bar ducks rather than leaves: down 60% of its own height and
+         back to 0.15, which keeps the figures present as a ghost instead of
+         yanking hero content off screen. It returns as the camera lifts at the
+         end of the shot and the road falls away, so the last thing standing
+         before the section hand-off is still the four numbers.
+         Pure function of `k`, like everything else here, so scrolling back up
+         un-ducks it on the way. */
+      const rise = span(0.02, 0.26, k);
+      // Out while the car is crossing the foreground, back once it has gone.
+      const duck = span(0.50, 0.62, k) * (1 - span(0.90, 0.985, k));
       if (stats.current) {
-        stats.current.style.transform = `translate3d(0, ${((1 - k) * 100).toFixed(2)}%, 0)`;
-        stats.current.style.opacity = String(Math.min(1, k * 2.2));
+        const y = (1 - rise) * 100 + duck * 60;
+        stats.current.style.transform = `translate3d(0, ${y.toFixed(2)}%, 0)`;
+        stats.current.style.opacity = String(Math.min(1, rise * 2.2) * (1 - duck * 0.85));
       }
-      // The cue only appears once the stats are seated, and points onward.
-      if (cue.current) cue.current.style.opacity = String(span(0.72, 1, k));
+      // The cue appears once the stats are seated, and points onward.
+      if (cue.current) cue.current.style.opacity = String(span(0.5, 0.9, rise));
+      /* NO BRIDGE OVERLAY. Dissolving the render into the page's ground colour
+         was the right idea and the wrong colour: `--bg` is white in the default
+         theme, so the last beat played as a white wash rolling up over the
+         building, the road and the cars. The hand-over is done in the SCENE
+         instead — the camera rises, the road runs to a fogged horizon, and the
+         pin releases onto the next section the same way every other section
+         boundary on this page does. Darkness and depth, no overlay. */
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
@@ -341,6 +479,9 @@ export default function StoryScroll() {
     const loop = () => {
       raf = requestAnimationFrame(loop);
       if (!visible) return;
+      /* Reduced motion / capture: hold on the finished building rather than
+         scrubbing to it. The 3D loop answers `still` the same way. */
+      if (still) { draw(1); return; }
       const t = target.current;
       if (cur.current < 0) cur.current = t;
       else cur.current += (t - cur.current) * EASE;
@@ -415,7 +556,7 @@ export default function StoryScroll() {
           onUpdate: (self) => {
             const build = clamp01(self.progress / BUILD_FRACTION);
             target.current = build;
-            tail.current = span(TAIL_FROM, 1, self.progress);
+            outro.current = span(BUILD_FRACTION, 1, self.progress);
             // Functional updater returning the SAME value makes React bail out,
             // so this is free on every frame that does not cross a boundary.
             const i = phaseAt(build);
@@ -450,10 +591,10 @@ export default function StoryScroll() {
         // goes visibility:hidden — at opacity 0 alone the CTAs stay clickable and
         // stay in the a11y tree, hovering invisibly over the stats section.
         .to('.story__finale-copy',
-          { autoAlpha: 0, y: -20, ease: 'power1.out', duration: (1 - COPY_OUT) * SPAN },
+          { autoAlpha: 0, y: -26, ease: 'power1.out', duration: COPY_FADE * SPAN },
           COPY_OUT * SPAN)
         .to('.story__copy-scrim',
-          { autoAlpha: 0, ease: 'power1.out', duration: (1 - COPY_OUT) * SPAN },
+          { autoAlpha: 0, ease: 'power1.out', duration: COPY_FADE * SPAN },
           COPY_OUT * SPAN);
 
       if (pinned !== null) tl.progress(pinned);
@@ -470,9 +611,28 @@ export default function StoryScroll() {
   }, [still, pinned]);
 
   return (
-    <section id="hero" className={`story ${still ? 'story--static' : ''} ${is3D ? 'story--3d' : ''}`} ref={root} aria-label="Alipson Builders — a project from excavation to handover">
+    <section id="hero" className={`story ${still ? 'story--static' : ''} ${active !== 'flat' ? 'story--3d' : ''}`} ref={root} aria-label="Alipson Builders — a project from excavation to handover">
       <div className="story__stage">
-        {is3D ? (
+        {active === 'video' && (
+          /* Scrubbed timelapse — opt-in via ?video, never the default. It is
+             never PLAYED: the scroll seeks it, which is what makes the scrub
+             the transport. `preload="auto"` so the decoder has data to seek
+             into, muted + playsInline so mobile browsers allow it, and a
+             compositor promotion (in CSS) so each seek repaints on the GPU.
+             Missing file -> `error` -> the 3D hero, so this flag is safe on a
+             URL today. */
+          <video
+            ref={video}
+            className="story__video"
+            src="/assets/timelapse.mp4"
+            preload="auto"
+            muted
+            playsInline
+            disablePictureInPicture
+            aria-hidden
+          />
+        )}
+        {active === 'three' && (
           /* Real 3D — one WebGL canvas, camera cranes and orbits as it builds.
              The poster sits UNDER it rather than being swapped out, so the
              hand-off is a crossfade the compositor does for free instead of a
@@ -496,20 +656,27 @@ export default function StoryScroll() {
                   src={mediaSmall('heroPoster')}
                   srcSet={`${mediaSmall('heroPoster')} 800w, ${MEDIA.heroPoster} 1024w`}
                   sizes="100vw" width={1024} height={1024}
-                  alt="" aria-hidden decoding="async" fetchPriority="high"
+                  alt="" aria-hidden decoding="async"
+                  /* React 18 does not map camelCase `fetchPriority` to the DOM
+                     attribute and logs an error for it; the lowercase form is
+                     what the browser reads. */
+                  {...{ fetchpriority: 'high' }}
                 />
               : <HeroLoader />}>
-              <HeroThree ref={three} className="story__three" />
+              <HeroSite ref={three} className="story__three" />
             </Suspense>
           )
-        ) : (
+        )}
+        {active === 'flat' && (
           <>
-            {/* Scroll-scrubbed construction film */}
+            {/* Scroll-scrubbed construction film — ?flat ONLY. The default hero
+                is the 3D scene and nothing else; these photographs are never
+                painted behind it. */}
             <canvas
               ref={canvas}
               className="story__canvas"
               role="img"
-              aria-label="A single Alipson project filmed from empty site through excavation, structure and facade to the finished, illuminated building"
+              aria-label="A single Alipson project filmed from excavation through structure and facade to the finished, illuminated building"
             />
             <div className="story__plate" ref={plate} />
             <HeroWireframe ref={wire} className="story__wire" />

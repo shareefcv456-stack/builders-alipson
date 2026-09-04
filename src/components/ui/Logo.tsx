@@ -1,36 +1,55 @@
 /**
- * Alipson mark — a single sharp crimson glyph fusing the four brand concepts:
- * the apex reads as an upward Arrow / Rocket nose and a Roof; the two legs +
- * crossbar form the letter "A". White inner core = the rocket taking off.
+ * THE OFFICIAL ALIPSON BUILDERS MARK.
+ *
+ * Both files are the supplied artwork, unaltered — the only processing was
+ * removing the opaque white canvas it shipped on (it has to be transparent to
+ * sit on the dark footer, the dark navbar state and the hero's split gate) and
+ * splitting the mark from the lockup for the square slots. Nothing is redrawn,
+ * recoloured or reproportioned, and every use below sets HEIGHT ONLY with
+ * `width: auto`, so the aspect ratio cannot be squashed by a container.
+ *
+ *   /brand/alipson-logo.png   831 × 337   full lockup (mark + wordmark)
+ *   /brand/alipson-mark.png   216 × 337   mark alone
+ *
+ * Source of truth: public/images/image.png, left in place untouched.
  */
+const LOCKUP = '/brand/alipson-logo.png';
+const MARK = '/brand/alipson-mark.png';
+
+/** Mark only — for square-ish slots: the hero's split gate and the intro. */
 export function LogoMark({ size = 34 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 100 100" width={size} height={size} style={{ display: 'block' }} aria-hidden>
-      <defs>
-        <linearGradient id="lg-brand" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#e8615b" />
-          <stop offset="0.5" stopColor="#d31018" />
-          <stop offset="1" stopColor="#a80a10" />
-        </linearGradient>
-      </defs>
-      {/* A silhouette = roof + upward arrow */}
-      <path d="M50 8 L92 90 L71 90 L50 48 L29 90 L8 90 Z" fill="url(#lg-brand)" />
-      {/* A crossbar */}
-      <path d="M36 68 L64 68 L59.5 58 L40.5 58 Z" fill="url(#lg-brand)" />
-      {/* rocket / arrow core taking off */}
-      <path d="M50 25 L59 60 L50 52 L41 60 Z" fill="#f8f8f6" />
-    </svg>
+    <img
+      src={MARK}
+      alt=""
+      aria-hidden
+      width={Math.round(size * (216 / 337))}
+      height={size}
+      style={{ display: 'block', height: size, width: 'auto' }}
+      decoding="async"
+    />
   );
 }
 
+/** Full lockup. The wordmark is part of the artwork, so there is no separate
+ *  text to typeset beside it any more. */
 export default function Logo({ compact = false }: { compact?: boolean }) {
+  /* The rendered height comes from CSS (`.logo-lockup`), not from an inline
+     style, so the navbar and the footer can each size it for their own space —
+     the footer has room to run it large enough for "BUILDERS PVT LTD" to be
+     readable, the navbar does not. `width`/`height` here are the artwork's
+     INTRINSIC pixels: they only supply the ratio, so the box is reserved before
+     the file lands and the lockup can never be squashed. */
   return (
-    <span className="logo">
-      <LogoMark size={compact ? 30 : 36} />
-      <span className="logo-text">
-        <span className="logo-name">ALIPSON</span>
-        <span className="logo-sub">B U I L D E R S</span>
-      </span>
+    <span className={`logo ${compact ? 'logo--compact' : ''}`}>
+      <img
+        className="logo-lockup"
+        src={LOCKUP}
+        alt="Alipson Builders Pvt Ltd"
+        width={831}
+        height={337}
+        decoding="async"
+      />
     </span>
   );
 }

@@ -13,7 +13,17 @@ const img = (name: string) => `/images/${name}`;
 /* ---- IMAGE SLOTS -------------------------------------------------------- */
 /* EVERY KEY MUST POINT AT A DIFFERENT FILE. Two keys sharing one path is how
    the same sunset site photo ended up in three sections at once — if you add a
-   slot, give it its own photo rather than aliasing an existing one.           */
+   slot, give it its own photo rather than aliasing an existing one.
+   
+   FIVE SLOTS ARE CURRENTLY ALIASED, and that is a stopgap, not a decision. The
+   photographs they used to point at — construction/04-structure,
+   05-multi-floor, 06-glass-installation, 07-exterior-finishing and
+   08-landscaping — are no longer in the repository, so every one of them
+   rendered as a broken image (which is what took out two of the Client Voices
+   thumbnails). They now point at the closest surviving photo by INTENT, which
+   is why the duplicate warning at the bottom of this file fires in dev. Restore
+   those five files, or drop in replacements, and give each slot its own path
+   again.                                                                      */
 export const MEDIA = {
   heroPoster:   img('hero_background.webp'),                       // Gallery — golden-hour site
   villa:        img('project_grandeur.webp'),
@@ -21,15 +31,23 @@ export const MEDIA = {
   hub:          img('project_hub.webp'),
   interior:     img('interior_living.webp'),
   residency:    img('project_residency.webp'),
-  riverside:    img('construction/07-exterior-finishing.webp'),   // Projects — riverside park
-  gateway:      img('construction/08-landscaping.webp'),          // Alipson Gate — lit portico + step-lit approach
+  riverside:    img('project_residency.webp'),                     // Projects — mid-rise on a live street
+  gateway:      img('construction/09-completed-building.webp'),   // Alipson Gate — the finished landmark, lit
   studio:       img('studio_desk.webp'),                           // Studio — architect drafting an elevation
   founder:      img('founder_portrait.webp'),                      // Founder — leadership portrait
-  team:         img('construction/04-structure.webp'),            // Testimonials thumb — a site at dusk
-  workforce:    img('construction/06-glass-installation.webp'),   // Nunny — crews on an active site
-  /* Drag-to-compare slider — two genuinely different states of the same site. */
-  stageStructure: img('construction/05-multi-floor.webp'),        // frame, scaffolding, cranes
-  stageDelivered: img('construction/09-completed-building.webp'), // handover, blue hour
+  /* These two used to alias heroPoster and heights, because the construction
+     photographs they wanted were deleted. They now point at real frames of the
+     Alipson site — the same project the hero film scrubs through, at a
+     different moment, which is what these slots were always describing. */
+  team:         img('construction/stage-4-facade.webp'),           // Testimonials thumb — a site at dusk
+  workforce:    img('construction/stage-2-columns.webp'),          // Nunny — crews on an active site
+  /* Drag-to-compare slider — THE SAME BUILDING, THE SAME CAMERA, THE SAME HOUR.
+     That is the whole point of the pairing and it is why these two are not
+     aliases of anything else: a wipe between two different buildings shot from
+     two different angles reads as a crossfade between stock photos, not as one
+     project being finished. Both are 1577x997, so the slider crops neither. */
+  stageStructure: img('stage-structure.webp'),                    // RCC frame, crane, crews
+  stageDelivered: img('stage-delivered.webp'),                    // delivered, lit, signed
 } as const;
 
 export type MediaKey = keyof typeof MEDIA;
@@ -49,9 +67,27 @@ export type MediaKey = keyof typeof MEDIA;
 /* Nothing else needs to change — the player already handles any frame count.   */
 /* Keep every frame on the same camera, lens and light direction, or the scrub  */
 /* reads as cuts instead of a time-lapse.                                       */
+/* EIGHT OF THE NINE FRAMES THIS USED TO NAME WERE DELETED FROM THE REPO. Only
+   09-completed-building survived, so the photographic hero was requesting eight
+   404s and scrubbing across an almost entirely blank film — which is also why
+   five MEDIA slots above had to be aliased onto other photographs.
+
+   These five are the replacement, and they are BETTER than what they replace:
+   one building, one camera position, one dusk hour, five genuine construction
+   stages — which is exactly the condition the note above sets out ("keep every
+   frame on the same camera, lens and light direction, or the scrub reads as
+   cuts instead of a time-lapse"). The old set never met it.
+
+   Fewer frames than before (5 vs 9) is fine: the player cross-blends between
+   the two frames straddling the playhead, so a sparse sequence still scrubs
+   continuously. Add intermediate renders on the same camera and they slot in
+   with no code change. */
 const FRAME_NAMES = [
-  '01-empty-site', '02-foundation', '03-ground-floor', '04-structure', '05-multi-floor',
-  '06-glass-installation', '07-exterior-finishing', '08-landscaping', '09-completed-building',
+  'stage-1-foundation',   // excavation, raft, rebar cages, plant on site
+  'stage-2-columns',      // columns and first slabs, shuttering, crews
+  'stage-3-frame',        // topped-out RCC frame
+  'stage-4-facade',       // glazing going on, crane still standing
+  'stage-5-delivered',    // finished, lit, landscaped, signed
 ];
 export const HERO_FRAMES = FRAME_NAMES.map((n) => img(`construction/${n}.webp`));
 /* Phone twin of the film: 800px frames, ~45 KB each instead of ~200 KB. The
@@ -82,14 +118,14 @@ const DIMS: Record<MediaKey, [number, number]> = {
   hub: [1024, 1024],
   interior: [1024, 1024],
   residency: [1024, 1024],
-  riverside: [1672, 941],
+  riverside: [1024, 1024],
   gateway: [1672, 941],
   studio: [1400, 788],
   founder: [1200, 1800],
-  team: [1672, 941],
-  workforce: [1672, 941],
-  stageStructure: [1672, 941],
-  stageDelivered: [1672, 941],
+  team: [1577, 997],
+  workforce: [1608, 978],
+  stageStructure: [1577, 997],
+  stageDelivered: [1577, 997],
 };
 
 /** The 800px companion for a slot — also the right source for a canvas that

@@ -12,6 +12,11 @@ import { useUI } from '../context/UIContext';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
+/* The project the drag-to-compare frames actually show: the glass-facade
+   commercial landmark. Looked up rather than hard-coded so the caption stays
+   in step with the project data. */
+const TRANSFORMATION = PROJECTS.find((p) => p.title === 'Alipson Business Hub');
+
 /* The card face carries a location and a name and nothing else on a phone.
    Everything it used to stack on top of the photograph — category, area, year,
    the description — lives in here, one tap away. On desktop this is a centred
@@ -147,14 +152,18 @@ export default function Projects() {
           </AnimatePresence>
         </motion.div>
 
+        {/* Metadata comes off the project record rather than being retyped here,
+            so the name, town and year cannot drift from the card above. */}
         <Reveal dir="up" delay={0.1}>
           <div style={{ marginTop: '2rem' }}>
-            <div className="eyebrow" style={{ marginBottom: '1.2rem' }}>Transformation · Drag to compare</div>
             <BeforeAfter
               before="stageStructure"
               after="stageDelivered"
-              beforeAlt="Site under active construction — framing and scaffolding"
-              afterAlt="The same project, fully delivered"
+              beforeAlt="The same building as an RCC frame — columns, beams and slabs cast, tower crane still standing"
+              afterAlt="The same building delivered — glazed, lit and landscaped at blue hour"
+              project={TRANSFORMATION?.title}
+              location={TRANSFORMATION?.location}
+              year={TRANSFORMATION?.year}
             />
           </div>
         </Reveal>

@@ -2,8 +2,52 @@
    ALIPSON — SECTION & COMPONENT STYLES
    ========================================================================== */
 
+/* ---- DEFERRED SECTION SLOT ------------------------------------------------
+   The placeholder a not-yet-mounted section stands in for, and the Suspense
+   fallback while its chunk is in flight. Height comes from `--slot-h`, which
+   Deferred sets per section.
+
+   CAPPED ON MOBILE, and that cap is the fix for the long blank runs down the
+   phone layout. The callers ask for 100dvh because that is roughly a section's
+   height on a desktop; on a phone the same value is a full screen of nothing
+   between one section and the next, several times over. The reservation only
+   exists to stop the scroll height collapsing and re-growing, and the
+   observer's 1200px rootMargin already mounts a section about a viewport
+   early — so a shorter reservation costs nothing visible and removes the gap.
+   Desktop keeps whatever each caller asked for. */
+.deferred-slot { min-height: var(--slot-h, 70dvh); }
+@media (max-width: 760px) {
+  .deferred-slot { min-height: min(var(--slot-h, 70dvh), 38dvh); }
+}
+
 /* ---- LOGO ---------------------------------------------------------------- */
 .logo { display: inline-flex; align-items: center; gap: 0.7rem; }
+/* THE OFFICIAL LOCKUP. Height only, `width: auto` — the aspect ratio is the
+   artwork's and nothing here may change it. Sized per context because the
+   supplied lockup carries a very small "BUILDERS PVT LTD" line (8% of the
+   artwork's height), so anywhere there is room it runs larger to keep that line
+   readable. */
+.logo-lockup { display: block; height: 44px; width: auto; }
+.logo--compact .logo-lockup { height: 34px; }
+.footer .logo-lockup { height: 62px; }
+/* MOBILE LOCKUP. At 34px the mark was 84px wide and the "BUILDERS PVT LTD"
+   line under it was ~3px tall — present, unreadable, and the whole reason the
+   logo read as small. From 1080px down the nav row is only the logo and a 46px
+   toggle (the links and the CTA are hidden), so there is nothing to crowd:
+   56px of height is 138px of width, well inside the row and still clear of the
+   72px capsule. The scrolled state shrinks with the bar rather than with the
+   breakpoint — 48px in a 64px capsule, ~118px wide. Height only, `width: auto`,
+   so the artwork's ratio is untouched. */
+@media (max-width: 1080px) {
+  .logo-lockup { height: 56px; }
+  .logo--compact .logo-lockup { height: 48px; }
+}
+/* Below 380px the row does get tight, so give back a little. 46px is 113px
+   wide — still a third larger than the 34px it started at. */
+@media (max-width: 380px) {
+  .logo-lockup { height: 48px; }
+  .logo--compact .logo-lockup { height: 42px; }
+}
 .logo-text { display: flex; flex-direction: column; line-height: 1; }
 /* Solid crimson, not a clipped gradient: the gradient faded to #a80a10 at the
    tail and washed out against dark bars, and background-clip:text drops the
@@ -325,16 +369,31 @@
 /* No transform here — framer-motion writes an inline transform on these cards
    (the entrance animation), and an inline transform beats any CSS rule, so the
    -6px hover lift lives in `whileHover` in Ribbon.tsx. */
+/* REAL GLASS, not a white panel. This was rgba(255,255,255,0.92) — 92% is
+   opaque for every practical purpose, so the cards were four solid white slabs
+   punched out of the render.
+   0.66 IS THE FLOOR, and it is set by contrast rather than by taste. The label
+   is 0.72rem uppercase on #334155; measured against the darkest part of the
+   hero showing through, 0.66 leaves it at 4.7:1 — just over AA — where 0.60
+   drops it to 4.0 and fails. Anywhere brighter in the render only improves it,
+   so this is the worst case, not the average one.
+   The blur goes up as the fill comes down: at 0.66 the scene behind is legible
+   THROUGH the card, and 16px of blur is what turns that from a distraction
+   into frosted glass. The border becomes a white hairline — a glass edge
+   catching light — rather than the solid slate rule it was. */
 .ribbon__cell-edge {
   position: relative; z-index: 1; height: 100%;
-  border: 1px solid #E2E8F0;
+  border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px) saturate(115%);
-  -webkit-backdrop-filter: blur(8px) saturate(115%);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background: rgba(255, 255, 255, 0.66);
+  backdrop-filter: blur(16px) saturate(135%);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+  /* Softer and wider: a tight dark shadow under a translucent card reads as a
+     sticker sitting on the scene rather than a pane held in front of it. */
+  box-shadow: 0 8px 26px rgba(6, 12, 26, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
 }
+.ribbon__cell:hover .ribbon__cell-edge { background: rgba(255, 255, 255, 0.74); }
 .ribbon__cell:hover .ribbon__cell-edge {
   border-color: #d31018;
   box-shadow: 0 12px 24px -6px rgba(211, 16, 24, 0.12);
@@ -357,9 +416,31 @@
 }
 .ribbon__cell-face > * { position: relative; z-index: 2; }
 
+/* A visitor who has asked for less transparency gets the opaque card — the
+   glass is decoration, the figures are the content. */
 @media (prefers-reduced-transparency: reduce) {
   .ribbon__cell-edge { backdrop-filter: none; -webkit-backdrop-filter: none;
-    background: rgba(255, 255, 255, 0.98); }
+    background: rgba(255, 255, 255, 0.98); border-color: #E2E8F0; }
+}
+/* Stat icon — a small crimson glyph in a tinted disc above the figure. Sized
+   and spaced to sit INSIDE the existing card height rather than growing it:
+   the cards float over the hero render, and a taller card eats more of the
+   building. Crimson at 0.16 alpha on the disc is the same brand red the
+   underline and the suffix already use, kept quiet enough that the number
+   stays the thing the eye lands on. */
+.ribbon__icon {
+  display: grid; place-items: center;
+  width: 30px; height: 30px; margin-bottom: 0.5rem; flex-shrink: 0;
+  border-radius: 50%;
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.08);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.16);
+}
+@media (max-width: 720px) {
+  /* Tighter on a phone, where the cards go two-up and every pixel of card
+     height is a pixel of render covered. */
+  .ribbon__icon { width: 26px; height: 26px; margin-bottom: 0.35rem; }
+  .ribbon__icon svg { width: 15px; height: 15px; }
 }
 /* Down from clamp(2.2rem, 5vw, 3.6rem) — the 3.6rem ceiling is what made the
    cards oversized in the first place, since the padding was sized around it. */
@@ -368,9 +449,26 @@
 .ribbon__label { margin-top: 0.35rem; font-size: 0.72rem; font-weight: 600;
   letter-spacing: 0.1em; text-transform: uppercase; color: #334155;
   line-height: 1.4; }
-/* Two-up on narrow screens. The old border resets here are gone with the
-   rules they reset — these cards have no borders to clear. */
-@media (max-width: 720px) { .ribbon__grid { grid-template-columns: repeat(2, 1fr); } }
+/* TWO-UP AND COMPACT.
+   The 2x2 was already here; what made it eat half a phone screen was that every
+   value inside it was still the desktop value — a 30px icon over a 2.4rem
+   figure over a two-line 0.72rem label, in 1rem of padding, twice over. Roughly
+   360px of a 700px viewport, sitting on top of the road and the parking the
+   scene is trying to show.
+   Tightened to about 210px for the same four figures and the same four icons.
+   A single row of four pills was the alternative and it does not survive
+   contact with 390px: "PROJECTS DELIVERED" in a 88px pill wraps to three lines
+   or truncates, and a horizontally-scrolling stat bar hides half its own
+   content behind a gesture nobody is told about. */
+@media (max-width: 720px) {
+  .ribbon__grid { grid-template-columns: repeat(2, 1fr); gap: 0.55rem; }
+  .ribbon__cell-face { padding: 0.62rem 0.45rem; }
+  .ribbon__icon { width: 22px; height: 22px; margin-bottom: 0.22rem; }
+  .ribbon__icon svg { width: 13px; height: 13px; }
+  .ribbon__num { font-size: clamp(1.3rem, 6.4vw, 1.75rem); padding-bottom: 0.4rem; }
+  .ribbon__num::after { width: 34px; }
+  .ribbon__label { margin-top: 0.24rem; font-size: 0.58rem; letter-spacing: 0.07em; line-height: 1.32; }
+}
 
 /* ==========================================================================
    THE STUDIO — editorial two-column, image composition + content card
@@ -1039,25 +1137,134 @@
 .proj__view { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.7rem; font-family: var(--font-grotesk); font-size: 0.8rem; color: var(--accent-soft); }
 
 /* ---- BEFORE / AFTER ------------------------------------------------------ */
-.ba { position: relative; margin-top: 1.5rem; border-radius: var(--radius-lg); overflow: hidden; aspect-ratio: 21/9; user-select: none; }
-@media (max-width: 700px) { .ba { aspect-ratio: 4/3; } }
-.ba img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* ---- DRAG TO COMPARE -------------------------------------------------------
+   ONE ASPECT RATIO, AND IT IS THE PHOTOGRAPHS'. Both frames are 1577x997, and
+   the frame is set to exactly that, so neither image is ever cropped or
+   stretched at any width — which was the actual problem, not a styling one: the
+   old 21/9 desktop ratio cut the top and bottom off a 1.58 photograph (sky and
+   landscaping gone) and the 4/3 phone ratio then cut the sides instead, taking
+   the tower crane out of the "before" and the gatehouse out of the "after".
+   `object-fit: cover` stays as the belt-and-braces guard for a fractional
+   rounding difference; with matched ratios it now has nothing to crop.        */
+.ba-block { margin: 0; }
+.ba-meta { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.2rem; }
+.ba-meta__eyebrow {
+  font-family: var(--font-grotesk); font-weight: 600; font-size: 0.7rem;
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent-soft);
+}
+.ba-meta__line {
+  font-family: var(--font-display); font-weight: 300;
+  font-size: clamp(1.05rem, 2vw, 1.5rem); letter-spacing: -0.01em;
+  color: var(--text); line-height: 1.3;
+}
+.ba-meta__line strong { font-weight: 500; }
+.ba-meta__dot { color: var(--accent-soft); margin: 0 0.5em; }
+
+.ba {
+  position: relative; margin-top: 0; border-radius: var(--radius-lg);
+  overflow: hidden; aspect-ratio: 1577 / 997; user-select: none;
+  /* Cinematic seat: a tight contact shadow under the frame plus a wide, soft
+     one that separates it from the section without fogging it. */
+  box-shadow:
+    0 2px 6px rgba(6, 9, 16, 0.28),
+    0 26px 60px -22px rgba(6, 9, 16, 0.55);
+}
+.ba img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
+/* The wipe. Driven by --split on the frame, which the component publishes once
+   — the clip below and the handle offset further down read the SAME value, so
+   the seam and the grip cannot drift apart by a pixel. */
 .ba__after { clip-path: inset(0 0 0 var(--split, 50%)); }
-.ba__before-lbl, .ba__after-lbl { position: absolute; bottom: 1.2rem; z-index: 3; padding: 0.4rem 0.9rem; border-radius: 100px; font-family: var(--font-grotesk); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--bone-100); }
-.ba__before-lbl { left: 1.2rem; background: rgba(10,12,18,0.55); border: 1px solid rgba(247,242,232,0.16); }
-.ba__after-lbl { right: 1.2rem; background: rgba(211, 16, 24,0.55); border: 1px solid rgba(255,140,140,0.42); }
-@media (max-width: 640px) {
+
+/* A very slight vignette, above the images and below the handle, that stops
+   well clear of the middle of the frame where the building is. NO edge hairline
+   here: `.section--noir .ba` already puts a themed 1px --glass-brd border on
+   this element, and drawing a second one inside it reads as a double rule. */
+.ba::after {
+  content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(120% 90% at 50% 45%, transparent 58%, rgba(6, 9, 16, 0.3) 100%);
+}
+
+.ba__before-lbl, .ba__after-lbl {
+  position: absolute; bottom: 1.2rem; z-index: 3; padding: 0.5rem 1rem;
+  border-radius: 100px; font-family: var(--font-grotesk); font-weight: 600;
+  font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--bone-100); white-space: nowrap;
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  box-shadow: 0 6px 20px rgba(6, 9, 16, 0.35);
+}
+.ba__before-lbl { left: 1.2rem; background: rgba(10, 12, 18, 0.52); border: 1px solid rgba(247, 242, 232, 0.18); }
+/* The Alipson red only ever marks the DELIVERED side — it is the brand saying
+   "this one is ours, and it is finished". Using it on both would make it
+   decoration instead of a signal. */
+.ba__after-lbl { right: 1.2rem; background: rgba(180, 14, 22, 0.5); border: 1px solid rgba(255, 150, 150, 0.45); }
+@media (max-width: 560px) {
   .ba__lbl-more { display: none; }
-  .ba__before-lbl, .ba__after-lbl { bottom: 0.7rem; padding: 0.3rem 0.7rem; font-size: 0.6rem; }
+  .ba__before-lbl, .ba__after-lbl { bottom: 0.7rem; padding: 0.34rem 0.75rem; font-size: 0.58rem; }
   .ba__before-lbl { left: 0.7rem; }
   .ba__after-lbl { right: 0.7rem; }
 }
-.ba__handle { position: absolute; top: 0; bottom: 0; z-index: 4; width: 2px; background: rgba(247,242,232,0.9); left: var(--split, 50%); transform: translateX(-50%); box-shadow: 0 0 12px 1px rgba(211, 16, 24,0.65), 0 0 40px 4px rgba(211, 16, 24,0.28); transition: box-shadow 0.35s var(--ease-lux); }
-.ba:hover .ba__handle { box-shadow: 0 0 16px 2px rgba(211, 16, 24,0.85), 0 0 60px 8px rgba(211, 16, 24,0.4); }
-.ba__grip { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 46px; height: 46px; border-radius: 50%; background: var(--bone-100); color: var(--ink-900); display: grid; place-items: center; box-shadow: 0 8px 24px rgba(0,0,0,0.4); transition: transform 0.35s var(--ease-lux), box-shadow 0.35s var(--ease-lux); }
-.ba:hover .ba__grip { transform: translate(-50%,-50%) scale(1.12); box-shadow: 0 8px 30px rgba(0,0,0,0.5), 0 0 0 6px rgba(211, 16, 24,0.16); }
+
+.ba__handle {
+  position: absolute; top: 0; bottom: 0; z-index: 4; width: 2px;
+  background: linear-gradient(180deg,
+    rgba(247, 242, 232, 0.35) 0%, rgba(247, 242, 232, 0.95) 18%,
+    rgba(247, 242, 232, 0.95) 82%, rgba(247, 242, 232, 0.35) 100%);
+  left: var(--split, 50%); transform: translateX(-50%);
+  box-shadow: 0 0 12px 1px rgba(211, 16, 24, 0.6), 0 0 44px 5px rgba(211, 16, 24, 0.22);
+  transition: box-shadow 0.35s var(--ease-lux);
+}
+.ba:hover .ba__handle { box-shadow: 0 0 16px 2px rgba(211, 16, 24, 0.8), 0 0 64px 9px rgba(211, 16, 24, 0.34); }
+.ba__grip {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 48px; height: 48px; border-radius: 50%;
+  /* Glass button, not a flat disc: a top-lit gradient over bone with a bright
+     inner edge, which is what reads as a physical control worth grabbing. */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(233, 228, 217, 0.92) 100%);
+  color: var(--ink-900); display: grid; place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 2px rgba(6, 9, 16, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.42);
+  transition: transform 0.35s var(--ease-lux), box-shadow 0.35s var(--ease-lux);
+}
+.ba:hover .ba__grip {
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    0 0 0 7px rgba(211, 16, 24, 0.15);
+}
+/* Keyboard users drive the range, which is invisible — so the focus ring has to
+   be drawn on the grip, or there is no visible focus at all. `:has()` on the
+   frame, NOT a sibling combinator: the input sits after the handle in the DOM
+   and `~` only ever looks forwards, so the sibling version silently matched
+   nothing and keyboard focus was invisible. */
+.ba:has(.ba__range:focus-visible) .ba__grip {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    0 0 0 4px var(--accent-soft);
+}
 @media (prefers-reduced-motion: reduce) { .ba__handle, .ba__grip { transition: none; } }
-.ba__range { position: absolute; inset: 0; z-index: 5; width: 100%; height: 100%; opacity: 0; cursor: ew-resize; }
+@media (max-width: 560px) { .ba__grip { width: 42px; height: 42px; } }
+
+/* The whole frame IS the control. Full-bleed, invisible, on top: this is what
+   gives mouse drag, touch drag, pen, click-to-jump and the arrow keys at once.
+   `ew-resize` all the way across is the affordance. */
+.ba__range {
+  position: absolute; inset: 0; z-index: 5; width: 100%; height: 100%;
+  opacity: 0; cursor: ew-resize; margin: 0;
+  /* Required for the thumb sizing below to apply at all — without it the UA
+     keeps its own ~16px thumb and the grab target no longer matches the grip. */
+  appearance: none; -webkit-appearance: none;
+}
+.ba__range::-webkit-slider-thumb { -webkit-appearance: none; width: 56px; height: 100%; cursor: ew-resize; }
+.ba__range::-moz-range-thumb { width: 56px; height: 100%; border: 0; cursor: ew-resize; }
 
 /* ==========================================================================
    WHY US — BENTO
@@ -1716,12 +1923,16 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
    lifts to a stronger shadow with a red border on hover. One rule instead of
    editing eight card selectors; keep it last so it wins on box-shadow.
    ========================================================================== */
-.tcard, .contact__form, .proj, .ba {
+/* `.ba` is deliberately NOT in this list. It is a full-bleed media frame, not a
+   card, and it carries its own cinematic shadow up in the drag-to-compare
+   block — which this rule, being later in the file, would otherwise flatten
+   back to the generic card shadow. */
+.tcard, .contact__form, .proj {
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.3s var(--ease-lux), border-color 0.3s var(--ease-lux),
               transform 0.3s var(--ease-lux), background-color 0.3s var(--ease-lux);
 }
-:is(.tcard, .contact__form, .proj, .ba):hover {
+:is(.tcard, .contact__form, .proj):hover {
   box-shadow: var(--shadow-xl);
   border-color: var(--border-strong);
 }
@@ -1938,6 +2149,15 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .story__three canvas { display: block; width: 100%; height: 100%;
   transform: translateZ(0); backface-visibility: hidden; }
 
+/* The ?video renderer. Sits in the same slot as the WebGL canvas and gets the
+   same compositor promotion — a scrubbed video repaints on every seek, and
+   without a layer of its own that repaint is a full-page composite. Opaque
+   background so a seek that has not landed yet shows the stage colour rather
+   than whatever was behind it. */
+.story__video { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%;
+  object-fit: cover; pointer-events: none; background: #07080c;
+  transform: translateZ(0); backface-visibility: hidden; }
+
 /* The phone's stand-in for the WebGL scene, on screen only while the 3D chunk
    is in flight (it is the Suspense fallback — see StoryScroll). It occupies the
    render's own slot in both layouts, so the stage does not reflow when the real
@@ -1947,11 +2167,24 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   object-fit: cover; pointer-events: none; }
 
 /* ==========================================================================
-   DAYLIGHT STUDIO — 3D hero only (.story--3d). Scoped, because ?flat runs
-   white copy over dark photography and every rule here would invert it.
+   BLUE HOUR — 3D hero only (.story--3d). Scoped, because ?flat runs its own
+   grade over the photographic sequence and every rule here would fight it.
    ========================================================================== */
-/* Matches the WebGL sky ramp, so there is no flash before the chunk loads. */
-.story--3d { background: linear-gradient(180deg, #F8FAFC 0%, #E2E8F0 100%); }
+/* Backdrop behind the WebGL canvas — visible before the chunk lands, and at
+   the feathered edges of the render on a phone.
+   NO BLUE RAMP. This used to climb to #1b2c55 at 62% and #3a4468 at the
+   bottom, which put a pale slate-blue band across the foot of the hero and
+   read as a light source that is not in the scene. Navy into black instead:
+   the same family, no bloom, and nothing at the bottom edge that competes
+   with the building. */
+.story--3d { background: linear-gradient(180deg, #0B132B 0%, #080D1C 58%, #05070F 100%); }
+/* THE BOTTOM WASH IS OFF for the 3D hero. `.story__stats` lays
+   rgba(248,250,252,0.4) over the last 30% of the frame — slate-50, a
+   COOL BLUE-TINTED WHITE, which over a dark navy render is precisely the blue
+   glow across the foot of the hero. It exists to keep the stat cards legible
+   on the pale photographic sequence in ?flat, and the cards carry their own
+   opaque backing anyway, so the 3D hero simply does not need it. */
+.story--3d .story__stats { background: none; }
 
 /* The copy sits high, on open sky, which is where an arch-viz sheet puts its
    title anyway — and it keeps dark type off the building and the asphalt. */
@@ -1986,10 +2219,15 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .story--3d .story__headline { text-shadow: none; }
 .story--3d .story__sub { text-shadow: none; }
 .story--3d .story__eyebrow { text-shadow: none; }
-/* NO VIGNETTE and NO FOOT FADE — a clear render, corner to corner. The bottom
-   fade to #E2E8F0 laid a hard pale band over the asphalt and the tree line; the
-   render now runs to the edge and meets the next section directly. */
-.story--3d .story__grade { background: none; }
+/* One soft vignette, nothing more — it seats the blue-hour render in the frame
+   the way a lens would. NO foot fade: a band across the bottom would cut the
+   plaza off from the section below it. */
+/* Vignette, halved. At 0.55 this was laying more than a third of a stop of
+   black over the corners of every frame — on top of a scene that was already
+   sitting low. It is a lens artefact, not a lighting tool; 0.28 still seats the
+   render in the stage without eating the building's own corners. */
+.story--3d .story__grade {
+  background: radial-gradient(132% 96% at 50% 44%, transparent 58%, rgba(3, 6, 14, 0.28) 100%); }
 .story--3d .btn-watch { color: #0F172A; border-color: rgba(15,23,42,0.14); background: rgba(255,255,255,0.75); }
 .story--3d .btn-watch:hover { background: rgba(255,255,255,0.92); border-color: rgba(var(--accent-rgb), 0.6); }
 
@@ -2140,7 +2378,7 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
     position: relative; order: 1; inset: auto;
     width: 100%; max-width: none; flex: 0 0 auto;
     padding: 0 var(--pad-x); }
-  .story--3d :is(.story__three, .story__poster) {
+  .story--3d :is(.story__three, .story__video, .story__poster) {
     position: relative; order: 2; inset: auto;
     /* 50vh, capped at 420px. Expressed as a flex BASIS with shrink allowed and
        GROW OFF: the cap is what keeps the render tight instead of stretching to
@@ -2222,7 +2460,11 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
      for buttons that no longer reach up there. That 36px is the other half of
      closing the hero's dead band — the stats block sits at the bottom of the
      stage, so its own padding was part of the void above it. */
-  .story__stats { padding-top: 0.75rem; padding-bottom: 4.5rem; }
+  /* 3.1rem plus the home-indicator strip, down from a flat 4.5rem. The row of
+     floating buttons is 40px on a 1rem inset, so 3.1rem clears it; the rest
+     was reserving space against a safe area it never actually measured. */
+  .story__stats { padding-top: 0.6rem;
+    padding-bottom: calc(3.1rem + env(safe-area-inset-bottom)); }
   .story__cue { margin-bottom: 0.7rem; font-size: 0.6rem; letter-spacing: 0.2em; }
 
   /* ---- 2 · SINGLE-COLUMN CARD GRIDS -------------------------------------- */
@@ -2316,10 +2558,15 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   /* ---- FLOATER KEEP-OUT AT THE FOOT OF THE SECTION ----------------------- */
   /* The FAB row is `position: fixed`, so nothing in the document can move it
      off the content it passes over mid-scroll — but it CAN be given somewhere
-     harmless to land at the end of the section. 7rem clears the 40px buttons
-     plus their 1rem inset with room to spare, so the last card's CTA is never
-     the thing sitting under them when the scroll stops. */
-  #work { padding-bottom: 7rem; }
+     harmless to land at the end of the section.
+
+     4.5rem, down from 7rem. The 7rem was sized when the floaters were a
+     139px-tall COLUMN in the corner; they are a 40px row now. The hero's own
+     keep-out (`.story__stats`) was recalculated for that change and this one
+     was missed, so it has been reserving ~40px of blank for buttons that no
+     longer reach that high. 4.5rem still clears the 40px row, its 1rem inset
+     and the safe-area strip underneath. */
+  #work { padding-bottom: 4.5rem; }
 
   /* ---- FILTER CHIPS: ONE SCROLLING ROW ----------------------------------- */
   /* Four chips wrapped onto two rows at 390px, which put "Commercial Buildings"
@@ -2674,4 +2921,87 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
     border-radius: 4px; background: var(--border-strong); margin: -0.35rem auto 1rem; }
   .modal--sheet .modal-x { top: 0.9rem; right: 0.9rem; width: 34px; height: 34px; }
   .psheet__img { aspect-ratio: 16/9; margin-bottom: 1rem; }
+}
+
+/* ==========================================================================
+   ACT TWO — THE FOOT OF THE FRAME
+   --------------------------------------------------------------------------
+   There is deliberately NO overlay bridging the hero into the next section. The
+   previous one painted `var(--bg)` up the frame, and because that token is white
+   in the default theme the final beat read as white smoke rolling over the
+   building. The hand-over is carried by the scene now; all that is left here is
+   a shallow DARK foot that seats the render on the page, which is the
+   "darkness and depth" the boundary is supposed to have.
+   ========================================================================== */
+.story--3d .story__stage::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 22%;
+  z-index: 31; pointer-events: none;
+  background: linear-gradient(to top, rgba(4, 7, 14, 0.85) 0%, rgba(4, 7, 14, 0.35) 42%, transparent 100%);
+}
+
+/* ── FOOTER BRAND & COPY POLISH ─────────────────────────────────────────────
+   Logo artwork untouched — this only sizes it and lights it for the navy.
+
+   NO SHEEN LAYER, and that is a correction. There used to be a gradient
+   `::after` over the lockup with `mix-blend-mode: overlay`, on the theory that
+   overlay against an isolated stacking context would leave the PNG's
+   transparent ground alone and only lift the artwork. It does not: the white
+   stops composite against the transparent backdrop and the whole element
+   renders as a pale rectangle — the "grey box behind the logo". A gloss that
+   needs a rectangle to exist cannot sit on a transparent mark, so it is gone
+   rather than tuned.
+
+   What is left follows the ALPHA, which is the only thing that can: two
+   drop-shadows in the brand coral, so the glow is the shape of the mark and
+   never the shape of its box. No white bloom — white on navy is what read as
+   a lit panel rather than a lit logo. */
+.footer .logo-lockup {
+  height: 96px;
+  filter:
+    brightness(1.06) contrast(1.05)
+    drop-shadow(0 0 10px rgba(229, 46, 53, 0.30))    /* tight coral core */
+    drop-shadow(0 0 34px rgba(229, 46, 53, 0.16));   /* soft outer falloff */
+}
+
+/* Copy. The old alphas (0.72 body, 0.46 labels) are a light-theme palette
+   reused on navy, where they sit near 4:1 — legible, not comfortable. These
+   run 0.86 / 0.62 with a hairline text-shadow that thickens the stem edge on
+   a dark ground without visible blur. Sizes and layout are unchanged. */
+.footer__desc {
+  color: rgba(255, 255, 255, 0.86); font-size: 0.95rem; line-height: 1.75;
+  letter-spacing: 0.004em; text-shadow: 0 0 22px rgba(255, 255, 255, 0.14);
+}
+.footer .footer__col h4 {
+  color: #FFFFFF; letter-spacing: 0.2em; font-weight: 700;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.18);
+}
+.footer .footer__col :is(a, li),
+.footer .footer__col .footer__contact-line {
+  color: rgba(255, 255, 255, 0.84); letter-spacing: 0.004em;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+.footer .footer__bottom { color: rgba(255, 255, 255, 0.66); }
+.footer .footer__bottom a { color: rgba(255, 255, 255, 0.66); }
+.footer .footer__bottom :is(p, a) { letter-spacing: 0.02em; }
+
+/* MOBILE FOOTER — COMPACT.
+   Every value here is a base rule that was written for a THREE-COLUMN desktop
+   footer and is simply too loose once those columns stack: three 2rem grid
+   gaps, a 1.4rem gap under the logo, 1.2/1.5rem around the description and a
+   2rem/2rem bottom bar add up to roughly 200px of pure spacing on a 390px
+   screen. Tightened, not removed — the rhythm stays, it just stops being
+   desktop rhythm on a phone. No content is dropped.
+   The lockup goes UP, to 72px (~177px wide): it is the one thing here that
+   should be more prominent, not less. */
+@media (max-width: 640px) {
+  .footer .logo-lockup { height: 72px; }
+  .footer__col--brand .logo { margin-bottom: 0.85rem; }
+  .footer__top { padding-top: 1.5rem; padding-bottom: 1rem; gap: 1.6rem; }
+  .footer__desc { font-size: 0.92rem; margin: 0.75rem 0 0; line-height: 1.65; }
+  .footer__col h4 { margin-bottom: 0.75rem; }
+  .footer__col--contact h4, .footer__col--brand h4 { margin-bottom: 0.75rem; }
+  .footer__col ul { gap: 0.6rem; }
+  .footer__col--contact .footer__social { margin-top: 0.9rem; }
+  .footer__bottom { padding-top: 1.25rem; padding-bottom: 1.25rem; }
+  .footer__bottom-inner { gap: 0.6rem; }
 }

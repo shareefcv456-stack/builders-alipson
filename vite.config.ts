@@ -44,7 +44,7 @@ export default defineConfig({
         manualChunks: {
           // ~600 KB and effectively frozen — it only changes when three is
           // upgraded, so it deserves its own long-lived cache entry. Reachable
-          // ONLY through the dynamic import of HeroThree, so it stays out of
+          // ONLY through the dynamic import of HeroSite, so it stays out of
           // the initial payload.
           three: ['three', 'n8ao'],
           /* Split, not merged. Both are eager (gsap pins the hero, framer

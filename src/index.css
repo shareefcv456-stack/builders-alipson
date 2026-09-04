@@ -206,7 +206,15 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
    subtracts NAV_OFFSET, but a native `#hash` load and the scrollIntoView in
    App.tsx do not — those landed with the heading under the navbar. Keep in
    sync with NAV_OFFSET in useLenis.ts. */
-main > [id], footer[id], section[id] { scroll-margin-top: 100px; }
+/* Anchor targets clear the FIXED NAVBAR plus a breathing gap. `--nav-h` is
+   written by Navbar from the bar's measured height (104px at the top of the
+   page, 92px once it condenses); the 104px fallback covers the first paint
+   before that effect runs. This used to be a flat 100px — four pixels SHORTER
+   than the bar it was supposed to clear, so every in-page link parked its
+   heading underneath the navbar. */
+main > [id], footer[id], section[id] {
+  scroll-margin-top: calc(var(--nav-h, 104px) + 1.25rem);
+}
 @media (min-width: 640px) { .container { padding-left: 1.5rem; padding-right: 1.5rem; } }
 @media (min-width: 1024px) { .container { padding-left: 2rem; padding-right: 2rem; } }
 /* Opaque white — a crisp page, not a frosted one. This also drops a
