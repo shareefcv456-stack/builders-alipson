@@ -119,10 +119,16 @@ export function carShapes(kind: CarKind) {
  *  vehicle fleet — cars, vans and the construction plant — is built with this,
  *  because a bevelled profile is what gives a body rounded shoulders and a
  *  readable silhouette where a box gives neither. */
-export const extrudeProfile = (shape: THREE.Shape, depth: number, bevel: number, seg = 6) => {
+/* `seg` is curveSegments — how many facets each quadratic in the profile is
+   drawn with. 6 was leaving a visible six-sided arc on a bonnet and a roofline,
+   which is the "low-poly" read that survives however good the materials are.
+   Cars pass 14 explicitly (they are instanced, so the cost is paid once for the
+   whole fleet); the plant keeps a lower default because its profiles are mostly
+   straight runs where extra segments buy nothing. */
+export const extrudeProfile = (shape: THREE.Shape, depth: number, bevel: number, seg = 10) => {
   const g = new THREE.ExtrudeGeometry(shape, {
     depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel,
-    bevelSegments: 2, curveSegments: seg,
+    bevelSegments: 3, curveSegments: seg,
   });
   g.translate(0, 0, -(depth / 2 + bevel));
   /* THIS IS WHY EVERYTHING EXTRUDED LOOKED FACETED.
@@ -192,7 +198,24 @@ export const sculptBody = <T extends THREE.BufferGeometry>(
  *  something without them, not worth two more draw calls and two more slots in
  *  every placement loop. Merged, they inherit the body's per-instance paint,
  *  which is where a mirror cap's colour comes from anyway. */
-export const withMirrors = (body: THREE.BufferGeometry, x: number, y: number, halfW: number) => {
+/**
+ * Mirrors, bumpers and a grille bar, MERGED INTO the body.
+ *
+ * Merged rather than instanced separately, and that is the whole reason these
+ * are affordable: the fleet is drawn as InstancedMesh — one call for the whole
+ * car park, one for all the traffic — so a detail welded into the body geometry
+ * costs a few hundred vertices ONCE and nothing per car. Adding them as their
+ * own meshes would have meant five more draw calls and five more placement
+ * loops for details measured in centimetres.
+ *
+ * `noseX` is the front of the body, `tailX` the back, both measured off the
+ * finished geometry so the parts land on the bodywork rather than at a guessed
+ * coordinate.
+ */
+export const withMirrors = (
+  body: THREE.BufferGeometry, x: number, y: number, halfW: number,
+  noseX = 0, tailX = 0, sill = 0.115,
+) => {
   const parts: THREE.BufferGeometry[] = [body];
   ([-1, 1] as const).forEach((s) => {
     const cap = new THREE.SphereGeometry(0.038, 6, 5);
@@ -202,6 +225,24 @@ export const withMirrors = (body: THREE.BufferGeometry, x: number, y: number, ha
     stem.translate(x, y - 0.008, s * (halfW + 0.004));
     parts.push(cap, stem);
   });
+  if (noseX !== 0) {
+    /* Bumpers, front and rear. Deliberately NARROWER than the midsection
+       (0.86 of the shoulder): a real bumper wraps the corners without standing
+       proud of the car's widest point, and letting it exceed that would also
+       flatten the plan taper the sculpt just put in. */
+    const bw = halfW * 0.86 * 2;
+    ([[noseX, 1], [tailX, -1]] as const).forEach(([bx, dir]) => {
+      const bar = new THREE.BoxGeometry(0.055, 0.075, bw);
+      bar.translate(bx - dir * 0.022, sill + 0.075, 0);
+      parts.push(bar);
+    });
+    /* Grille: a shallow recessed bar under the bonnet line, front only. It is
+       the one detail that tells the front of a car from the back at distance,
+       which matters here because the traffic runs in both directions. */
+    const grille = new THREE.BoxGeometry(0.03, 0.055, bw * 0.66);
+    grille.translate(noseX - 0.035, sill + 0.165, 0);
+    parts.push(grille);
+  }
   /* INDEXED AND NON-INDEXED GEOMETRY CANNOT BE MERGED. ExtrudeGeometry produces
      no index; SphereGeometry and BoxGeometry both do. Hand mergeGeometries that
      mixture and it does not throw — it logs and returns NULL, which then sails
@@ -234,8 +275,8 @@ export function carGeometry(kind: CarKind): CarSpec {
   const halfLen = van ? 0.95 : (kind === 'suv' ? 0.88 : 0.87);
   const belt = van ? 0.46 : (kind === 'suv' ? 0.47 : 0.40);
   const roof = van ? 0.81 : (kind === 'suv' ? 0.685 : 0.556);
-  const body = sculptBody(ex(sh, width, 0.05), halfLen, belt, roof);
-  const gl = sculptBody(ex(glass, width - 0.06, 0.012), halfLen, belt, roof);
+  const body = sculptBody(ex(sh, width, 0.05, 14), halfLen, belt, roof);
+  const gl = sculptBody(ex(glass, width - 0.06, 0.012, 14), halfLen, belt, roof);
   /* THE VAN IS DRAWN FACING THE WRONG WAY. Its profile rakes up at -x (that
      steep rise IS the windscreen) and its slab end is at +x — but `place` puts
      head lamps at +lampX and tail lamps at -lampX for every body alike, so the
@@ -260,7 +301,10 @@ export function carGeometry(kind: CarKind): CarSpec {
   /* Mirrors go outboard of the MEASURED shoulder for the same reason: hung off
      `width` they sat inside the door skin, which is a mirror you cannot see. */
   const shoulder = halfWidthAt(body, mirrorX - 0.15, mirrorX + 0.15, belt + 0.06);
-  const withM = withMirrors(body, mirrorX, mirrorY, shoulder);
+  /* Body extents, measured off the sculpted geometry so the bumpers land on
+     the actual nose and tail rather than at the profile's nominal ends. */
+  const bb = new THREE.Box3().setFromBufferAttribute(body.attributes.position as THREE.BufferAttribute);
+  const withM = withMirrors(body, mirrorX, mirrorY, shoulder, bb.max.x, bb.min.x, bb.min.y + 0.02);
   const archHalf = halfWidthAt(body, axle - 0.12, axle + 0.12, belt);
   return {
     body: withM,

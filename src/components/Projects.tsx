@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+import { useScroll, useMotionValueEvent } from 'framer-motion';
 import { MapPin, Ruler, ArrowUpRight, Calendar, Tag } from 'lucide-react';
 import RevealText from './ui/RevealText';
 import Reveal from './ui/Reveal';
@@ -10,17 +10,16 @@ import { PROJECTS, PROJECT_FILTERS, type Project } from '../data/site';
 import { imgProps } from '../lib/media';
 import { useUI } from '../context/UIContext';
 
-const EASE = [0.16, 1, 0.3, 1] as const;
-
 /* The project the drag-to-compare frames actually show: the glass-facade
    commercial landmark. Looked up rather than hard-coded so the caption stays
    in step with the project data. */
 const TRANSFORMATION = PROJECTS.find((p) => p.title === 'Alipson Business Hub');
 
-/* The card face carries a location and a name and nothing else on a phone.
-   Everything it used to stack on top of the photograph — category, area, year,
-   the description — lives in here, one tap away. On desktop this is a centred
-   dialog; on a phone `.modal--sheet` docks it to the bottom edge as a drawer. */
+const pad = (n: number) => String(n).padStart(2, '0');
+
+/* Everything the panel already shows plus the full description, one tap away.
+   On desktop this is a centred dialog; on a phone `.modal--sheet` docks it to
+   the bottom edge as a drawer. */
 function ProjectSheet({ open, project, onClose }: {
   open: boolean; project: Project | null; onClose: () => void;
 }) {
@@ -48,59 +47,6 @@ function ProjectSheet({ open, project, onClose }: {
   );
 }
 
-function Card({ project, onOpen }: { project: Project; onOpen: () => void }) {
-  return (
-    <motion.article
-      layout
-      className="proj cursor-target rounded-2xl overflow-hidden shadow-xl"
-      onClick={onOpen}
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ duration: 0.6, ease: EASE }}
-      data-cursor="View"
-    >
-      <div className="proj__img relative">
-        {/* No `h-auto` here. That utility carries `!important` and was beating
-            `.proj__img img { height: 100% }`, so the photo sat at its own 16:9
-            ratio inside a 16:11 frame and left a dead grey band under every
-            card — the "empty gaps" in the project grid. */}
-        <img {...imgProps(project.image, '(max-width: 800px) 100vw, 560px')} alt={`${project.title} - ${project.category} in ${project.location}`} className="w-full object-cover" />
-        <div className="proj__scrim absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
-      </div>
-      <span className="proj__tag absolute top-4 left-4 bg-black/75 backdrop-blur-md text-white font-semibold text-xs px-3 py-1 rounded-full border border-white/20">{project.category}</span>
-      <div className="proj__meta p-6">
-        {/* Named, not `:nth-child`. The phone face keeps ONLY the place and
-            drops area and year into the sheet, and a positional selector for
-            that would silently target the wrong span the day this row changes. */}
-        <div className="proj__loc font-medium text-sm mb-3">
-          <span className="proj__place"><MapPin size={12} /> {project.location}</span>
-          <span className="proj__area"><Ruler size={12} /> {project.area}</span>
-          <span className="proj__year">{project.year}</span>
-        </div>
-        {/* No `text-2xl`. Like `text-white` and `h-auto` above it, that utility
-            carries `!important` and pinned the title to a flat 1.5rem, killing
-            the clamp() in `.proj__title` that scales it with the viewport. */}
-        <h3 className="proj__title font-bold mb-2">{project.title}</h3>
-        <div className="proj__reveal">
-          <p>{project.desc}</p>
-          {/* A <button>, not the <span> this was: it is the card's stated
-              affordance, so it has to be focusable and announce itself. The
-              click is the card's own handler either way — `stopPropagation`
-              only keeps the card from firing it twice. */}
-          <button
-            type="button"
-            className="proj__view font-semibold mt-4 inline-flex items-center gap-1"
-            onClick={(e) => { e.stopPropagation(); onOpen(); }}
-          >
-            View project <ArrowUpRight size={14} />
-          </button>
-        </div>
-      </div>
-    </motion.article>
-  );
-}
-
 export default function Projects() {
   const [filter, setFilter] = useState('All');
   /* TWO pieces of state, deliberately. `open` drives the modal; `detail` holds
@@ -111,6 +57,24 @@ export default function Projects() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const openDetail = (p: Project) => { setDetail(p); setSheetOpen(true); };
   const shown = filter === 'All' ? PROJECTS : PROJECTS.filter((p) => p.tags.includes(filter));
+
+  /* WHICH PROJECT IS ON SCREEN IS A FUNCTION OF SCROLL POSITION, and that is
+     the only thing scroll drives here — an index, not a transform. The track is
+     `shown.length` screens of scroll; progress 0 is the first project and 1 is
+     the last, so the run is divided into equal dwells and `round` hands over at
+     the midpoint of each. Everything else (the clip, the fade, the copy lift)
+     is a plain CSS transition off the resulting `.is-on` class, so there is no
+     per-frame work and no half-transitioned states to reason about. */
+  const track = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+  const { scrollYProgress } = useScroll({ target: track, offset: ['start start', 'end end'] });
+  useMotionValueEvent(scrollYProgress, 'change', (p) => {
+    setActive(Math.min(shown.length - 1, Math.max(0, Math.round(p * (shown.length - 1)))));
+  });
+  /* A filter change rewrites the list under the index — without this, picking
+     "Commercial Buildings" while sitting on project 05 leaves the showcase
+     pointing past the end of a two-item list. */
+  useEffect(() => { setActive(0); }, [filter]);
 
   return (
     /* THE SHEET IS A SIBLING OF THE SECTION, NOT A CHILD. `.section` carries
@@ -144,16 +108,60 @@ export default function Projects() {
           </Reveal>
         </div>
 
-        <motion.div className="projects__grid" layout>
-          <AnimatePresence mode="popLayout">
-            {shown.map((p) => (
-              <Card key={p.title} project={p} onOpen={() => openDetail(p)} />
+        {/* ONE PROJECT AT A TIME. The panels share a single sticky frame and
+            only the active one is painted — the rest are `visibility: hidden`,
+            so they are out of the picture and out of the a11y tree rather than
+            stacked behind it. `--n` is what makes the track tall enough to give
+            every project its own dwell, and it comes off the FILTERED list so a
+            two-project filter is two screens of scroll, not six. */}
+        <div className="pshow" ref={track} style={{ '--n': shown.length } as React.CSSProperties}>
+          <div className="pshow__vp">
+            {shown.map((p, i) => (
+              <article key={p.title} className={`pshow__panel${i === active ? ' is-on' : ''}`}>
+                <div className="pshow__idx">
+                  <span><b>{pad(i + 1)}</b> / {pad(shown.length)}</span>
+                  <i />
+                </div>
+                <div
+                  className="pshow__frame cursor-target"
+                  onClick={() => openDetail(p)}
+                  data-cursor="View"
+                >
+                  <img
+                    {...imgProps(p.image, '(max-width: 900px) 100vw, 720px')}
+                    alt={`${p.title} — ${p.category} in ${p.location}`}
+                  />
+                </div>
+                <div className="pshow__body">
+                  <span className="pshow__cat">{p.category}</span>
+                  <h3 className="pshow__title">{p.title}</h3>
+                  <dl className="pshow__specs">
+                    <div><dt><MapPin size={12} /> Location</dt><dd>{p.location}</dd></div>
+                    <div><dt><Ruler size={12} /> Area</dt><dd>{p.area}</dd></div>
+                    <div><dt><Calendar size={12} /> Year</dt><dd>{p.year}</dd></div>
+                  </dl>
+                  <p className="pshow__desc">{p.desc}</p>
+                  {/* A <button>, not the <span> this was: it is the panel's
+                      stated affordance, so it has to be focusable and announce
+                      itself. The frame above opens the same sheet on click. */}
+                  <button type="button" className="pshow__view" onClick={() => openDetail(p)}>
+                    View case study <ArrowUpRight size={14} />
+                  </button>
+                </div>
+              </article>
             ))}
-          </AnimatePresence>
-        </motion.div>
+            {/* Decorative: the count is already spelled out as "01 / 06" on the
+                panel itself, so this is a second rendering of the same fact. */}
+            <div className="pshow__rail" aria-hidden="true">
+              {shown.map((p, i) => (
+                <span key={p.title} className={`pshow__dot${i === active ? ' is-on' : ''}`} />
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* Metadata comes off the project record rather than being retyped here,
-            so the name, town and year cannot drift from the card above. */}
+            so the name, town and year cannot drift from the panel above. */}
         <Reveal dir="up" delay={0.1}>
           <div style={{ marginTop: '2rem' }}>
             <BeforeAfter

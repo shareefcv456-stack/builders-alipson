@@ -116,6 +116,57 @@ async function present(url: string): Promise<boolean> {
  * now, so it cannot be allowed to surface as an unhandled rejection in the
  * console of a site that is rendering perfectly well without it.
  */
+/* ---- DEV ASSET STATUS -------------------------------------------------------
+   One consolidated report of which slots resolved, printed to the console the
+   first time the hero asks for them:
+
+     [models] hero assets — 2/8 loaded
+       ✓ sedan.glb        loaded
+       ✗ van.glb          missing -> procedural fallback
+       ! mixer.glb        rejected -> procedural fallback
+
+   DEV ONLY. Vite replaces `import.meta.env.DEV` with a literal `false` in a
+   production build, so minification removes this whole path — it is not a
+   runtime check that happens to be quiet in production, it is absent from it.
+   It is also console-only and never renders, so it cannot reach the site UI.
+
+   Coalesced rather than logged per slot: the eight probes resolve within a few
+   ms of each other, and eight separate lines scattered through a busy console
+   is exactly the noise this is meant to replace. */
+/* Resolved ONCE, defensively. `import.meta.env` is injected by the bundler and
+   simply does not exist under plain Node — which is where the check suite runs
+   this module, so reading `.DEV` off it threw and took the fallback test with
+   it. Optional chaining gives `undefined` there and the reporter stays off;
+   under Vite the expression folds to a constant and minification drops every
+   branch below it. */
+const DEV = ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) === true;
+
+type SlotState = 'loaded' | 'missing' | 'rejected';
+const status = new Map<ModelSlot, SlotState>();
+let reportAt: ReturnType<typeof setTimeout> | null = null;
+
+function record(slot: ModelSlot, state: SlotState) {
+  if (!DEV) return;
+  status.set(slot, state);
+  if (reportAt) clearTimeout(reportAt);
+  reportAt = setTimeout(() => {
+    reportAt = null;
+    const rows = (Object.keys(MODELS) as ModelSlot[])
+      .filter((k) => status.has(k))
+      .map((k) => {
+        const st = status.get(k)!;
+        const file = MODELS[k].replace('/models/', '').padEnd(16);
+        if (st === 'loaded') return `  \u2713 ${file}loaded`;
+        if (st === 'rejected') return `  ! ${file}rejected -> procedural fallback`;
+        return `  \u2717 ${file}missing -> procedural fallback`;
+      });
+    const ok = [...status.values()].filter((v) => v === 'loaded').length;
+    console.info(
+      [`[models] hero assets \u2014 ${ok}/${Object.keys(MODELS).length} loaded`, ...rows].join('\n'),
+    );
+  }, 300);
+}
+
 const cache = new Map<ModelSlot, Promise<LoadedModel | null>>();
 
 export function loadModel(slot: ModelSlot): Promise<LoadedModel | null> {
@@ -129,19 +180,23 @@ export function loadModel(slot: ModelSlot): Promise<LoadedModel | null> {
 
 async function fetchModel(slot: ModelSlot): Promise<LoadedModel | null> {
   const url = MODELS[slot];
-  if (!(await present(url))) return null;   // the normal case, today.
+  if (!(await present(url))) { record(slot, 'missing'); return null; }   // the normal case, today.
   let gltf;
   try {
     gltf = await (await getLoader()).loadAsync(url);
   } catch {
+    record(slot, 'missing');
     return null;
   }
   try {
-    return normalise(gltf.scene, slot);
+    const m = normalise(gltf.scene, slot);
+    record(slot, 'loaded');
+    return m;
   } catch (err) {
     // A model that IS there but cannot be used is a real mistake worth saying
     // out loud, unlike one that simply has not been added yet.
     console.warn(`[models] ${MODELS[slot]} loaded but was rejected:`, (err as Error).message);
+    record(slot, 'rejected');
     return null;
   }
 }

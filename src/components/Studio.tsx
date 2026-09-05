@@ -1,95 +1,107 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowUpRight, Download } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { motion, useScroll, useTransform, useMotionValueEvent, type MotionValue } from 'framer-motion';
+import { ArrowUpRight } from 'lucide-react';
 import Reveal from './ui/Reveal';
 import RevealText from './ui/RevealText';
 import Magnetic from './ui/Magnetic';
 import AmbientCanvas from './AmbientCanvas';
 import { HIGHLIGHTS } from '../data/site';
-import { useUI } from '../context/UIContext';
+import { HERO_FRAMES, HERO_FRAMES_SMALL } from '../lib/media';
+import { scrollToId } from '../hooks/useLenis';
 
-/* Architectural line-art that sits behind the photo's top-right corner: a
-   framed elevation over a faint measuring grid. Decorative only. */
-function BlueprintArt() {
+/* THE PANEL CARRIES ONE DRAWING, NOT TWO. A second piece of architectural
+   line-art used to bleed out from behind the frame's top-right corner. On its
+   own it was a nice flourish; over a panel that is already a technical
+   elevation dissolving into a photograph it was a third overlapping image, and
+   it is the first thing to go when the brief is "one state should dominate".
+   Removed here and in the stylesheet — `.studio__bp*` went with it. */
+
+/* THE FOUR ACTS OF A BUILD, AND THE FILM THAT SHOWS THEM.
+   `HERO_FRAMES` is the existing construction story — one Alipson project, one
+   camera position, one dusk hour, photographed at five genuine stages. It is
+   already the hero's scrub film; the studio panel plays the same reel under
+   the reader's scroll instead of maintaining a second set of images.
+   Five frames, four captions: the stepper names the acts a client cares about,
+   the film carries the extra intermediate frame so the dissolve stays smooth. */
+const STAGES = [
+  { n: '01', label: 'Foundation', sub: 'A strong beginning' },
+  { n: '02', label: 'Frame', sub: 'Building possibilities' },
+  { n: '03', label: 'Structure', sub: 'Shaping spaces' },
+  { n: '04', label: 'Finish', sub: 'Delivering dreams' },
+];
+
+/* One frame of the film. A STEP-IN RAMP, NOT A CROSSFADE PEAK: each frame
+   fades from 0 to 1 across the segment before it and then STAYS at 1, so the
+   stack is always fully opaque and mid-dissolve never shows the navy card
+   through two half-transparent photographs. Frame 0 sits at 1 throughout —
+   it is the ground the rest are painted over. */
+function FilmFrame({ i, n, build }: { i: number; n: number; build: MotionValue<number> }) {
+  const seg = 1 / (n - 1);
+  const opacity = useTransform(build, [(i - 1) * seg, i * seg], [0, 1], { clamp: true });
   return (
-    <svg className="studio__bp" viewBox="0 0 260 300" aria-hidden="true" focusable="false">
-      <g className="studio__bp-grid">
-        {Array.from({ length: 9 }).map((_, i) => (
-          <path key={`v${i}`} d={`M${20 + i * 28} 10V290`} />
-        ))}
-        {Array.from({ length: 10 }).map((_, i) => (
-          <path key={`h${i}`} d={`M10 ${20 + i * 28}H250`} />
-        ))}
-      </g>
-      <g className="studio__bp-line">
-        <path d="M48 250V96l82-58 82 58v154" />
-        <path d="M48 250h164M76 250v-62h48v62M148 148h40v40h-40zM76 118h48v40H76z" />
-        <path d="M130 38v212" />
-      </g>
-      <g className="studio__bp-dim">
-        <path d="M30 268h200M30 262v12M230 262v12" />
-      </g>
-    </svg>
+    <motion.img
+      className="studio__fr"
+      style={{ opacity }}
+      src={HERO_FRAMES[i]}
+      srcSet={`${HERO_FRAMES_SMALL[i]} 800w, ${HERO_FRAMES[i]} 1608w`}
+      sizes="(max-width: 900px) 100vw, 46vw"
+      width={1608}
+      height={978}
+      alt=""
+      decoding="async"
+      loading="lazy"
+    />
   );
 }
 
-const PHASE_LABELS = ['Foundation', 'Framing', 'Finish'];
-
 export default function Studio() {
   const visualRef = useRef<HTMLDivElement>(null);
-  const stepsRef = useRef<HTMLUListElement>(null);
-  const { openQuote, openBrochure } = useUI();
   const { scrollYProgress } = useScroll({ target: visualRef, offset: ['start end', 'end start'] });
-  const imgY = useTransform(scrollYProgress, [0, 1], ['-4%', '4%']);
 
-  /* THE BUILD IS A TIMED LOOP, NOT A SCROLL SCRUB — and the loop is weighted so
-     the FINISHED building is what is on screen almost all the time.
-     Scrubbing tied the sequence to scroll position, which meant the only way to
-     see the completed structure was to scroll the panel most of the way past
-     the viewport; land on the section and stop, and you were stuck looking at
-     bare foundations. Back on a clock, the whole build now takes ~2.8s of a 9s
-     cycle and the remaining ~6s holds the finished plan. The timing lives
-     entirely in the CSS keyframes (`@keyframes studioS1..S6`) — nothing here
-     drives it, which is why all six motion values and the phase-tracking state
-     that used to sit in this component are gone.
-     `<Deferred>` mounts this section about a viewport early, so the animation
-     starts a beat before the panel is actually reached. */
+  /* ONE PLAYHEAD DRIVES THE WHOLE PANEL, and it is a function of scroll
+     position — not a clock. 0 is a bare site under a blueprint, 1 is the
+     finished, lit landmark; the film, the drafting overlay, the blueprint wash
+     and the stepper all read from it, so they cannot drift apart.
+     The window is 0.18-0.72 of the panel's pass through the viewport rather
+     than 0-1: the head and tail of that range are the panel entering and
+     leaving, where nobody is looking at it. Landing mid-section and stopping
+     leaves the building topped out rather than half-built. */
+  const build = useTransform(scrollYProgress, [0.18, 0.72], [0, 1], { clamp: true });
 
-  /* The value stepper's rail fill — same pattern as <Process>. */
-  const { scrollYProgress: stepsProgress } = useScroll({
-    target: stepsRef, offset: ['start 85%', 'end 65%'],
+  /* The drafting sheet is a set of CSS keyframes on a 9s clock. Rather than
+     rewrite them as scroll animations, the clock is PAUSED and scrubbed with a
+     negative `animation-delay` — a paused animation sits frozen at |delay| into
+     its own timeline, so feeding that from `build` plays the exact same
+     sequence under the reader's thumb with no keyframe changed. The six stages
+     draw across the first 40% of the clock. */
+  /* THE DRAWING FINISHES DRAWING BEFORE IT HANDS OVER. The six stages of the
+     sheet complete at 31% of its own clock, and scroll used to be mapped
+     0-40% of that — so the whole build was over by `build` 0.78 while the
+     sheet's opacity was already down to 0.14 by 0.55. The last two stages were
+     therefore drawn onto something nobody could see, and the middle of the
+     scroll showed a HALF-DRAWN elevation over a photograph of a different
+     stage. That is the layered look: two states arguing, neither dominant.
+     Now the drawing completes by `build` 0.58 — inside the STRUCTURE act, at
+     full opacity — and only then does the photograph take over. */
+  const buildDelay = useTransform(build, [0, 0.58], ['-0s', '-2.80s'], { clamp: true });
+  /* ONE HAND-OVER, LATE AND SHORT. Linework owns the frame through FOUNDATION,
+     FRAME and STRUCTURE; it drops to a technical ghost across FINISH. */
+  const sheetFade = useTransform(build, [0.6, 0.86], [1, 0.09], { clamp: true });
+  /* The blueprint wash holds the photograph back to a toned underlay for the
+     same three acts — so what dominates early is unmistakably a DRAWING — and
+     clears only as the finished landmark arrives. */
+  const wash = useTransform(build, [0.6, 0.9], [0.94, 0.04], { clamp: true });
+  /* The scanner. One thin red line, bottom to top, driven by the same
+     playhead: at 0 it sits on the foundation, at 1 it has run out at the
+     parapet. It is a survey line, not a beam — see `.studio__scan`. */
+  const scanY = useTransform(build, [0.04, 0.96], ['96%', '4%'], { clamp: true });
+
+  /* Which act is lit. State, not a motion value, because it is text the DOM has
+     to re-render — and it only changes four times across the whole section. */
+  const [act, setAct] = useState(0);
+  useMotionValueEvent(build, 'change', (v) => {
+    setAct(Math.min(STAGES.length - 1, Math.floor(v * STAGES.length)));
   });
-  const stepFill = useTransform(stepsProgress, [0, 1], [0, 1]);
-
-  /* THE RAIL IS MEASURED, NOT GUESSED. It has to start at the centre of icon 01
-     and stop dead at the centre of icon 03 — and the distance from the last
-     icon's centre to the bottom of the list is whatever the last step's
-     description happens to wrap to, which no CSS offset can know. The old
-     `top: 34px; bottom: 34px` was a guess against a two-line description and
-     measured 45px of red bleeding out under icon 03.
-     Measured from the DOM instead, and re-measured whenever the list resizes
-     (font loading, rotation, a copy edit). */
-  const [rail, setRail] = useState<{ top: number; height: number } | null>(null);
-  useLayoutEffect(() => {
-    const list = stepsRef.current;
-    if (!list) return;
-    const measure = () => {
-      const icons = list.querySelectorAll<HTMLElement>('.studio__hl-icon');
-      if (icons.length < 2) return;
-      const base = list.getBoundingClientRect().top;
-      const centre = (el: HTMLElement) => {
-        const r = el.getBoundingClientRect();
-        return r.top - base + r.height / 2;
-      };
-      const first = centre(icons[0]);
-      const last = centre(icons[icons.length - 1]);
-      setRail({ top: first, height: last - first });
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(list);
-    return () => ro.disconnect();
-  }, []);
 
   return (
     <section id="studio" className="section section--noir studio grain">
@@ -98,21 +110,44 @@ export default function Studio() {
 
         {/* ---- LEFT · image composition ------------------------------------ */}
         <div className="studio__visual" ref={visualRef}>
-          <Reveal dir="up" delay={0.25}><BlueprintArt /></Reveal>
-
           <Reveal dir="up" className="studio__stack">
-            <motion.figure className="studio__frame" style={{ y: imgY }}>
+            <motion.div
+              className="studio__frame"
+              /* The cast is for the custom properties alone — framer types its
+                 own transform keys, but not arbitrary `--*` entries. */
+              style={{ ...({
+                '--build-delay': buildDelay,
+                '--sheet-fade': sheetFade,
+              } as Record<string, unknown>) }}
+            >
+              {/* THE STORY, IN PHOTOGRAPHS. Five stages of ONE project on one
+                  camera, dissolving into each other as the reader scrolls:
+                  excavation, columns, topped-out frame, facade, delivered and
+                  lit. Not an illustration of a building — the building. */}
+              <div
+                className="studio__film"
+                role="img"
+                aria-label="One Alipson project photographed from foundation through frame and structure to the finished, illuminated building"
+              >
+                {HERO_FRAMES.map((src, i) => (
+                  <FilmFrame key={src} i={i} n={HERO_FRAMES.length} build={build} />
+                ))}
+                {/* Blueprint wash. Deep navy over the bare site, gone by the
+                    time the landmark is standing — the panel literally moves
+                    from drawing to architecture. */}
+                <motion.span className="studio__wash" style={{ opacity: wash }} aria-hidden="true" />
+              </div>
+              {/* THE SCANNER. A single hairline with two end ticks and a short
+                  red glow under it, riding the playhead up the elevation. It is
+                  the only moving mark on the panel: the stages themselves are
+                  crossfades, so without it nothing tells the reader that what
+                  they are looking at is being scrubbed by their own scroll. */}
+              <motion.span className="studio__scan" style={{ top: scanY }} aria-hidden="true" />
+
               {/* 6-stage construction sequence on one shared 9s clock. Every
                   stage is a dash-drawn layer whose window is set in the CSS
                   keyframes; the build lands complete at ~2.8s and holds. */}
               <svg className="studio__sheet" viewBox="0 0 400 500" aria-hidden="true" focusable="false">
-                <defs>
-                  <linearGradient id="studioBeam" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor="#d31018" stopOpacity="0.9" />
-                    <stop offset="100%" stopColor="#d31018" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-
                 {/* static drafting grid */}
                 <g className="studio__grid">
                   {Array.from({ length: 21 }).map((_, i) => <path key={`gv${i}`} d={`M${i * 20} 0V500`} />)}
@@ -157,39 +192,45 @@ export default function Studio() {
                   </g>
                 </g>
 
-                {/* Laser sweep — same 9s clock, sweeping base→roof as the last
-                    stage tops out. */}
-                <rect className="studio__beam" x="52" y="0" width="296" height="120" fill="url(#studioBeam)" />
+                {/* The crimson sweep that used to live here ran on the build
+                    clock and fired once, near the end. The scroll-driven
+                    scanner outside the SVG replaces it — two red sweeps on one
+                    panel was one of the layers the panel did not need. */}
               </svg>
               <span className="studio__scrim" aria-hidden="true" />
 
-              {/* Phase caption. The sequence draws six stages but reads as three
-                  acts, and without naming them the panel is a pretty line
-                  animation rather than a claim about how the work is done.
-                  Which one is lit is a CSS animation on the same clock as the
-                  drawing — there is no React state behind it, so the caption
-                  cannot drift out of step with what the lines are doing. */}
-              <div className="studio__phases" aria-hidden="true">
-                {PHASE_LABELS.map((label) => (
-                  <span className="studio__phase" key={label}>{label}</span>
-                ))}
-              </div>
-
-              {/* diagonal navy wedge, top-right */}
+              {/* diagonal red wedge, top-right */}
               <svg className="studio__cut" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                 <path d="M100 0v46L36 0z" />
               </svg>
-              {/* red chevron, bottom-left */}
-              <svg className="studio__chev" viewBox="0 0 120 160" aria-hidden="true">
-                <path d="M6 156V42L48 0h44L50 42v114z" />
-              </svg>
 
-              <span className="studio__wm">Alipson Builders</span>
-              <figcaption className="studio__badge">
-                <b>15+</b>
-                <span>Years of<br />Excellence</span>
-              </figcaption>
-            </motion.figure>
+              <span className="studio__vision">From vision<br />to landmarks</span>
+              <span className="studio__wm">
+                Alipson Builders
+                <em>Building a brighter tomorrow</em>
+              </span>
+            </motion.div>
+
+            {/* THE STEPPER IS A SIBLING OF THE FRAME, NOT A CHILD — which is
+                what lets it be an overlay down the right edge on desktop and a
+                plain list UNDER the photograph on a phone, from one markup
+                path. Absolutely positioned text over a 320px-tall image is how
+                you get four captions sitting on a building. */}
+            <ol className="studio__steps">
+              {STAGES.map(({ n, label, sub }, i) => (
+                <li className={`studio__step${i === act ? ' is-on' : ''}`} key={label}>
+                  <i className="studio__step-dot" aria-hidden="true" />
+                  <b className="studio__step-n">{n}</b>
+                  <em className="studio__step-l">{label}</em>
+                  <span className="studio__step-s">{sub}</span>
+                </li>
+              ))}
+            </ol>
+
+            <div className="studio__badge">
+              <b>15+</b>
+              <span>Years of<br />Excellence</span>
+            </div>
           </Reveal>
         </div>
 
@@ -218,24 +259,16 @@ export default function Studio() {
               </p>
             </Reveal>
 
-            {/* A STEPPER, not three boxes. Same mechanism as <Process>: a rail
-                behind the nodes with a crimson fill scaled by scroll progress,
-                and each step revealing as the fill reaches it. The rail is the
-                only new part — the icon, title and copy are the same nodes the
-                cards had. `amount: 0.6` on each step is what syncs the reveal
-                to the fill rather than to the list entering the viewport. */}
-            <ul className="studio__highlights" ref={stepsRef}>
-              <div
-                className="studio__hl-rail"
-                aria-hidden="true"
-                style={rail ? { top: rail.top, height: rail.height, bottom: 'auto' } : undefined}
-              >
-                <motion.div className="studio__hl-fill" style={{ scaleY: stepFill }} />
-              </div>
-              {/* Standalone cards, and each one dims to 0.7 once it leaves the
-                  read position rather than staying lit. `once: false` is what
-                  makes it a scroll state instead of a one-shot entrance, so the
-                  active step tracks the rail fill on the way back up too. */}
+            {/* THREE SPECIFICATION CARDS. The scroll-driven rail that used to
+                thread them together is gone: the panel already has one
+                scroll-driven mechanism in it — the build, on the left — and a
+                second one competing for the same attention is what made this
+                column read as a second animation rather than as the claim it
+                makes. Each card dims to 0.7 once it leaves the read position
+                rather than staying lit, so the list still tracks the scroll;
+                `once: false` is what makes that a state instead of a one-shot
+                entrance, on the way back up as well as down. */}
+            <ul className="studio__highlights">
               {HIGHLIGHTS.map((h, i) => (
                 <motion.li
                   className="studio__hl"
@@ -247,7 +280,11 @@ export default function Studio() {
                   initial="rest"
                   whileInView="active"
                   viewport={{ amount: 0.7, once: false }}
-                  transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                  /* Each card lands a beat after the one above it, so the
+                     principles arrive as a sequence rather than a block. The
+                     step is small: at 0.07s a reader scrolling normally sees a
+                     cascade, not a queue they have to wait out. */
+                  transition={{ duration: 0.5, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <span className="studio__hl-icon"><h.icon size={20} strokeWidth={1.9} /></span>
                   <span className="studio__hl-txt">
@@ -262,12 +299,15 @@ export default function Studio() {
             <Reveal dir="up" delay={0.7}>
               <div className="btn-group studio__cta">
                 <Magnetic strength={0.25}>
-                  <button className="btn btn-primary" onClick={openQuote}>
-                    Start a Project <ArrowUpRight size={16} />
+                  <button className="btn btn-primary" onClick={() => scrollToId('intro')}>
+                    Our Story <ArrowUpRight size={16} />
                   </button>
                 </Magnetic>
-                <button className="btn btn-ghost" onClick={openBrochure}>
-                  <Download size={15} /> Brochure
+                {/* A text link, not a second button: the reference gives these
+                    two actions different weights, and two filled pills side by
+                    side is how a page ends up with no primary action at all. */}
+                <button className="studio__link" onClick={() => scrollToId('founder')}>
+                  Meet the Founder
                 </button>
               </div>
             </Reveal>

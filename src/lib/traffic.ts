@@ -61,16 +61,29 @@ export const OVT_OUT = 14;
 export function overtaker(slow: Lane, fast: Lane, clk: number) {
   const H0 = WRAP / slow.n;
   const PHASE = WRAP / fast.n / 2;
+  /* DIRECTION-AWARE. This used to assume the pair travelled toward +x, which
+     was true only because every lane in the scene did. With the carriageway on
+     left-hand convention the same-direction pair can run toward -x, and an
+     overtaker that ignored the sign would drive straight into the traffic it is
+     supposed to be passing. `dir` is the same for both lanes by definition —
+     they are the pair an overtake happens between. */
+  const D = fast.dir;
   const zAt = (c: number) => {
-    const raw = c * fast.speed + PHASE;
-    const rel = (((raw - c * slow.speed) % H0) + H0) % H0;
+    const raw = c * fast.speed * D + PHASE;
+    const rel = (((raw - c * slow.speed * D) % H0) + H0) % H0;
     const d = Math.abs(rel > H0 / 2 ? rel - H0 : rel);
     const u = 1 - ease(clamp01((d - OVT_IN) / (OVT_OUT - OVT_IN)));
     return slow.z + (fast.z - slow.z) * u;
   };
   const z = zAt(clk);
-  // Heading from the path's own tangent, sampled a hair ahead, so it steers
-  // into the lane change and straightens out of it instead of crabbing across.
+  /* Heading from the path's own tangent, sampled a hair ahead, so it steers
+     into the lane change and straightens out of it instead of crabbing across.
+     The x-advance carries the sign, so a -x overtaker comes back with a yaw
+     near PI and faces the way it is actually going. */
   const EPS = 0.05;
-  return { x: wrapX(clk * fast.speed + PHASE), z, yaw: Math.atan2(-(zAt(clk + EPS) - z), fast.speed * EPS) };
+  return {
+    x: wrapX(clk * fast.speed * D + PHASE),
+    z,
+    yaw: Math.atan2(-(zAt(clk + EPS) - z), fast.speed * D * EPS),
+  };
 }

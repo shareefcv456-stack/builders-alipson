@@ -9,6 +9,7 @@ import {
   metalRoughness, pavingMaps, skylineTexture, softDot,
 } from '../lib/procTex';
 import { laneX, overtaker, type Lane } from '../lib/traffic';
+import { exitCurve, exitU } from '../lib/exit';
 import { carGeometry, extrudeProfile } from '../lib/vehicle';
 import { EMPTY_GEO, loadModel, type PlantSlot } from '../lib/models';
 import { isLowPower, isPhone } from '../lib/device';
@@ -177,22 +178,15 @@ const KEYS_D: Key[] = [
  *  narrow frame, with the building seated in the middle band — copy above it,
  *  stats below. */
 const KEYS_M: Key[] = [
-  { t: 0.00, p: [7.0, 30.0, 26.0], l: [0, 0.0, 0], fov: 44 },
-  { t: 0.12, p: [9.0, 12.0, 20.0], l: [0, -1.2, 0], fov: 46 },
-  { t: 0.26, p: [9.5, 5.6, 16.0], l: [-0.2, 0.6, 0], fov: 48 },
-  { t: 0.40, p: [11.0, 8.6, 17.0], l: [0, 3.0, 0], fov: 46 },
-  { t: 0.54, p: [5.0, 13.0, 20.0], l: [0, 4.4, 0], fov: 44 },
-  { t: 0.66, p: [-10.5, 11.5, 18.5], l: [-0.4, 4.4, 0], fov: 44 },
-  { t: 0.78, p: [-14.0, 5.6, 16.5], l: [-0.8, 3.2, 0], fov: 46 },
-  { t: 0.90, p: [-6.0, 3.8, 16.5], l: [-0.3, 3.0, 0], fov: 44 },
-  /* Portrait hero. A 0.46 aspect frame is barely half as wide as it is tall, so
-     the phone gets a MUCH closer, more frontal set-up than the desktop key —
-     stood in the street, the 22 m frontage filling the width and the parapet
-     just under the copy. Backing off far enough to "fit" the building the way a
-     landscape frame does leaves the landmark a thumbnail. The look target sits
-     BELOW the building's centre, which lifts it out of the bottom third and
-     leaves the upper half as clean sky for the headline. */
-  { t: 1.00, p: [5.2, 4.0, 12.6], l: [0, 2.9, 0], fov: 44 },
+  { t: 0.00, p: [7.0, 30.0, 26.0], l: [0.0, 0.0, 0.0], fov: 51 },
+  { t: 0.12, p: [12.76, 17.51, 28.35], l: [0.0, -1.2, 0.0], fov: 52 },
+  { t: 0.26, p: [16.98, 9.46, 28.34], l: [-0.2, 0.6, 0.0], fov: 52 },
+  { t: 0.40, p: [18.14, 12.23, 28.03], l: [0.0, 3.0, 0.0], fov: 52 },
+  { t: 0.54, p: [7.01, 16.46, 28.04], l: [0.0, 4.4, 0.0], fov: 51 },
+  { t: 0.66, p: [-16.79, 15.92, 30.02], l: [-0.4, 4.4, 0.0], fov: 51 },
+  { t: 0.78, p: [-23.75, 7.37, 28.68], l: [-0.8, 3.2, 0.0], fov: 52 },
+  { t: 0.90, p: [-11.18, 4.53, 31.49], l: [-0.3, 3.0, 0.0], fov: 51 },
+  { t: 1.00, p: [12.53, 5.55, 30.35], l: [0.0, 2.9, 0.0], fov: 51 },
 ];
 
 /* ---- act two's camera ------------------------------------------------------
@@ -221,25 +215,16 @@ const OUT_D: Key[] = [
      same hand-off from key 0 (which still matches the last build key exactly).
      The look targets come down with the camera so the building stays framed
      rather than sliding out of the top. */
-  { t: 0.86, p: [10.0, 3.6, 20.6], l: [-3.4, 2.0, 9.2], fov: 40 },
-  { t: 1.00, p: [11.0, 5.0, 21.4], l: [-3.4, 2.4, 6.4], fov: 38 },
+  { t: 0.86, p: [10.0, 3.6, 20.6], l: [8.6, 2.0, 9.2], fov: 40 },
+  { t: 1.00, p: [11.0, 5.0, 21.4], l: [11.4, 2.4, 6.4], fov: 38 },
 ];
 const OUT_M: Key[] = [
-  { t: 0.00, p: [5.2, 4.0, 12.6], l: [0, 2.9, 0], fov: 44 },
-  { t: 0.24, p: [7.2, 4.6, 14.6], l: [2.2, 2.4, 3.8], fov: 45 },
-  { t: 0.48, p: [9.0, 3.6, 16.0], l: [5.2, 1.8, 8.8], fov: 46 },
-  { t: 0.68, p: [8.0, 3.2, 15.5], l: [3.6, 1.8, 11.0], fov: 47 },
-  /* Aimed LOW on purpose. A portrait frame is twice as tall as it is wide, so
-     a level look leaves the top half empty sky; dropping the target tilts the
-     camera down and lifts the whole street into the frame. */
-  /* Lowered too, but LESS than the desktop pair, and the low look targets are
-     kept exactly as they were. The height here is not an accident: a 0.46
-     aspect frame is twice as tall as it is wide, and the elevation plus a
-     dropped target is what fills the top half with street instead of empty
-     sky. Take it all the way down and the portrait frame goes hollow above the
-     horizon. ~17 m and ~23 m, from 22 m and 32 m. */
-  { t: 0.86, p: [7.6, 6.0, 16.2], l: [-3.0, 1.4, 8.0], fov: 48 },
-  { t: 1.00, p: [9.0, 8.4, 18.0], l: [-2.5, 1.6, 5.0], fov: 46 },
+  { t: 0.00, p: [12.53, 5.55, 30.35], l: [0.0, 2.9, 0.0], fov: 51 },
+  { t: 0.24, p: [8.9, 5.35, 18.27], l: [2.2, 2.4, 3.8], fov: 52 },
+  { t: 0.48, p: [10.29, 4.21, 18.45], l: [5.2, 1.8, 8.8], fov: 52 },
+  { t: 0.68, p: [9.5, 3.68, 17.03], l: [3.6, 1.8, 11.0], fov: 52 },
+  { t: 0.86, p: [11.2, 7.56, 18.99], l: [-3.0, 1.4, 8.0], fov: 52 },
+  { t: 1.00, p: [12.91, 10.71, 22.42], l: [-2.5, 1.6, 5.0], fov: 52 },
 ];
 
 const crv = (a: number, b: number, c: number, d: number, u: number) => {
@@ -521,14 +506,88 @@ function figureParts() {
   const dome = new THREE.SphereGeometry(0.055, 8, 6).scale(1, 0.78, 1).translate(0, 0.583, 0);
   const brim = new THREE.CylinderGeometry(0.071, 0.071, 0.011, 10).translate(0, 0.567, 0.006);
 
+  /* FOUR MATERIAL GROUPS, NOT THREE — and the split is the whole fix for
+     "the people are black silhouettes". The head used to be merged in with the
+     legs and arms onto one dark material, so a worker had a dark head, dark
+     arms and dark trousers: three quarters of the figure was a single value
+     and the only thing that read at all was the helmet. Skin has to be its own
+     group or there is no face and no hands, and the shirt has to be its own
+     group or there is no torso to see them against. */
   return {
-    /** Dark group — limbs and head. */
-    limbs: mergeGeometries([legF, legB, armL, armR, head], false)!,
-    /** Hi-vis group — the vest. */
+    /** Trousers. */
+    legs: mergeGeometries([legF, legB], false)!,
+    /** Work shirt. */
     torso,
-    /** White group — the hard hat. */
+    /** Skin — forearms and head, the parts that are not clothed. */
+    skin: mergeGeometries([armL, armR, head], false)!,
+    /** Hard hat. */
     helmet: mergeGeometries([dome, brim], false)!,
   };
+}
+
+/**
+ * TWO POSED WORKERS for the scaffold decks.
+ *
+ * The existing crew is one instanced figure repeated — which is right for a
+ * dozen people at distance, and wrong for the two the eye actually lands on:
+ * every instance shares one pose, so a crouching worker is impossible in that
+ * pass. These two are ordinary Groups. Two extra draw calls buys two distinct
+ * silhouettes doing two distinct jobs, which is the whole difference between a
+ * site and a set of mannequins.
+ *
+ * Same skeleton and the same landmarks as `figureParts` — hip 0.30, shoulder
+ * 0.52, crown 0.63 on a 1.75 m person — so they stand at exactly the scale the
+ * crew, the storeys and the scaffold are already built to.
+ */
+function posedWorker(
+  pose: 'plank' | 'crouch',
+  limb: THREE.Material, vest: THREE.Material, hat: THREE.Material, plankMat: THREE.Material,
+  shadow: boolean, skin: THREE.Material = limb,
+) {
+  const g = new THREE.Group();
+  const cap = (r: number, len: number) => new THREE.CapsuleGeometry(r, len, 3, 6);
+  const put = (geo: THREE.BufferGeometry, mat: THREE.Material,
+               pos: [number, number, number], rot: [number, number, number] = [0, 0, 0]) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(...pos);
+    m.rotation.set(...rot);
+    m.castShadow = shadow;
+    g.add(m);
+  };
+  const head = (y: number, z: number) => {
+    put(new THREE.SphereGeometry(0.045, 7, 6), skin, [0, y, z]);
+    put(new THREE.SphereGeometry(0.055, 8, 6).scale(1, 0.78, 1), hat, [0, y + 0.011, z]);
+    put(new THREE.CylinderGeometry(0.071, 0.071, 0.011, 10), hat, [0, y - 0.005, z + 0.006]);
+  };
+
+  if (pose === 'crouch') {
+    /* Squatting over the deck: shins vertical, thighs folded forward, torso
+       pitched down and arms reaching to the boards. Crown lands at ~0.50
+       against a standing 0.63, which is the proportion a real crouch loses. */
+    ([-0.042, 0.042] as const).forEach((x) => {
+      put(cap(0.031, 0.15), limb, [x, 0.10, -0.02]);                    // shin
+      put(cap(0.033, 0.17), limb, [x + (x < 0 ? -0.004 : 0.004), 0.215, 0.085], [1.15, 0, 0]);  // thigh
+      put(cap(0.023, 0.18), skin, [x * 2.4, 0.305, 0.185], [1.0, 0, 0]); // arm, reaching down
+    });
+    put(new THREE.CylinderGeometry(0.088, 0.072, 0.235, 10, 1).scale(1, 1, 0.66),
+        vest, [0, 0.335, 0.115], [0.52, 0, 0]);
+    head(0.455, 0.215);
+  } else {
+    /* Upright, carrying a board across the body: legs planted a little apart,
+       forearms forward and level, plank in the hands. */
+    put(cap(0.031, 0.24), limb, [-0.05, 0.152, 0.02]);
+    put(cap(0.031, 0.24), limb, [0.05, 0.152, -0.02]);
+    put(new THREE.CylinderGeometry(0.088, 0.072, 0.235, 10, 1).scale(1, 1, 0.66),
+        vest, [0, 0.4175, 0]);
+    ([-0.112, 0.112] as const).forEach((x) => {
+      put(cap(0.023, 0.19), skin, [x, 0.435, 0.115], [1.32, 0, 0]);      // arm forward
+    });
+    // The board itself: a scaffold plank, in the decks' own galvanised steel
+    // rather than timber — the same material it would have been lifted off.
+    put(new THREE.BoxGeometry(0.66, 0.026, 0.11), plankMat, [0, 0.452, 0.205]);
+    head(0.572, 0);
+  }
+  return g;
 }
 
 /* ---- construction plant ----------------------------------------------------
@@ -665,6 +724,11 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
        scrolling. Re-applied on resize too, because devicePixelRatio changes
        when a window moves between monitors; the value is constant, so that is
        a no-op rather than a visible re-scale. */
+    /* Re-read on every resize, so a rotation crossing the breakpoint updates
+       it. Used ONLY for the phone exposure lift below — desktop and tablet
+       must be untouched, which a `lite` gate would not have guaranteed
+       (Save-Data and low-end desktops are lite too). */
+    let phoneView = isPhone();
     const DPR_CAP = Math.min(window.devicePixelRatio || 1, lite ? 1.5 : 1.75);
     renderer.setPixelRatio(DPR_CAP);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -833,6 +897,13 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
        matte surface with a soft sheen, not as chrome. */
     const darkMat = new THREE.MeshStandardMaterial({ color: 0x22262c, roughness: 0.44, metalness: 0.3, envMapIntensity: 0.9 });
     const accentMat = new THREE.MeshStandardMaterial({ color: ACCENT, roughness: 0.45, metalness: 0.15 });
+    /* Precast spandrel / slab-edge band and balcony soffits. Warm pale grey,
+       matt, so it separates the storeys by value against the dark glass
+       instead of adding another black line to a facade that had six. */
+    const spandrelMat = new THREE.MeshStandardMaterial({
+      color: 0xa8a49c, normalMap: conc.normalMap, roughnessMap: conc.roughnessMap,
+      normalScale: new THREE.Vector2(0.3, 0.3), roughness: 0.86, metalness: 0.03, envMapIntensity: 0.6,
+    });
 
     /* CURTAIN WALL. Opaque, deliberately: all 84 panes are one InstancedMesh and
        therefore ONE draw call, and instances inside a draw call are not
@@ -843,16 +914,44 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
        behind it, so there is real depth to read. */
     const interiorTex = interiorTexture(lite ? 128 : 256);
     const glassMat = new THREE.MeshPhysicalMaterial({
-      color: 0x0b111b, roughness: 0.045, metalness: 0.22,
-      clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 2.4, reflectivity: 1,
+      /* 0x121b28, not the near-black 0x0b111b this was. A tinted pane still
+         reads as glass; a pane that dark reads as a hole, and it was taking
+         the interior with it — everything behind the reflection crushed to
+         black, which is most of "the windows are flat rectangles". */
+      color: 0x121b28, roughness: 0.06, metalness: 0.2,
+      clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 2.4, reflectivity: 1,
       emissive: 0xffffff, emissiveMap: interiorTex, emissiveIntensity: 0,
       side: THREE.DoubleSide,
     });
+    /* WHY EVERY WINDOW USED TO LOOK IDENTICAL, and the one-line fix.
+       The per-pane colours set on the InstancedMesh below reach the shader as
+       `vColor`, and three multiplies exactly one thing by it: `diffuseColor`.
+       On a pane this dark that is a variation of almost nothing — while the
+       EMISSIVE, which is the fitted-out floor behind the glass and therefore
+       the only part of a window anyone actually reads at dusk, was identical
+       on all 84 panes. Six floors of the same lit room, stamped out.
+       So the instance colour is applied to the emissive term too: one pane is
+       a bright open-plan floor, its neighbour is a dim room with the blinds
+       half down, another is empty and dark. The guard is the same one three
+       uses to declare `vColor`, so the non-instanced meshes that share this
+       material still compile. */
+    glassMat.onBeforeCompile = (sh) => {
+      const NEEDLE = '#include <emissivemap_fragment>';
+      if (import.meta.env.DEV && !sh.fragmentShader.includes(NEEDLE)) {
+        console.error('[HeroSite] emissivemap_fragment is gone — windows will all light the same');
+      }
+      sh.fragmentShader = sh.fragmentShader.replace(NEEDLE, [
+        NEEDLE,
+        '#if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )',
+        '  totalEmissiveRadiance *= vColor;',
+        '#endif',
+      ].join('\n'));
+    };
     /* Additive strips: cove lighting, pier washes, signage glow, uplights.
        Unlit and depth-write-off so they read as light rather than as objects. */
     const glowMat = new THREE.MeshBasicMaterial({ color: 0xffd2a0, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
 
-    const dispose: THREE.Material[] = [glassMat, glowMat, concMat, slabMat, stoneMat, rebarMat, steelMat, darkMat, accentMat, skyMat];
+    const dispose: THREE.Material[] = [glassMat, glowMat, concMat, slabMat, stoneMat, rebarMat, steelMat, darkMat, accentMat, spandrelMat, skyMat];
     const texs: THREE.Texture[] = [interiorTex, rough, stoneTex.map, stoneTex.rough, ...skies,
       ...Object.values(conc), ...Object.values(dirt)];
 
@@ -1164,16 +1263,39 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
        ====================================================================== */
     {
       const CN = lite ? 6 : 12;
-      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2b2f38, roughness: 0.86 });
-      const vestMat = new THREE.MeshStandardMaterial({ color: ACCENT, roughness: 0.7 });
-      const hatMat = new THREE.MeshStandardMaterial({ color: 0xe9ecef, roughness: 0.55 });
-      dispose.push(bodyMat, vestMat, hatMat);
+      /* SITE UNIFORM: light shirt, dark trousers, white hat, and skin that is
+         actually skin. The previous set had ONE dark value doing head, arms and
+         legs, which is why the crew read as cut-outs.
+         The shirt and the hat carry a small EMISSIVE of their own colour. That
+         is not a glow — it is a floor. At blue hour the key light is almost
+         gone and a 0.86-rough white surface has nothing left to return, so
+         white clothing crushes to the same near-black as everything else;
+         0.16 of its own hue keeps it reading as white without it ever becoming
+         a light source. The brief asks for exactly that: visibly white in an
+         evening scene, not glowing. */
+      const bodyMat = new THREE.MeshStandardMaterial({
+        color: 0x232a3a, roughness: 0.88, envMapIntensity: 1.2,          // trousers
+      });
+      const vestMat = new THREE.MeshStandardMaterial({
+        color: 0xe6e4dd, roughness: 0.78, envMapIntensity: 1.5,          // work shirt
+        emissive: 0xe6e4dd, emissiveIntensity: 0.16,
+      });
+      const skinMat = new THREE.MeshStandardMaterial({
+        color: 0xb98a68, roughness: 0.72, envMapIntensity: 1.35,         // hands, arms, face
+        emissive: 0xb98a68, emissiveIntensity: 0.1,
+      });
+      const hatMat = new THREE.MeshStandardMaterial({
+        color: 0xf0f2f4, roughness: 0.5, envMapIntensity: 1.6,           // hard hat
+        emissive: 0xf0f2f4, emissiveIntensity: 0.16,
+      });
+      dispose.push(bodyMat, vestMat, skinMat, hatMat);
       // 1.75 m ≈ 0.63 units: hip 0.30, shoulder 0.52, crown 0.63. Limbs, vest
       // and hard hat come from the shared figure so the crew and the people on
       // the footway are the same human in different clothes.
       const CREW_FIG = figureParts();
-      const bodyIM = mkIM(CREW_FIG.limbs, bodyMat, CN, false);
+      const bodyIM = mkIM(CREW_FIG.legs, bodyMat, CN, false);
       const vestIM = mkIM(CREW_FIG.torso, vestMat, CN, false);
+      const skinIM = mkIM(CREW_FIG.skin, skinMat, CN, false);
       const hatIM = mkIM(CREW_FIG.helmet, hatMat, CN, false);
       /* A real worker model already wears its own vest and hard hat, so the two
          instanced meshes that painted those onto the procedural figure collapse
@@ -1184,7 +1306,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         bodyIM.geometry.dispose();
         bodyIM.geometry = w.body;
         setMats(bodyIM, w.materials);
-        [vestIM, hatIM].forEach((im) => { im.geometry.dispose(); im.geometry = EMPTY_GEO(); });
+        [vestIM, skinIM, hatIM].forEach((im) => { im.geometry.dispose(); im.geometry = EMPTY_GEO(); });
       });
 
       /* Placed on the deck of whichever lift is being poured, plus two at ground
@@ -1196,11 +1318,54 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         face: rnd(i, 71) * Math.PI * 2,
         phase: rnd(i, 73) * 9,
       }));
+      /* ---- TWO WORKERS ON THE SCAFFOLD DECKS ------------------------------
+         Added to the crew, not instead of it — the existing twelve are
+         untouched. These two stand on the perimeter decks at the 4th and 5th
+         lift, which is the "upper/middle floors" band, on the deck runs that
+         already exist at x/z = +/-(half-span + R).
+         Deck arithmetic, so their feet cannot float: a ledger sits at
+         LEV(k) - 0.3, its board 0.05 above that, and the board is 0.04 thick —
+         so the walking surface is LEV(k) - 0.21.
+         Their VISIBILITY is derived from the scaffold's own height rule rather
+         than from a phase of their own, which is what keeps a worker from ever
+         standing on a deck that has not been erected yet or has already been
+         struck. */
+      const DECK_R = 0.6;
+      const deckY = (k: number) => LEV(k) - 0.21;
+      const plankMat = new THREE.MeshStandardMaterial({ color: 0x8d939a, roughness: 0.62, metalness: 0.55 });
+      dispose.push(plankMat);
+      const deckCrew = [
+        // Carrying a board along the south run, facing back into the frame.
+        { g: posedWorker('plank', bodyMat, vestMat, hatMat, plankMat, !lite, skinMat),
+          x: 1.7, z: BD / 2 + DECK_R, y: deckY(5), ry: Math.PI },
+        // Crouched over the boards on the west run, working on the deck.
+        { g: posedWorker('crouch', bodyMat, vestMat, hatMat, plankMat, !lite, skinMat),
+          x: -(BW / 2 + DECK_R), z: -0.9, y: deckY(4), ry: Math.PI / 2 },
+      ];
+      deckCrew.forEach((w) => {
+        w.g.position.set(w.x, w.y, w.z);
+        w.g.rotation.y = w.ry;
+        world.add(w.g);
+      });
+
       tick.push((t) => {
+        /* Mirrors the scaffolding block's own height rule exactly: the lesser
+           of what the scaffold has erected and what the frame has poured, plus
+           a lift. A deck exists at height Y only when that value clears Y. */
+        const scaffUp = ease(span(P.scaff[0], P.scaff[1], t));
+        const scaffOut = ease(span(P.clear[0] - 0.04, P.clear[1] - 0.04, t));
+        let poured = 0;
+        for (let k = 0; k < SEGS; k++) {
+          const b = segBase(k), tp = segTop(k);
+          poured = Math.max(poured, b + (tp - b) * clamp01(liftAt(t, k)));
+        }
+        const deckH = Math.min((TOP + 0.5) * scaffUp, poured + FH) * (1 - scaffOut);
+        deckCrew.forEach((w) => { w.g.visible = deckH > w.y + 0.12 && scaffOut < 0.9; });
+
         const inK = span(P.crew[0], P.crew[1] - 0.02, t);
         const out = ease(span(P.clear[0] - 0.02, P.clear[1] - 0.04, t));
         const live = inK > 0.01 && out < 0.98;
-        bodyIM.visible = vestIM.visible = hatIM.visible = live;
+        bodyIM.visible = vestIM.visible = skinIM.visible = hatIM.visible = live;
         if (!live) return;
         crew.forEach((c, i) => {
           const built = liftAt(t, c.lift);
@@ -1210,10 +1375,11 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
           dummy.position.set(c.x + sway, segTop(c.lift), c.z);
           dummy.rotation.set(0, c.face + sway, 0);
           grow(k, k, k, k);
-          put(bodyIM, i); put(vestIM, i); put(hatIM, i);
+          put(bodyIM, i); put(vestIM, i); put(skinIM, i); put(hatIM, i);
         });
         bodyIM.instanceMatrix.needsUpdate = true;
         vestIM.instanceMatrix.needsUpdate = true;
+        skinIM.instanceMatrix.needsUpdate = true;
         hatIM.instanceMatrix.needsUpdate = true;
       });
     }
@@ -1237,8 +1403,20 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         ledgers.push({ x: BW / 2 + R, z: -BD / 2 - R, len: BD + R * 2, rot: Math.PI / 2, y: LEV(k) - 0.3 });
       }
       const ledIM = mkIM(fromEnd(new THREE.BoxGeometry(1, 0.05, 0.05), 1), steelMat, ledgers.length, false);
-      // Timber boards on alternate lifts, so the scaffold has decks to work off.
-      const boardMat = new THREE.MeshStandardMaterial({ color: 0x9a7d55, roughness: 0.92 });
+      /* Decks on alternate lifts, so the scaffold has something to work off.
+         GALVANISED STEEL DECKS, not timber boards. These were 0x9a7d55 — raw
+         orange pine — on runs up to 25.8 m, sitting 1.7 m OUTSIDE the building
+         on alternate lifts. That is a rectangle of long brown horizontal
+         members hanging around a grey concrete frame, which is exactly the
+         description of "stray wooden beams beside and outside the building",
+         and no amount of repositioning fixes it because the position is
+         correct — a scaffold deck belongs there.
+         So the geometry stays and the MATERIAL changes. System scaffolding
+         uses steel or aluminium planks, so this is the more accurate choice as
+         well as the one that removes the last actual timber from the scene:
+         the scaffolding is fully intact, and there is no longer any wood in
+         it to mistake for a second structure. */
+      const boardMat = new THREE.MeshStandardMaterial({ color: 0x8d939a, roughness: 0.62, metalness: 0.55, envMapIntensity: 0.9 });
       dispose.push(boardMat);
       const boardIM = mkIM(fromEnd(new THREE.BoxGeometry(1, 0.04, 0.5), 1), boardMat, ledgers.length, false);
 
@@ -1248,7 +1426,27 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         const live = up > 0.02 && out < 0.98;
         standIM.visible = ledIM.visible = boardIM.visible = live;
         if (!live) return;
-        const h = (TOP + 0.5) * up * (1 - out);
+        /* THE SCAFFOLD MAY NOT OUTRUN THE BUILDING. This is the source of the
+           "floating timber above and beside the structure".
+           `up` completes at P.scaff[1] = 0.48, but the frame does not top out
+           until P.frame[1] = 0.62 — so for a quarter of the build the scaffold
+           stood at full roof height around a half-built structure, and its
+           DECKS came with it: boards up to 26 m long, in timber brown, hanging
+           at six storeys with no building next to them. Nothing was wrong with
+           the boards; they were being placed against a height the frame had
+           not reached.
+           So the height is now the lesser of what the scaffold has erected and
+           what the frame has actually poured, plus one lift — a real scaffold
+           does run a lift above the pour, because that is what the crew stands
+           on. Computed CONTINUOUSLY from each lift's own progress rather than
+           by thresholding it, so the scaffold grows with the concrete instead
+           of stepping up a storey at a time. */
+        let built = 0;
+        for (let k = 0; k < SEGS; k++) {
+          const base = segBase(k), top = segTop(k);
+          built = Math.max(built, base + (top - base) * clamp01(liftAt(t, k)));
+        }
+        const h = Math.min((TOP + 0.5) * up, built + FH) * (1 - out);
         posts.forEach((p, i) => {
           dummy.position.set(p[0], -0.1, p[1]);
           dummy.rotation.set(0, 0, 0);
@@ -1377,11 +1575,51 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       const glassIM = mkIM(new THREE.PlaneGeometry(1, 1), glassMat, paneCount, false);
       const MUL = lite ? 2 : 3;
       const mulIM = mkIM(new THREE.BoxGeometry(0.05, 1, 0.09), darkMat, paneCount * MUL, false);
-      const spanIM = mkIM(new THREE.BoxGeometry(1, 0.17, 0.16), darkMat, paneCount, false);
+      /* PRECAST, NOT ANODISED BLACK. This band is the slab edge — the one
+         element that tells a viewer where one storey stops and the next
+         starts — and it was in the same near-black metal as the mullions and
+         the reveals, so six floor lines read as six black stripes and the
+         elevation lost its storeys. In pale precast it separates the floors by
+         VALUE rather than by another dark line, which is what the photographs
+         of this building type actually show. Deeper too: 240 mm reads at hero
+         distance where 170 did not. */
+      const spanIM = mkIM(new THREE.BoxGeometry(1, 0.24, 0.17), spandrelMat, paneCount, false);
       /* A recessed dark reveal behind every pane. Glass set flush with its
          surround is what makes a facade look printed on; 90 mm of shadow gap is
          what makes it look built — and it is what the AO pass then picks up. */
       const revealIM = mkIM(new THREE.BoxGeometry(1, 1, 0.06), darkMat, paneCount, false);
+      /* THE FRAME IS THE REVEAL, SEEN ROUND THE EDGE OF A SMALLER PANE. The
+         glass used to fill 98% of its bay, so the dark box behind it showed as
+         a 20 mm line — a shadow gap, not a frame, and at hero distance not
+         even that. At 0.86 the surround reads as the 140 mm aluminium section
+         it is meant to be, all four sides, and the AO pass has something to
+         sit in. No extra geometry: the frame was always there, it was simply
+         hidden behind the pane. */
+      const PANE = 0.86;
+      /* One horizontal transom per pane, at the head of the vision panel. It is
+         what stops a storey-height sheet of glass reading as a slot. */
+      const tranIM = mkIM(new THREE.BoxGeometry(1, 0.05, 0.1), darkMat, paneCount, false);
+
+      /* BALCONIES, ON ALTERNATE BAYS OF THE MIDDLE FLOORS.
+         Every bay would be a housing block and none is a curtain-walled slab;
+         alternating gives the elevation a rhythm and, more usefully, gives it
+         DEPTH — a projecting slab with a rail on it is the one element that
+         casts a real shadow across the glass and proves the facade is built
+         rather than printed.
+         Floors 2 to FLOORS-2 only. Floor 1 is inside the double-height lobby
+         volume and would hang over the entrance canopy; the top floor carries
+         the Alipson sign on the front elevation, and a balcony there would
+         stand in front of it. */
+      const balcIdx = new Int16Array(FLOORS * BAYS.length).fill(-1);
+      let balcN = 0;
+      for (let s2 = 2; s2 <= FLOORS - 2; s2++) {
+        for (let b = 0; b < BAYS.length; b++) {
+          if (b % 2) continue;
+          balcIdx[s2 * BAYS.length + b] = balcN++;
+        }
+      }
+      const balcIM = mkIM(new THREE.BoxGeometry(1, 0.1, 0.7), spandrelMat, balcN, false);
+      const railIM = mkIM(new THREE.BoxGeometry(1, 0.42, 0.04), darkMat, balcN, false);
       /* A shading fin on every floor line. 300 mm of projecting metal is a real
          detail on a curtain-walled office in this climate, and it is what breaks
          a flat glazed elevation into storeys from a distance — the elevation
@@ -1389,10 +1627,22 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
          up a shadow under each one. */
       const finIM = mkIM(new THREE.BoxGeometry(1, 0.05, 0.3), darkMat, paneCount, false);
 
-      // Per-pane interior variation — floors are not uniformly occupied.
+      /* OCCUPANCY, not jitter. The old spread was 0.72-1.05 on a term that
+         only tinted the glass, so every window was the same window. Three
+         tiers instead — one pane in six is an unlit or blinded room, half are
+         a working office at normal level, the rest are a bright open floor —
+         and because the shader patch above runs this into the emissive as
+         well, that is now the interior light rather than the tint. Warm, and
+         warmer in the reds, because it is tungsten behind the glass. */
       for (let i = 0; i < paneCount; i++) {
+        const occ = rnd(i, 83);
+        const b = occ < 0.17 ? mix(0.12, 0.26, rnd(i, 89))
+          : occ < 0.62 ? mix(0.5, 0.82, rnd(i, 97))
+            : mix(0.95, 1.35, rnd(i, 101));
         glassIM.setColorAt(i, col.setRGB(
-          mix(0.72, 1.05, rnd(i, 83)), mix(0.66, 0.98, rnd(i, 89)), mix(0.6, 0.92, rnd(i, 97)),
+          b * mix(1.0, 1.08, rnd(i, 103)),
+          b * mix(0.88, 0.97, rnd(i, 107)),
+          b * mix(0.74, 0.88, rnd(i, 109)),
         ));
       }
       if (glassIM.instanceColor) glassIM.instanceColor.needsUpdate = true;
@@ -1453,6 +1703,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         washIM.visible = coveIM.visible = litK > 0.02;
         const anyGlass = t > P.glass[0] - 0.01;
         glassIM.visible = mulIM.visible = spanIM.visible = revealIM.visible = finIM.visible = anyGlass;
+        tranIM.visible = balcIM.visible = railIM.visible = anyGlass;
         glassMat.emissiveIntensity = 2.4 * litK;
 
         piers.forEach((p, i) => {
@@ -1492,13 +1743,31 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
             const cy = y0 + GH / 2;
             dummy.position.set(cx, cy, cz);
             dummy.rotation.set(0, bay.rot, 0);
-            grow(kk, bay.w * 0.98 * kk, GH * kk, 1);
+            grow(kk, bay.w * PANE * kk, GH * PANE * kk, 1);
             put(glassIM, idx);
+            // Transom, a third down from the head of the pane.
+            dummy.position.set(cx + bay.nx * 0.015, cy + GH * PANE * 0.17, cz + bay.nz * 0.015);
+            dummy.rotation.set(0, bay.rot, 0);
+            grow(kk, bay.w * PANE * kk, 1, 1);
+            put(tranIM, idx);
             // Shadow gap behind the pane.
             dummy.position.set(bay.x - bay.nx * 0.06, cy, bay.z - bay.nz * 0.06);
             dummy.rotation.set(0, bay.rot, 0);
             grow(kk, bay.w * kk, GH * kk, 1);
             put(revealIM, idx);
+            const bi = balcIdx[idx];
+            if (bi >= 0) {
+              // Slab: projects 350 mm past the glass line, on the bay's normal.
+              dummy.position.set(bay.x + bay.nx * 0.36, LEV(s) + 0.06, bay.z + bay.nz * 0.36);
+              dummy.rotation.set(0, bay.rot, 0);
+              grow(kk, bay.w * 0.94 * kk, 1, 1);
+              put(balcIM, bi);
+              // Rail, at the outer edge of the slab.
+              dummy.position.set(bay.x + bay.nx * 0.68, LEV(s) + 0.32, bay.z + bay.nz * 0.68);
+              dummy.rotation.set(0, bay.rot, 0);
+              grow(kk, bay.w * 0.94 * kk, kk, 1);
+              put(railIM, bi);
+            }
             // Spandrel band under the head of every bay, with its shade fin.
             dummy.position.set(bay.x + bay.nx * 0.06, LEV(s + 1) - 0.05, bay.z + bay.nz * 0.06);
             dummy.rotation.set(0, bay.rot, 0);
@@ -1510,14 +1779,17 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
             put(finIM, idx);
             for (let m = 0; m < MUL; m++) {
               const u = (m + 1) / (MUL + 1) - 0.5;
-              dummy.position.set(cx + Math.cos(bay.rot) * u * bay.w, cy, cz - Math.sin(bay.rot) * u * bay.w);
+              dummy.position.set(cx + Math.cos(bay.rot) * u * bay.w * PANE, cy, cz - Math.sin(bay.rot) * u * bay.w * PANE);
               dummy.rotation.set(0, bay.rot, 0);
-              grow(kk, 1, GH * kk, 1);
+              grow(kk, 1, GH * PANE * kk, 1);
               put(mulIM, idx * MUL + m);
             }
           }
         }
         glassIM.instanceMatrix.needsUpdate = true;
+        tranIM.instanceMatrix.needsUpdate = true;
+        balcIM.instanceMatrix.needsUpdate = true;
+        railIM.instanceMatrix.needsUpdate = true;
         revealIM.instanceMatrix.needsUpdate = true;
         spanIM.instanceMatrix.needsUpdate = true;
         finIM.instanceMatrix.needsUpdate = true;
@@ -1534,37 +1806,203 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
        whole property — these two and the gate pier.
        ====================================================================== */
     const brand = brandTexture(1024, 256);
-    const signMat = new THREE.MeshBasicMaterial({ map: brand.map, alphaMap: brand.alpha, transparent: true, opacity: 0, depthWrite: false });
+    /* WHITE BRANDING ON A RED BOARD.
+       The artwork is NOT redrawn. `brandTexture` returns a greyscale mask
+       built from the supplied PNG's own alpha channel, so filling that mask
+       with a flat colour reproduces the lockup's exact silhouette — every
+       curve of the mark, every letter of "BUILDERS PVT LTD" — in whatever ink
+       the signage calls for. Shape from the file, colour from the brief.
+       #f7f8f9 rather than pure #ffffff: on an unlit material a full-white fill
+       clips against the red and starts to read as an illuminated sign, which
+       is the neon look the brief rules out. A shade under white stays crisp
+       and stays paint. */
+    const signMat = new THREE.MeshBasicMaterial({ color: 0xf7f8f9, alphaMap: brand.alpha, transparent: true, opacity: 0, depthWrite: false });
+    /* The panel. Its own material, NOT the shared `darkMat` — that one also
+       carries the door frames, railings and curtain-wall mullions, and this is
+       a signage finish rather than a structural one.
+       #d31018 is the project's own brand red, the same value the navbar
+       wordmark, the footer glow and the section accents already use, so the
+       boards in the 3D world and the UI around it are one colour rather than
+       two that nearly match. Satin, not gloss: roughness 0.38 is a
+       powder-coated panel that returns a soft highlight from the entrance
+       uplights without becoming a mirror or a light source. */
+    const signBoardMat = new THREE.MeshStandardMaterial({
+      color: 0xd31018, roughness: 0.38, metalness: 0.08, envMapIntensity: 0.85,
+    });
     {
       const entry = new THREE.Group();
       entry.position.z = BD / 2;
       world.add(entry);
       texs.push(brand.map, brand.alpha);
-      dispose.push(signMat);
+      dispose.push(signMat, signBoardMat);
 
-      const canopy = new THREE.Mesh(new THREE.BoxGeometry(5.0, 0.24, 2.3), stoneMat);
-      canopy.position.set(0, LEV(1) - 0.2, 1.15);
+      /* DOUBLE-HEIGHT ENTRANCE. The entry volume now reads to LEV(2) instead
+         of LEV(1) — one storey taller, which is how a premium lobby is
+         actually built.
+         NOTHING STRUCTURAL MOVES. The columns, beams and slabs are untouched
+         and every floor above sits exactly where it did; what changes is the
+         height of the entrance OPENING and the canopy over it, so the ground
+         floor reads as a two-storey lobby behind a taller glazed screen. That
+         is a real detail, and it is also the only version of "raise the
+         entrance" that does not shift the whole building and the camera keys
+         framing it. */
+      const ENTRY_H = LEV(2);
+      /* ---- CANOPY ---------------------------------------------------------
+         A cast slab on the facade, not a floating lid: 730 mm of structural
+         depth read as a stone edge over a flush dark soffit, running from the
+         building line out 2.5 units (~7 m) — deep enough to cover the doors
+         and the top of the steps and no deeper. */
+      const canopy = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.26, 2.5), stoneMat);
+      canopy.position.set(0, ENTRY_H - 0.2, 1.25);
       canopy.castShadow = !lite;
-      const soffit = new THREE.Mesh(new THREE.BoxGeometry(4.7, 0.05, 2.0), darkMat);
-      soffit.position.set(0, LEV(1) - 0.33, 1.15);
-      const fascia = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.58, 0.16), darkMat);
-      fascia.position.set(0, LEV(1) + 0.06, 2.28);
+      const soffit = new THREE.Mesh(new THREE.BoxGeometry(5.1, 0.05, 2.2), darkMat);
+      soffit.position.set(0, ENTRY_H - 0.34, 1.25);
+      const fascia = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.58, 0.16), signBoardMat);
+      fascia.position.set(0, ENTRY_H + 0.06, 2.46);
       const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 0.85), signMat);
-      sign.position.set(0, LEV(1) + 0.06, 2.37);
-      const topBoard = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.98, 0.14), darkMat);
+      sign.position.set(0, ENTRY_H + 0.06, 2.55);
+      const topBoard = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.98, 0.14), signBoardMat);
       topBoard.position.set(-BW / 2 + 1.9, TOP - 0.72, 0.18);
       const topSign = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.65), signMat);
       topSign.position.set(-BW / 2 + 1.9, TOP - 0.72, 0.26);
-      // Entrance screen: dark framed glass, taller than the bays around it.
-      const doors = new THREE.Mesh(new THREE.PlaneGeometry(3.6, LEV(1) - 0.42), glassMat);
-      doors.position.set(0, (LEV(1) - 0.42) / 2, 0.04);
-      const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.09, 0.14), darkMat);
-      doorFrame.position.set(0, LEV(1) - 0.4, 0.05);
-      entry.add(canopy, soffit, fascia, sign, topBoard, topSign, doors, doorFrame);
+
+      /* ======================================================================
+         THE MAIN ENTRANCE — A DOORSET, NOT A GLAZED PANEL
+         ----------------------------------------------------------------------
+         An automatic sliding entrance the way one is actually built: two fixed
+         sidelights, two sliding leaves between them, an operator header over
+         the opening carrying the sensor, a floor track under it, and a lit
+         lobby behind that you can see into.
+
+         EVERY PANE IS ITS OWN MESH. One big sheet of glass with bars drawn on
+         it is what made this read as a facade panel rather than as doors —
+         from the hero camera the divisions have to be REAL geometry with real
+         edges catching the canopy light, or the eye reads one surface.
+
+         The screen has its own transparent material because the curtain wall's
+         cannot be transparent (84 panes in one instanced draw call cannot be
+         depth-sorted). These are a handful of one-off meshes, so they sort
+         correctly and cost nothing.
+         ====================================================================== */
+      const SCR_W = 4.0, SCR_H = ENTRY_H - 0.42;   // screen 11 m x 5.8 m
+      const DH = 0.80;                              // door head — 2.24 m
+      const LEAF = 0.98;                            // one leaf / one sidelight
+      const entryGlassMat = new THREE.MeshPhysicalMaterial({
+        color: 0x9fbccf, roughness: 0.05, metalness: 0,
+        clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.8,
+        transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide,
+      });
+      /* The lobby's back wall takes the same fitted-out-floor texture the
+         curtain wall uses for its interiors, so what you see through the doors
+         belongs to the same building as what you see through the windows. */
+      const lobbyMat = new THREE.MeshBasicMaterial({ map: interiorTex, color: 0xffcb92 });
+      dispose.push(entryGlassMat, lobbyMat);
+
+      const screen = new THREE.Group();
+      screen.position.z = 0.04;
+      const mesh = (g: THREE.BufferGeometry, m: THREE.Material, x: number, y: number, z = 0) => {
+        const o = new THREE.Mesh(g, m);
+        o.position.set(x, y, z);
+        screen.add(o);
+        return o;
+      };
+      /* ---- lobby, seen through the doors ---------------------------------
+         Back wall, reception desk with the brand panel behind it, two lobby
+         columns for depth, and three ceiling coves. The coves use the scene's
+         shared additive strip material, so they light with the rest of the
+         building's interiors and need no ticker of their own. */
+      mesh(new THREE.PlaneGeometry(SCR_W + 1.2, SCR_H), lobbyMat, 0, SCR_H / 2, -1.6);
+      mesh(fromBase(new THREE.BoxGeometry(1.7, 0.34, 0.46), 0.34), darkMat, -0.4, 0, -1.1);
+      mesh(new THREE.PlaneGeometry(1.4, 0.46), signBoardMat, -0.4, 0.62, -1.54);
+      ([-1.45, 1.45] as const).forEach((x) => {
+        mesh(fromBase(new THREE.BoxGeometry(0.22, SCR_H, 0.22), SCR_H), stoneMat, x, 0, -1.05);
+      });
+      ([-0.45, -0.95, -1.45] as const).forEach((z) => {
+        const cove = mesh(new THREE.BoxGeometry(2.9, 0.05, 0.07), glowMat, 0, SCR_H - 0.16, z);
+        cove.renderOrder = 4;
+      });
+
+      /* ---- the glazed screen ---------------------------------------------
+         Four panes below the transom — sidelight, leaf, leaf, sidelight — and
+         one over it. The two centre panes are the sliding leaves. */
+      ([-1.5, -0.5, 0.5, 1.5] as const).forEach((x) => {
+        const pane = mesh(new THREE.PlaneGeometry(LEAF - 0.08, DH - 0.16), entryGlassMat, x, (DH - 0.16) / 2 + 0.08);
+        pane.renderOrder = 3;
+      });
+      const fanlight = mesh(new THREE.PlaneGeometry(SCR_W - 0.16, SCR_H - DH - 0.22), entryGlassMat, 0, (DH + 0.16 + SCR_H) / 2 - 0.03);
+      fanlight.renderOrder = 3;
+
+      /* ---- the frame ------------------------------------------------------ */
+      mesh(new THREE.BoxGeometry(SCR_W + 0.16, 0.12, 0.17), darkMat, 0, SCR_H, 0.01);          // head
+      mesh(new THREE.BoxGeometry(SCR_W, 0.07, 0.15), darkMat, 0, DH + 0.16, 0.01);             // transom
+      mesh(new THREE.BoxGeometry(SCR_W, 0.09, 0.16), darkMat, 0, 0.045, 0.01);                 // threshold
+      /* Operator header — the box that actually carries a sliding doorset's
+         motor and belt. It spans only the opening, which is what tells the eye
+         which two of the four panels move. */
+      mesh(new THREE.BoxGeometry(2.06, 0.16, 0.22), steelMat, 0, DH + 0.05, 0.05);
+      mesh(new THREE.BoxGeometry(1.9, 0.035, 0.06), darkMat, 0, DH - 0.05, 0.13);              // sensor strip
+      mesh(new THREE.BoxGeometry(2.02, 0.035, 0.14), steelMat, 0, 0.02, 0.06);                 // floor track
+      ([-1, 1] as const).forEach((sx) => {
+        mesh(fromBase(new THREE.BoxGeometry(0.13, SCR_H, 0.18), SCR_H), darkMat, sx * SCR_W / 2, 0, 0.01);   // jamb
+        mesh(fromBase(new THREE.BoxGeometry(0.09, SCR_H, 0.15), SCR_H), darkMat, sx * LEAF, 0, 0.01);        // mullion
+        // Leaf stiles and rails — each moving panel framed on all four sides.
+        mesh(fromBase(new THREE.BoxGeometry(0.07, DH - 0.1, 0.13), DH - 0.1), darkMat, sx * 0.06, 0.08, 0.05);
+        mesh(fromBase(new THREE.BoxGeometry(LEAF, 0.11, 0.12), 0.11), darkMat, sx * 0.5, 0.05, 0.05);
+        // A vertical pull near the leading edge of each leaf.
+        mesh(fromBase(new THREE.CylinderGeometry(0.02, 0.02, 0.34, 8), 0.34), steelMat, sx * 0.19, 0.3, 0.1);
+        // Sensor eye — a warm point on the header, the one lit detail up there.
+        const eye = mesh(new THREE.PlaneGeometry(0.05, 0.05), glowMat, sx * 0.5, DH + 0.05, 0.17);
+        eye.renderOrder = 5;
+      });
+      entry.add(screen);
+
+      /* Entrance mat, on the landing outside the doors — dark, matt, and the
+         one thing that says "people walk in here". */
+      const mat = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.85).rotateX(-Math.PI / 2), darkMat);
+      mat.position.set(0, 0.03, 0.78);
+      /* THE APPROACH. Road -> footway -> this run of paving -> steps -> doors.
+         A pale band across the darker drop-off asphalt, on the entrance axis:
+         it is what joins the pavement to the building instead of leaving the
+         steps landing in a car park. */
+      const approach = new THREE.Mesh(fromBase(new THREE.BoxGeometry(2.6, 0.03, 2.4), 0.03), stoneMat);
+      approach.position.set(0, 0.025, 4.5);
+      approach.receiveShadow = !lite;
+      entry.add(mat, approach);
+
+      /* Canopy downlights. Recessed warm discs in the soffit — the light that
+         actually falls on the doors and the top of the steps at dusk, and the
+         reason the glass reads as glass rather than as a dark panel. One point
+         light does the work; the discs are what you SEE doing it. */
+      const downs = ([-1.7, -0.85, 0, 0.85, 1.7] as const).map((x) => {
+        const d = new THREE.Mesh(new THREE.CircleGeometry(0.09, 12).rotateX(Math.PI / 2), glowMat);
+        d.position.set(x, ENTRY_H - 0.375, 1.1);
+        d.renderOrder = 4;
+        return d;
+      });
+      entry.add(...downs);
+      const canopyLight = new THREE.PointLight(0xffd6a8, 0, 8, 1.7);
+      canopyLight.position.set(0, ENTRY_H - 0.6, BD / 2 + 1.1);
+      world.add(canopyLight);
+      /* The lobby's own light, thrown back OUT through the doors onto the steps
+         — which is what makes an entrance read at dusk. Small radius: this lights
+         the threshold, not the forecourt (the uplights already do that). */
+      const lobbyLight = new THREE.PointLight(0xffd0a0, 0, 9, 1.6);
+      lobbyLight.position.set(0, 1.1, BD / 2 - 0.9);
+      world.add(lobbyLight);
+      /* NO SIGN PYLON. Two full-height fins on a stone plinth used to carry the
+         fascia board down to the ground here — a defensible way to mount a sign
+         and, standing at z 2.46, exactly the wrong place for one: the posts
+         framed the doorway from the hero camera and the plinth crossed the top
+         of the steps. The board is mounted where a canopy sign belongs, on the
+         canopy's own fascia, and the approach is clear. */
+      entry.add(canopy, soffit, fascia, sign, topBoard, topSign);
 
       const STEPN = 5;
       const steps = mkIM(new THREE.BoxGeometry(6.0, 0.15, 0.44), stoneMat, STEPN, true, entry);
-      const uplights = mkIM(new THREE.PlaneGeometry(0.46, 0.46).rotateX(-Math.PI / 2), glowMat, 8, false, entry);
+      /* Ground lights, moved off the old single row onto the EDGES of the
+         approach, which is where a real forecourt puts them — they now mark the
+         walk rather than washing the middle of the paving. */
+      const uplights = mkIM(new THREE.PlaneGeometry(0.4, 0.4).rotateX(-Math.PI / 2), glowMat, 8, false, entry);
 
       tick.push((t) => {
         const k = outCubic(span(P.site[0] - 0.04, P.site[1] - 0.02, t));
@@ -1575,8 +2013,18 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         fascia.scale.set(s0(k), s0(k), 1);
         topBoard.scale.set(s0(k), s0(k), 1);
         signMat.opacity = ease(span(P.site[0] - 0.02, P.site[1] - 0.04, t));
-        doors.scale.set(s0(k), s0(k), 1);
-        doorFrame.scale.set(s0(k), 1, 1);
+        screen.scale.set(s0(k), s0(k), 1);
+        mat.scale.set(s0(k), 1, s0(k));
+        approach.scale.set(s0(k), 1, s0(k));
+        /* The glass, the coves and both entrance lights come up with the
+           building's own interiors, not with the structure — an unlit lobby
+           behind clear glass at dusk is a black hole in the elevation. */
+        const litE = ease(span(P.lit[0], P.lit[1], t));
+        entryGlassMat.opacity = 0.32 * k;
+        lobbyMat.color.setRGB(mix(0.34, 1.0, litE), mix(0.3, 0.8, litE), mix(0.26, 0.57, litE));
+        lobbyLight.intensity = 7 * litE;
+        canopyLight.intensity = 9 * litE;
+        downs.forEach((d) => d.scale.setScalar(s0(litE)));
         for (let i = 0; i < STEPN; i++) {
           const kk = outCubic(stagger(t, P.site[0] - 0.02, P.site[1] - 0.02, i, STEPN, 1.6));
           dummy.position.set(0, -0.03 - i * 0.15, 1.3 + i * 0.44);
@@ -1586,7 +2034,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         }
         steps.instanceMatrix.needsUpdate = true;
         for (let i = 0; i < 8; i++) {
-          dummy.position.set(-3.5 + i * 1.0, 0.02, 3.1);
+          dummy.position.set((i % 2 ? 1 : -1) * 1.45, 0.045, 3.4 + Math.floor(i / 2) * 0.75);
           dummy.rotation.set(0, 0, 0);
           dummy.scale.setScalar(s0(k * 1.5));
           put(uplights, i);
@@ -1619,9 +2067,11 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
           site.add(m);
         });
       // Site branding on the hoarding — the one place a banner belongs.
-      const bannerBack = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.0, 0.05), darkMat);
+      const bannerBack = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.0, 0.05), signBoardMat);
       bannerBack.position.set(-3.0, 0.78, -HZ + 0.07);
-      const bannerMat = new THREE.MeshBasicMaterial({ map: brand.map, alphaMap: brand.alpha, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide });
+      // Same white-on-red as the other three boards — the site hoarding is the
+      // contractor's own sign, so it carries the same identity, not a variant.
+      const bannerMat = new THREE.MeshBasicMaterial({ color: 0xf7f8f9, alphaMap: brand.alpha, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide });
       dispose.push(bannerMat);
       const bannerFace = new THREE.Mesh(new THREE.PlaneGeometry(4.0, 0.9), bannerMat);
       // NO rotation: a plane already faces +z, which is the side of the far
@@ -1638,7 +2088,16 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
          from +x round through +z to -x — anything on the +z boundary stands in
          the foreground of half the film, which is where the front masts were
          planting a pole across the building. */
-      const MAST = [[-HX + 0.8, -HZ + 1.0], [HX - 0.8, -HZ + 1.0], [-HX + 0.8, -2.0], [HX - 0.8, -2.0]];
+      /* ALL FOUR ON THE FLANKS, none on the back boundary. The two rear masts
+         used to stand at z = -9.0 — squarely behind the building — and an
+         11.8 m steel pole back there is a vertical line rising past the
+         parapet against open sky, which is exactly what reads as "another
+         structure going up". Moved onto the east and west flanks, where they
+         light the elevations they are actually for and are seen against the
+         hoarding rather than against the sky. The original note still holds:
+         nothing goes on the +z boundary, which is the foreground of half the
+         camera arc. */
+      const MAST = [[-HX + 0.8, -2.0], [HX - 0.8, -2.0], [-HX + 0.8, 3.2], [HX - 0.8, 3.2]];
       MAST.forEach(([x, z]) => {
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.06, 4.2, 6), steelMat);
         pole.position.set(x, 2.1, z);
@@ -1749,8 +2208,95 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       const ram = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.9, 8), rimPMat);
       ram.position.set(0.9, 0.72, 0);
       ram.rotation.z = -0.5;
+      /* Second and third rams. A real excavator has one cylinder per joint —
+         boom, dipper and bucket — and the polished chrome rods are most of what
+         reads as "hydraulic" at a glance. The boom ram was carrying that on its
+         own. */
+      const dipRam = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.72, 8), rimPMat);
+      dipRam.position.set(0.42, 0.62, 0);
+      dipRam.rotation.z = 0.42;
+      dipper.add(dipRam);
+      const bktLink = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.34, 6), rimPMat);
+      bktLink.position.set(Math.cos(-1.28) * 0.86, Math.sin(-1.28) * 0.86 + 0.1, 0);
+      bktLink.rotation.z = -0.9;
+      dipper.add(bktLink);
+
+      /* SIDE GLAZING + FRAMES. The house was extruded with a single windscreen
+         opening, so from any angle other than dead ahead the cab read as a
+         solid block. Real machine cabs are glazed on three sides. These are
+         thin panels set just proud of the house flanks, with a dark surround so
+         the glass sits IN a frame rather than being a hole in the bodywork. */
+      ([-0.44, 0.44] as const).forEach((z) => {
+        const sg = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.42), plantGlassMat);
+        sg.position.set(0.12, 0.42, z);
+        sg.rotation.y = z > 0 ? 0 : Math.PI;
+        upper.add(sg);
+        const fr = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.46, 0.012), darkMat);
+        fr.position.set(0.12, 0.42, z + (z > 0 ? -0.008 : 0.008));
+        upper.add(fr);
+      });
+      // Surround for the windscreen, same reason.
+      const wsFrame = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.62, 0.84), darkMat);
+      wsFrame.position.set(0.53, 0.44, 0);
+      upper.add(wsFrame);
+
+      /* TWO HEADLAMPS on the cab front, plus one small warm light so they
+         actually put something on the ground in front of the machine. Compact
+         on purpose — a work lamp on an excavator is a 200 mm unit, and scaling
+         it up to be "readable" is what turns it into a glowing sphere. */
+      const digLampMat = new THREE.MeshStandardMaterial({
+        color: 0x141210, emissive: 0xffe9c2, emissiveIntensity: 2.9, roughness: 0.3,
+      });
+      dispose.push(digLampMat);
+      ([-0.3, 0.3] as const).forEach((z) => {
+        const hl = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.06, 0.1), digLampMat);
+        hl.position.set(0.55, 0.66, z);
+        upper.add(hl);
+      });
+      const digBeam = new THREE.PointLight(0xffdca8, 5.5, 6.5, 2);
+      digBeam.position.set(1.5, 0.5, 0);
+      upper.add(digBeam);
+
+      /* COUNTERWEIGHT, ENGINE DECK AND HOUSING SPLIT.
+         A tracked excavator is read by its rear as much as its arm: the slab
+         counterweight balancing the boom, the low engine housing beside the
+         cab, and the deck plate they all sit on. Without them the upper was one
+         extruded silhouette with nothing behind the cab, which is what made it
+         look like a single moulded shape. */
+      const cWeight = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.46, 0.82), plantMat);
+      cWeight.position.set(-0.86, 0.24, 0);
+      cWeight.castShadow = !lite;
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(1.74, 0.07, 0.92), trackMat);
+      deck.position.set(-0.1, 0.0, 0);
+      // Engine housing beside the cab, a step down from the cab roof.
+      const engine = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.3, 0.86), plantMat);
+      engine.position.set(-0.46, 0.19, 0);
+      engine.castShadow = !lite;
+      // Louvre line where the housing panel meets the counterweight.
+      const louvre = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.2, 0.84), trackMat);
+      louvre.position.set(-0.7, 0.2, 0);
+      upper.add(cWeight, deck, engine, louvre);
+
       upper.add(boom, dipper, ram);
       dig.add(upper);
+      /* GROUSERS — the track plates. A smooth extruded track reads as a rubber
+         capsule; the cross-plates are what make it a track. Instanced, seven a
+         side along the visible bottom run, so the whole detail is one draw
+         call. */
+      const grouser = mkIM(new THREE.BoxGeometry(0.11, 0.035, 0.30), trackMat, 14, false, dig);
+      for (let i = 0, n = 0; i < 7; i++) {
+        for (const z of [-0.38, 0.38] as const) {
+          dummy.position.set(-0.66 + i * 0.22, 0.012, z);
+          dummy.rotation.set(0, 0, 0);
+          dummy.scale.setScalar(1);
+          put(grouser, n++);
+        }
+      }
+      grouser.instanceMatrix.needsUpdate = true;
+      /* 13% up. The machine was sized off the tracks alone and read a little
+         light against a 22 m frontage and a 32 m excavation; this puts it back
+         in proportion without changing where it stands or what it does. */
+      dig.scale.setScalar(1.13);
       site.add(dig);
 
       /* MIXER TRUCK — 8.5 m forward-control chassis on six wheels. */
@@ -1838,25 +2384,139 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
          move it if a model turns out to want more room. */
       plantSwap('lorry', null, -HX + 3.2, PD / 2 + 1.4, 1.15);
 
+      /* ---- DUMP TRUCK -----------------------------------------------------
+         Backed in toward the excavation on the east side of the plot, which is
+         where a tipper waits to be loaded. Built from the SAME parts the mixer
+         uses — `lorryCab` for the flat-fronted cab profile, `extrudeProfile`
+         for the body, `wheelAt` for tyre-on-rim wheels — so it shares the
+         fleet's proportions and materials rather than being a second style of
+         vehicle parked next to the first.
+         Clear of everything: the pit rim is at z 4.7 and this sits at 7.0, the
+         driveway runs x 4.9-7.9 and this occupies 1.9-2.9, and the excavator is
+         6+ units away. */
+      const tipper = new THREE.Group();
+      tipper.position.set(2.4, 0, 7.0);
+      tipper.rotation.y = -Math.PI / 2;          // nose to +z, bed toward the pit
+      const tc = lorryCab();
+      const tCab = new THREE.Mesh(extrudeProfile(tc.body, 0.84, 0.045), plantMat);
+      tCab.position.set(1.05, 0.34, 0);
+      tCab.castShadow = !lite;
+      const tCabGl = new THREE.Mesh(extrudeProfile(tc.glass, 0.80, 0.012), plantGlassMat);
+      tCabGl.position.set(1.05, 0.34, 0);
+      // Chassis rails the whole thing sits on.
+      const tChassis = new THREE.Mesh(new THREE.BoxGeometry(3.15, 0.16, 0.76), trackMat);
+      tChassis.position.set(0, 0.34, 0);
+      /* Tipping body: sides, headboard and floor rather than one solid box, so
+         it reads as a container with a rim and a shadow inside it. */
+      const bodyG = new THREE.Group();
+      bodyG.position.set(-0.62, 0.44, 0);
+      const floorB = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.07, 0.86), plantMat);
+      bodyG.add(floorB);
+      ([-0.46, 0.46] as const).forEach((z) => {
+        const w = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.34, 0.05), plantMat);
+        w.position.set(0, 0.2, z);
+        w.castShadow = !lite;
+        bodyG.add(w);
+      });
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.46, 0.9), plantMat);
+      head.position.set(0.96, 0.24, 0);
+      bodyG.add(head);
+      // Ram that would tip it, tucked under the front of the body.
+      const tipRam = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.42, 8), rimPMat);
+      tipRam.position.set(0.62, 0.16, 0);
+      tipRam.rotation.z = 0.5;
+      bodyG.add(tipRam);
+      // Grille, mirrors and lamps — the details that stop a cab being a box.
+      const grille = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.24, 0.66), trackMat);
+      grille.position.set(1.62, 0.42, 0);
+      const tLampMat = new THREE.MeshStandardMaterial({
+        color: 0x141210, emissive: 0xffe9c2, emissiveIntensity: 2.9, roughness: 0.3,
+      });
+      dispose.push(tLampMat);
+      ([-0.28, 0.28] as const).forEach((z) => {
+        const hl = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.12), tLampMat);
+        hl.position.set(1.63, 0.3, z);
+        tipper.add(hl);
+        // Mirror on its stalk, off the A-pillar.
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.14), darkMat);
+        arm.position.set(1.3, 0.72, z * 1.6);
+        tipper.add(arm);
+        const mir = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.19, 0.07), darkMat);
+        mir.position.set(1.3, 0.66, z * 2.05);
+        tipper.add(mir);
+      });
+      /* Bumper, fenders and mudguards. A truck cab without a bumper and
+         without arches over its wheels is a box on wheels — these three are
+         most of what the eye uses to tell a lorry from a crate. */
+      const bumper = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, 0.94), trackMat);
+      bumper.position.set(1.66, 0.22, 0);
+      ([-0.42, 0.42] as const).forEach((z) => {
+        const fend = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.05, 0.26), plantMat);
+        fend.position.set(1.15, 0.41, z);
+        tipper.add(fend);
+      });
+      ([-0.44, 0.44] as const).forEach((z) => {
+        const mud = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.05, 0.28), trackMat);
+        mud.position.set(-0.84, 0.42, z);
+        tipper.add(mud);
+      });
+      /* SIDE GLAZING + FRAMES on the cab. `lorryCab` gives a windscreen only,
+         so the cab was blind from the side — which is the angle the hero camera
+         actually sees it from. */
+      ([-0.425, 0.425] as const).forEach((z) => {
+        const sw = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 0.24), plantGlassMat);
+        sw.position.set(0.92, 0.63, z);
+        sw.rotation.y = z > 0 ? 0 : Math.PI;
+        tipper.add(sw);
+        const swf = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.28, 0.012), darkMat);
+        swf.position.set(0.92, 0.63, z + (z > 0 ? -0.008 : 0.008));
+        tipper.add(swf);
+      });
+      // Windscreen surround, so the glass sits in a frame rather than in a hole.
+      const wsF = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.42, 0.86), darkMat);
+      wsF.position.set(1.44, 0.66, 0);
+      /* REAR LAMPS. Red, small, and on the tail of the tipping body — the truck
+         is backed toward the excavation, so its rear is what faces the camera
+         for most of the build. */
+      const tTailMat = new THREE.MeshStandardMaterial({
+        color: 0x1a0304, emissive: 0xff2f26, emissiveIntensity: 2.4, roughness: 0.35,
+      });
+      dispose.push(tTailMat);
+      ([-0.34, 0.34] as const).forEach((z) => {
+        const tl = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.13, 0.08), tTailMat);
+        tl.position.set(-1.60, 0.36, z);
+        tipper.add(tl);
+      });
+      tipper.add(tChassis, tCab, tCabGl, bodyG, grille, bumper, wsF);
+      // Six wheels: steer axle plus a twin-tyred rear bogie, on the ground.
+      ([[1.15, 0.42], [1.15, -0.42], [-0.62, 0.44], [-0.62, -0.44], [-1.06, 0.44], [-1.06, -0.44]] as const)
+        .forEach(([x, z]) => wheelAt(tipper, x, 0.21, z, 0.21, 0.17));
+      site.add(tipper);
+
       const stackN = lite ? 14 : 26;
       const stackIM = mkIM(new THREE.CylinderGeometry(0.042, 0.042, 4.4, 6).rotateZ(Math.PI / 2), rebarMat, stackN, false, site);
-      const timberMat = new THREE.MeshStandardMaterial({ color: 0x8a6d4a, roughness: 0.92 });
-      dispose.push(timberMat);
-      const timber = mkIM(new THREE.BoxGeometry(1.7, 0.1, 0.62), timberMat, 10, false, site);
+      /* THE TIMBER STACK IS GONE. Ten 4.7 m planks of shuttering, and wherever
+         they were staged they read as a second structure rather than as
+         material: behind the building they silhouetted between the columns, on
+         the flank they still put two long horizontal wooden members in frame
+         beside a concrete frame that has none. A site does not need a visible
+         timber pile to read as a site — it has the hoarding, the plant, the
+         crews, the rebar and the crane — and this one was costing more in
+         "what is that building behind it?" than it returned. */
+      /* Rebar stock restaged from z = -7.4 to the west flank. These are 12 m
+         rods and they lie flat, so they never silhouetted the way the masts
+         did — but a bundle of long horizontal members directly behind the
+         foundation still reads as beams belonging to something. Beside the
+         elevation they are destined for, they read as what they are: steel
+         waiting to be placed. Kept in full; this is stock for the building's
+         own reinforcement, not clutter. */
       for (let i = 0; i < stackN; i++) {
-        dummy.position.set(-HX + 2.2 + (i % 5) * 0.1, 0.05 + Math.floor(i / 5) * 0.09, -HZ + 2.6 + (i % 5) * 0.11 + Math.floor(i / 5) * 0.02);
+        dummy.position.set(-HX + 2.2 + (i % 5) * 0.1, 0.05 + Math.floor(i / 5) * 0.09, -1.4 + (i % 5) * 0.11 + Math.floor(i / 5) * 0.02);
         dummy.rotation.set(0, 0.22, 0);
         dummy.scale.setScalar(1);
         put(stackIM, i);
       }
       stackIM.instanceMatrix.needsUpdate = true;
-      for (let i = 0; i < 10; i++) {
-        dummy.position.set(HX - 2.6, 0.05 + (i % 5) * 0.11, -HZ + 2.8 + Math.floor(i / 5) * 0.7);
-        dummy.rotation.set(0, -0.3, 0);
-        dummy.scale.setScalar(1);
-        put(timber, i);
-      }
-      timber.instanceMatrix.needsUpdate = true;
 
       tick.push((t, dt) => {
         const inK = ease(span(0.02, 0.1, t));
@@ -2007,31 +2667,49 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       dispose.push(carMat, carGlassMat, tyreMat, rimMat, tailMat, headMatC);
 
       const SALOON = carGeometry('saloon');
-      const ESTATE = carGeometry('suv');
+      const SUV = carGeometry('suv');
       const VAN = carGeometry('van');
       const CARN = lite ? 7 : 11;
       /* Which body each bay gets. The van is a service vehicle at the far end of
          the run, where a delivery would actually park. */
-      const kindOf = (i: number) => (i === CARN - 2 ? VAN : i % 3 === 1 ? ESTATE : SALOON);
+      const kindOf = (i: number) => (i === CARN - 2 ? VAN : i % 3 === 1 ? SUV : SALOON);
       const carIM = mkIM(SALOON.body, carMat, CARN, true, done);
-      const carIM2 = mkIM(ESTATE.body, carMat, CARN, true, done);
+      const carIM2 = mkIM(SUV.body, carMat, CARN, true, done);
       const carIM3 = mkIM(VAN.body, carMat, CARN, true, done);
       const glassIM1 = mkIM(SALOON.glass, carGlassMat, CARN, false, done);
-      const glassIM2 = mkIM(ESTATE.glass, carGlassMat, CARN, false, done);
+      const glassIM2 = mkIM(SUV.glass, carGlassMat, CARN, false, done);
       const glassIM3 = mkIM(VAN.glass, carGlassMat, CARN, false, done);
       const bodySets = [
         { g: SALOON, im: carIM, gl: glassIM1 },
-        { g: ESTATE, im: carIM2, gl: glassIM2 },
+        { g: SUV, im: carIM2, gl: glassIM2 },
         { g: VAN, im: carIM3, gl: glassIM3 },
       ];
-      const tubMat = new THREE.MeshStandardMaterial({ color: 0x0d1014, roughness: 0.95, transparent: true, opacity: 0 });
-      dispose.push(tubMat);
-      const tubGeo = new THREE.BoxGeometry(1.34, 0.46, 0.5).translate(0, 0.34, 0);
-      const tubIM = mkIM(tubGeo, tubMat, CARN, false, done);
-      const tyreIM = mkIM(new THREE.TorusGeometry(0.104, 0.033, 6, 14), tyreMat, CARN * 4, false, done);
-      const rimIM = mkIM(new THREE.CylinderGeometry(0.076, 0.076, 0.085, 12).rotateX(Math.PI / 2), rimMat, CARN * 4, false, done);
-      const tailIM = mkIM(new THREE.BoxGeometry(0.035, 0.055, 0.14), tailMat, CARN * 2, false, done);
-      const headIM = mkIM(new THREE.BoxGeometry(0.03, 0.05, 0.16), headMatC, CARN * 2, false, done);
+      /* THE "WHEEL-WELL TUB" IS GONE, and it was mine.
+         It was a near-black 1.34 x 0.46 x 0.5 box drawn inside every car to
+         darken the cabin seen through the glazing. That worked against the old
+         profile. When the saloon was re-authored as a long-bonnet luxury sedan
+         its roofline dropped to 0.556 and its screens were raked much further,
+         while this box stayed where it was — so it ended up standing proud of
+         the bodywork along nearly the whole greenhouse: 4 cm at the roof panel,
+         27 cm over the windscreen, 62 cm over the boot. That is the black block
+         on the roof.
+         Deleted rather than resized, because it is now redundant: the glazing
+         is its own extrusion filling the window opening, in a dark clearcoat
+         glass that reaches full opacity with the rest of the car, so the cabin
+         already reads dark without a box inside it. */
+      /* 10 x 24, up from 6 x 14. A six-segment tube gives a tyre with a hexagonal
+         cross-section, which catches specular in six flat bands — the single
+         most legible "low-poly" tell on a car at this distance. Tube radius up a
+         touch too: 0.033 was a bicycle tyre on a saloon. */
+      const tyreGeo = new THREE.TorusGeometry(0.104, 0.038, 10, 24);
+      const rimGeo = new THREE.CylinderGeometry(0.076, 0.076, 0.085, 20).rotateX(Math.PI / 2);
+      const tyreIM = mkIM(tyreGeo, tyreMat, CARN * 4, false, done);
+      const rimIM = mkIM(rimGeo, rimMat, CARN * 4, false, done);
+      const tailIM = mkIM(new THREE.BoxGeometry(0.035, 0.04, 0.2), tailMat, CARN * 2, false, done);
+      /* WIDER AND THINNER. 0.05 x 0.16 is 14 x 45 cm — a lamp from before
+         about 1995. A modern unit is a shallow bar, and at this distance the
+         PROPORTION is the only part of it that reads. */
+      const headIM = mkIM(new THREE.BoxGeometry(0.03, 0.035, 0.22), headMatC, CARN * 2, false, done);
       /* A real-world spread: two whites, two silvers, graphite, navy, a single
          crimson. Nothing saturated — car parks are overwhelmingly monochrome. */
       /* A real-world spread — nothing saturated, car parks are monochrome. The
@@ -2061,7 +2739,13 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         z: s.z + (rnd(i, 223) - 0.5) * 0.1,
         rot: s.rot + (rnd(i, 227) - 0.5) * 0.07,
       }));
-      parkedAt.push({ x: 1.0, z: BD / 2 + 3.5, rot: Math.PI });
+      /* OFF THE ENTRANCE AXIS. The hero car waits at the drop-off for the
+         whole build and then drives out in act two — and at x = 1.0 it waited
+         squarely on the walk to the front door, which is now a paved approach
+         with lights down it. Moved to the far side of the drop-off: still at
+         the kerb where a waiting car belongs, still on the asphalt, and the
+         steps and the doors are clear behind it. `PATH` starts here too. */
+      parkedAt.push({ x: 3.2, z: BD / 2 + 3.5, rot: Math.PI });
 
       // Boundary: a LOW wall with a slim railing over it — 1.6 m all in.
       const wallMat = new THREE.MeshStandardMaterial({ map: stoneTex.map, roughnessMap: stoneTex.rough, roughness: 1, transparent: true, opacity: 0 });
@@ -2152,7 +2836,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       capL.position.set(-1.7, 1.36, 0);
       const capR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.2), gateLampMat);
       capR.position.set(1.7, 1.36, 0);
-      const gateBoard = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.44, 0.06), darkMat);
+      const gateBoard = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.44, 0.06), signBoardMat);
       gateBoard.position.set(-2.7, 0.9, 0.02);
       const gateSign = new THREE.Mesh(new THREE.PlaneGeometry(1.32, 0.33), signMat);
       gateSign.position.set(-2.7, 0.9, 0.06);
@@ -2208,9 +2892,14 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         // Keep the drive, the apron and the entrance axis clear.
         if (Math.abs(x - DRIVE_X) < 2.2 && z > -2) continue;
         if (x > BW / 2 + 1.2 && Math.abs(z) < 5.2) continue;
-        // Nothing inside the entrance cone — the drop-off, the steps and the
-        // sign have to stay clear from every camera key.
-        if (Math.abs(x) < 5.0 && z > BD / 2 && z < BD / 2 + 6.4) continue;
+        /* Nothing inside the entrance cone — the drop-off, the steps, the
+           screen and both signs have to stay clear from every camera key.
+           WIDER AND DEEPER than it was (5.0 x 6.4). The hero keys stand ~10 m
+           to the +x side and look back across the forecourt, so a tree at
+           x = 5.5 is not beside the entrance from there, it is in front of it;
+           and the canopy fascia is 5.4 m wide, so a 5.0 half-width was cutting
+           the cone inside the thing it was protecting. */
+        if (Math.abs(x) < 6.4 && z > BD / 2 && z < BD / 2 + 7.6) continue;
         TREES.push({ x, z, s: 0.62 + rnd(i, 127) * 0.75 });
       }
       /* 8-sided and more tapered than the old hexagon: at this distance a
@@ -2391,11 +3080,26 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
          is authored rather than generated, so rather than police a gap around
          it, nothing else is ever put in front of it. */
       const LANES: Lane[] = lite
-        ? [{ z: ROAD_Z + 1.7, dir: 1, speed: 0.85, n: 3, kind: 0 }]
+        /* TWO LANES ON A PHONE, NOT ONE. A single carriageway of cars all
+           sliding the same way does not read as a road, it reads as a
+           conveyor — and the phone is where most people meet this scene. The
+           second lane uses the same z and speed as its desktop counterpart, so
+           the separation the collision check proves for desktop covers this
+           set too; only the counts are smaller. */
+        ? [
+          { z: ROAD_Z + 1.7, dir: -1, speed: 0.85, n: 3, kind: 0 },
+          { z: ROAD_Z - 3.0, dir: 1, speed: 0.62, n: 2, kind: 0 },
+        ]
         : [
-          { z: ROAD_Z + 1.7, dir: 1, speed: 0.85, n: 4, kind: 0 },   // oncoming
-          { z: ROAD_Z + 3.0, dir: 1, speed: 1.25, n: 3, kind: 1 },   // outside lane, quicker
-          { z: ROAD_Z - 3.0, dir: -1, speed: 0.62, n: 3, kind: 0 },  // nearside, slower
+          /* LEFT-HAND TRAFFIC, which is what Kerala drives. Keep left: a car
+             heading -x has its left on the +z side, one heading +x has its
+             left on -z. Every lane here ran the other way — the whole
+             carriageway was right-hand convention, which is why the hero car
+             appeared to exit into oncoming traffic. Only the signs changed;
+             positions, speeds, counts and the overtaking pair are untouched. */
+          { z: ROAD_Z + 1.7, dir: -1, speed: 0.85, n: 4, kind: 0 },   // far side, -x
+          { z: ROAD_Z + 3.0, dir: -1, speed: 1.25, n: 3, kind: 1 },   // outside lane, quicker
+          { z: ROAD_Z - 3.0, dir: 1, speed: 0.62, n: 3, kind: 0 },    // near side, +x
         ];
       const TRN = LANES.reduce((a, l) => a + l.n, 0);
       /* ONE OVERTAKER, and it cannot hit anything. See the block that drives it
@@ -2404,14 +3108,83 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
          there is nothing to overtake. */
       const OVT = lite ? 0 : 1;
       const TOTN = TRN + OVT;
-      const trafficIM = mkIM(SALOON.body, carMat, TOTN, false, done);
-      const trafficEs = mkIM(ESTATE.body, carMat, TOTN, false, done);
+      /* THE MOVING FLEET NOW CASTS. Every parked car has cast and received
+         shadow since the car park was built; the traffic was flagged `false`,
+         so ten vehicles crossed a lit road with nothing under them. That is the
+         single thing that reads as "the cars are floating" — a car is joined to
+         the road by its shadow, not by its wheels, and no amount of body
+         modelling substitutes for the dark patch under the sills.
+         Cost is two draws in the shadow pass (an InstancedMesh casts all its
+         instances in one), and `mkIM` already gates shadows on `!lite`, so the
+         phone is untouched. Wheels stay off: the body's shadow covers the
+         contact patch and four more shadow-casting meshes buy nothing. */
+      const trafficIM = mkIM(SALOON.body, carMat, TOTN, true, done);
+      const trafficEs = mkIM(SUV.body, carMat, TOTN, true, done);
       const trafficGl = mkIM(SALOON.glass, carGlassMat, TOTN, false, done);
-      const trafficTub = mkIM(tubGeo, tubMat, TOTN, false, done);
-      const trafficTail = mkIM(new THREE.BoxGeometry(0.035, 0.055, 0.14), tailMat, TOTN * 2, false, done);
-      const trafficHead = mkIM(new THREE.BoxGeometry(0.03, 0.05, 0.16), headMatC, TOTN * 2, false, done);
+      const trafficTail = mkIM(new THREE.BoxGeometry(0.035, 0.04, 0.2), tailMat, TOTN * 2, false, done);
+      const trafficHead = mkIM(new THREE.BoxGeometry(0.03, 0.035, 0.22), headMatC, TOTN * 2, false, done);
+      /* LIGHT SPILL ON THE ROAD. The lamps are emissive lenses — they read as
+         lit, but they put nothing on the tarmac, so at blue hour the traffic
+         floated on a dark road. One additive quad per car, ahead of it in its
+         own heading, reusing the same soft-dot texture the street lamps use.
+         Very low alpha: the asphalt is a damp dielectric now and returns its
+         own reflection from the environment, so this only has to add the
+         direct throw, not carry the whole effect. Instanced, so the entire
+         fleet's spill is a single draw call. */
+      const carPoolMat = new THREE.MeshBasicMaterial({
+        map: poolTexS, color: 0xffd9a4, transparent: true, opacity: 0,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      });
+      dispose.push(carPoolMat);
+      /* THE TRAFFIC HAD NO WHEELS. `place()` writes four per parked car, but
+         `putCar()` — which draws everything on the road — never did, so every
+         moving vehicle was a body hovering over dark arches. Four per car, and
+         they ROLL: the spin is geared off the car's own x position, so it is
+         distance-based like the hero car's and can never skid. */
+      const trafficTyre = mkIM(tyreGeo, tyreMat, TOTN * 4, false, done);
+      const trafficRim = mkIM(rimGeo, rimMat, TOTN * 4, false, done);
+      const carPool = mkIM(new THREE.PlaneGeometry(2.0, 3.2).rotateX(-Math.PI / 2), carPoolMat, TOTN, false, done);
+      carPool.renderOrder = 3;
+      /* ONE FLEET PER DIRECTION.
+         The palette used to be a single list indexed by the raw instance
+         number, so a colour landed wherever the counting happened to put it
+         and the two directions were made of the same cars in the same paints.
+         Now each carriageway has its OWN set — deep navy, off-white and
+         graphite running one way; silver, white and crimson the other — and
+         the body type is chosen per flow as well, so a glance at the road
+         tells you which way a vehicle is going before you have watched it
+         move. Built by walking the lane table in exactly the order the draw
+         loop below walks it, which is what keeps index i pointing at the same
+         car in both places. */
+      /* COLOUR AND BODY TOGETHER, because "a white SUV" is one decision, not
+         two that happen to land on the same car. Each flow gets three
+         archetypes and they are cycled in order down the lane. */
+      const FLEET = {
+        // right-to-left
+        '-1': [
+          { hex: 0xe9ecef, es: true },    // white SUV
+          { hex: 0x7d1219, es: false },   // deep red sedan
+          { hex: 0x2f3742, es: false },   // graphite sedan
+        ],
+        // left-to-right
+        '1': [
+          { hex: 0xc9a227, es: true },    // gold SUV
+          { hex: 0xb9bec4, es: false },   // silver sedan
+          { hex: 0x14171c, es: false },   // near-black sedan
+        ],
+      } as const;
+      /** Colour and body type for traffic instance `i`, in draw order. */
+      const fleet: { hex: number; es: boolean }[] = [];
+      LANES.forEach((L, li) => {
+        for (let j = 0; j < L.n; j++) {
+          const pal = FLEET[L.dir > 0 ? '1' : '-1'];
+          fleet.push(pal[(j + li) % pal.length]);
+        }
+      });
+      // The overtaker rides the far carriageway, so it takes that fleet.
+      if (OVT) fleet.push(FLEET['-1'][2]);
       [trafficIM, trafficEs].forEach((im) => {
-        for (let i = 0; i < TOTN; i++) im.setColorAt(i, col.setHex(CAR_COL[(i * 5 + 3) % CAR_COL.length]));
+        for (let i = 0; i < TOTN; i++) im.setColorAt(i, col.setHex(fleet[i].hex));
         if (im.instanceColor) im.instanceColor.needsUpdate = true;
       });
 
@@ -2456,7 +3229,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
              wheel-well tub have to go. Collapsing their geometry is how: every
              placement loop keeps writing their matrices harmlessly, and nothing
              downstream needs a new branch. */
-          [tubIM, tyreIM, rimIM, trafficTub].forEach((im) => {
+          [tyreIM, rimIM].forEach((im) => {
             im.geometry.dispose();
             im.geometry = EMPTY_GEO();
           });
@@ -2469,17 +3242,46 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       /* PEOPLE on the footway. Same trick as the site crews: a figure at true
          height is the cheapest scale reference there is, and an empty pavement
          is what makes a street read as a model. */
-      const walkerMat = new THREE.MeshStandardMaterial({ color: 0x2a2e36, roughness: 0.88, transparent: true, opacity: 0 });
+      /* Pedestrians had the same problem as the crew: one dark value for the
+         whole person, head included, so they read as cut-outs against a dark
+         road. Two groups now — clothing and skin — which is the minimum that
+         makes a figure look like a person rather than a shadow. Lighter than
+         the crew's trousers because these are people in ordinary clothes, not
+         site uniform, and the same small emissive floor keeps them off black. */
+      const walkerMat = new THREE.MeshStandardMaterial({
+        color: 0x6d737f, roughness: 0.86, envMapIntensity: 1.3,
+        emissive: 0x6d737f, emissiveIntensity: 0.12,
+        transparent: true, opacity: 0,
+      });
+      const walkSkinMat = new THREE.MeshStandardMaterial({
+        color: 0xb98a68, roughness: 0.72, envMapIntensity: 1.35,
+        emissive: 0xb98a68, emissiveIntensity: 0.1,
+        transparent: true, opacity: 0,
+      });
+      dispose.push(walkSkinMat);
       dispose.push(walkerMat);
       /* Same figure as the site crew, minus the hard hat — these are people
          walking past on the footway, not workers, and one uniform dark material
          is all a pedestrian at this distance needs. Merged into a single
          geometry because there is nothing here to colour separately. */
       const WALK_FIG = figureParts();
-      const walkerGeo = mergeGeometries([WALK_FIG.limbs, WALK_FIG.torso], false)!;
-      WALK_FIG.helmet.dispose();
-      const WKN = lite ? 3 : 6;
+      const walkerGeo = mergeGeometries([WALK_FIG.legs, WALK_FIG.torso], false)!;
+      const walkSkinGeo = WALK_FIG.skin;
+      WALK_FIG.helmet.dispose();          // pedestrians, not workers
+      /* Four, not six. The near footway is 2.0 deep (5.6 m) and the camera only
+         ever sees ~40 units of its length; six figures on that read as a queue.
+         Four is the "normal city pavement" count the brief asks for. */
+      const WKN = lite ? 3 : 4;
+      /* THE FOOTWAY, MEASURED — not eyeballed. The paving plane is 2.0 deep
+         centred on ROAD_Z - 5.9, so it spans z 7.6..9.6, and its walking
+         surface sits at y 0.016. The pedestrians were being placed at
+         ROAD_Z - 4.6 (z 9.5..10.3) at y 0 — which is ON the kerb line and out
+         into the strip between the kerb and the carriageway, at road level
+         rather than on the raised path. Feet on the pavement, on the pavement's
+         own surface, with the jitter kept inside its width. */
+      const WALK_Z = ROAD_Z - 5.9, WALK_Y = 0.016, WALK_HALF = 0.55;
       const walkerIM = mkIM(walkerGeo, walkerMat, WKN, false, done);
+      const walkSkinIM = mkIM(walkSkinGeo, walkSkinMat, WKN, false, done);
       /* The same model as the site crew — memoised in loadModel, so this does
          not fetch it twice. It keeps its hi-vis here, which is wrong for a
          passer-by but right for the only model this project defines a slot for;
@@ -2489,6 +3291,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         walkerIM.geometry.dispose();
         walkerIM.geometry = w.body.clone();
         setMats(walkerIM, w.materials);
+        walkSkinIM.geometry.dispose();
+        walkSkinIM.geometry = EMPTY_GEO();
       });
 
       tick.push((t, dt, o) => {
@@ -2496,10 +3300,11 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         done.visible = k > 0.01;
         if (!done.visible) return;
         urbanMat.opacity = k * 0.96;
-        walkerMat.opacity = k;
+        walkerMat.opacity = walkSkinMat.opacity = k;
         // 0.32 -> 0.17: additive over a now semi-wet road, which returns its
         // own reflection, so the quad no longer has to carry the whole effect.
         lampPoolMat.opacity = 0.17 * k;
+        carPoolMat.opacity = 0.13 * k;
         POOLS.forEach((q, i) => {
           dummy.position.set(q[0], 0.025, q[1]);
           dummy.rotation.set(0, 0, 0);
@@ -2520,8 +3325,24 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
           grow(isEs ? 0 : k, 1, 1, 1); put(trafficIM, ti);
           grow(isEs ? k : 0, 1, 1, 1); put(trafficEs, ti);
           grow(isEs ? 0 : k, 1, 1, 1); put(trafficGl, ti);
-          grow(k, 1, 1, 1); put(trafficTub, ti);
           const c = Math.cos(rot), sn = Math.sin(rot);
+          // Four wheels, in the car's own frame, rolling off distance travelled.
+          const gw = isEs ? SUV : SALOON;
+          const spin = -x / gw.wheelR;
+          for (let w = 0; w < 4; w++) {
+            const lx = w < 2 ? gw.axle : -gw.axle;
+            const lz = w % 2 ? gw.track : -gw.track;
+            dummy.position.set(x + c * lx - sn * lz, gw.wheelR, z - sn * lx - c * lz);
+            dummy.rotation.set(0, rot, spin);
+            grow(k, 1, 1, 1);
+            put(trafficTyre, ti * 4 + w);
+            put(trafficRim, ti * 4 + w);
+          }
+          // The throw, 1.9 units up the road in the car's own heading.
+          dummy.position.set(x + c * 1.9, 0.028, z - sn * 1.9);
+          dummy.rotation.set(0, rot, 0);
+          grow(k, 1, 1, 1);
+          put(carPool, ti);
           for (let l = 0; l < 2; l++) {
             const across = l ? 0.24 : -0.24;
             // Tail lamps behind, heads in front — both in the car's own frame.
@@ -2537,10 +3358,10 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         };
 
         let ti = 0;
-        LANES.forEach((L, li) => {
+        LANES.forEach((L) => {
           for (let j = 0; j < L.n; j++, ti++) {
             // dir +1 travels toward +x, and the body's nose is +x at rot 0.
-            putCar(ti, laneX(L, j, clk), L.z, L.dir > 0 ? 0 : Math.PI, (j + li) % 3 === 0);
+            putCar(ti, laneX(L, j, clk), L.z, L.dir > 0 ? 0 : Math.PI, fleet[ti].es);
           }
         });
 
@@ -2574,24 +3395,34 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
            half-width, so the transit itself is clear too. */
         if (OVT) {
           const ov = overtaker(LANES[0], LANES[1], clk);
-          putCar(ti, ov.x, ov.z, ov.yaw, false);
+          putCar(ti, ov.x, ov.z, ov.yaw, fleet[ti].es);
           ti++;
         }
         trafficIM.instanceMatrix.needsUpdate = true;
         trafficEs.instanceMatrix.needsUpdate = true;
         trafficGl.instanceMatrix.needsUpdate = true;
-        trafficTub.instanceMatrix.needsUpdate = true;
         trafficTail.instanceMatrix.needsUpdate = true;
         trafficHead.instanceMatrix.needsUpdate = true;
+        carPool.instanceMatrix.needsUpdate = true;
+        trafficTyre.instanceMatrix.needsUpdate = true;
+        trafficRim.instanceMatrix.needsUpdate = true;
         for (let i = 0; i < WKN; i++) {
           const dir = i % 2 ? 1 : -1;
-          const x = ((clk * 0.16 * dir + rnd(i, 241) * 40 + 60) % 40) - 20;
-          dummy.position.set(x, 0, ROAD_Z - 4.6 + (rnd(i, 251) - 0.5) * 0.8);
+          /* Evenly spaced along the wrap by index rather than by a random
+             offset: at four figures a random x lets two land on top of each
+             other, which is the one thing a pavement crowd must never do. */
+          const lane = Math.floor(i / 2), perDir = Math.ceil(WKN / 2);
+          const base = (lane / perDir) * 40 + rnd(i, 241) * 4;
+          const x = (((clk * 0.16 * dir + base) % 40) + 40) % 40 - 20;
+          // Across the path, never past its edge — and standing ON it.
+          dummy.position.set(x, WALK_Y, WALK_Z + (rnd(i, 251) - 0.5) * 2 * WALK_HALF);
           dummy.rotation.set(0, dir > 0 ? -Math.PI / 2 : Math.PI / 2, 0);
           grow(k, 1, 1, 1);
           put(walkerIM, i);
+          put(walkSkinIM, i);
         }
         walkerIM.instanceMatrix.needsUpdate = true;
+        walkSkinIM.instanceMatrix.needsUpdate = true;
         void dt;
         const solid = k > 0.995;
         [pavMat, tarMat, wallMat, capMat, hedgeMat, lawnMat, poleMat, headMat, roadMat, kerbMat,
@@ -2638,7 +3469,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
            parked cars and the moving hero car sharing exactly one code path. */
         const place = (i: number, x: number, z: number, rot: number, on: number, spin: number, head: number) => {
           const g = kindOf(i);
-          const set = g === VAN ? bodySets[2] : g === ESTATE ? bodySets[1] : bodySets[0];
+          const set = g === VAN ? bodySets[2] : g === SUV ? bodySets[1] : bodySets[0];
           const c = Math.cos(rot), sn = Math.sin(rot);
           // Local (along, across) -> world, once, for every part of the car.
           const at = (along: number, across: number) => dummy.position.set(x + c * along - sn * across, 0, z - sn * along - c * across);
@@ -2652,10 +3483,6 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
             grow(mine, 1, 1, 1);
             put(b.im, i); put(b.gl, i);
           });
-          at(0, 0);
-          dummy.rotation.set(0, rot, 0);
-          grow(on, 1, 1, 1);
-          put(tubIM, i);
           for (let w = 0; w < 4; w++) {
             const lx = w < 2 ? g.axle : -g.axle, lz = w % 2 ? g.track : -g.track;
             at(lx, lz);
@@ -2695,12 +3522,11 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         rig.heroIdx = CARN - 1;
         rig.heroKind = kindOf(CARN - 1);
         bodySets.forEach((b) => { b.im.instanceMatrix.needsUpdate = true; b.gl.instanceMatrix.needsUpdate = true; });
-        tubIM.instanceMatrix.needsUpdate = true;
         tyreIM.instanceMatrix.needsUpdate = true;
         rimIM.instanceMatrix.needsUpdate = true;
         tailIM.instanceMatrix.needsUpdate = true;
         headIM.instanceMatrix.needsUpdate = true;
-        [carMat, carGlassMat, tyreMat, rimMat, tubMat].forEach((m) => {
+        [carMat, carGlassMat, tyreMat, rimMat].forEach((m) => {
           m.opacity = k;
           if (m.transparent === solid) { m.transparent = !solid; m.needsUpdate = true; }
         });
@@ -2777,19 +3603,22 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
          footway, turn onto the near carriageway lane and go. Arc-length
          parameterised, so `getPointAt(u)` moves at a constant rate along the
          road and the wheels can be geared off distance rather than off u. */
-      const PATH = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(1.0, 0, BD / 2 + 3.5),
-        new THREE.Vector3(3.2, 0, BD / 2 + 3.4),
-        new THREE.Vector3(5.5, 0, BD / 2 + 4.0),
-        new THREE.Vector3(DRIVE_X, 0, BZ - 1.2),
-        new THREE.Vector3(DRIVE_X, 0, BZ + 0.9),
-        new THREE.Vector3(DRIVE_X - 0.3, 0, BZ + 2.6),
-        new THREE.Vector3(4.2, 0, ROAD_Z - 1.5),
-        new THREE.Vector3(-1.0, 0, ROAD_Z - 1.4),
-        new THREE.Vector3(-8.0, 0, ROAD_Z - 1.4),
-        new THREE.Vector3(-15.0, 0, ROAD_Z - 1.4),
-        new THREE.Vector3(-22.0, 0, ROAD_Z - 1.4),
-      ], false, 'catmullrom', 0.35);
+      /* THE EXIT ROUTE LIVES IN `lib/exit.ts`, NOT HERE — and that is the point.
+         It used to turn LEFT out of the gate and run +x, which is screen-RIGHT
+         from every hero key: the correct side for its direction under
+         left-hand convention, and the wrong direction for the shot, which is
+         meant to read "the car leaves and goes". It now turns RIGHT, crosses
+         the oncoming +x lane and settles on the leftward carriageway heading
+         -x — screen-LEFT — merging with the traffic already running that way.
+
+         That crossing is a car cutting through a live lane, so it is PROVEN
+         rather than eyeballed: `exit.check.ts` sweeps the whole outro against
+         the same `laneX` the road is drawn from and asserts the envelope is
+         never breached (4.73 units of clearance against a 2.1 envelope, in a
+         crossing that lasts 3% of the drive). It imports the same module this
+         line does, so there is no second copy of the route to drift out of
+         step. */
+      const PATH = exitCurve();
       const PATH_LEN = PATH.getLength();
       const _cp = new THREE.Vector3(), _ct = new THREE.Vector3();
 
@@ -2832,9 +3661,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         if (!live || !rig.place) return;
 
         const lampsOn = ease(span(0.34, 0.44, o));
-        /* Gentle acceleration: the exponent means it eases away from rest and
-           keeps gaining rather than braking into the end of the shot. */
-        const u = Math.pow(span(0.40, 0.96, o), 1.55);
+        // Gentle acceleration, unchanged — the easing lives with the route now.
+        const u = exitU(o);
         PATH.getPointAt(u, _cp);
         PATH.getTangentAt(u, _ct);
         const rot = Math.atan2(-_ct.z, _ct.x);
@@ -2874,9 +3702,14 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       fac.emissive.repeat.set(3, 6);
       /* Deliberately DESATURATED and mid-toned, not black. A silhouette that
          dark against a lit sky is what made the neighbours read as cardboard. */
+      /* SECONDARY BY VALUE, not by distance alone. The neighbours were lit at
+         1.1 in the same warm white as the hero building's own interiors, so a
+         tower two streets back read at the same brightness as the facade the
+         shot is about. Down a third on the windows and a shade darker on the
+         stone: still a real, lit city — just clearly the background of one. */
       const cityMat = new THREE.MeshStandardMaterial({
-        map: fac.map, emissiveMap: fac.emissive, emissive: 0xffffff, emissiveIntensity: 1.1,
-        color: 0x6a7285, roughness: 0.62, metalness: 0.15, envMapIntensity: 0.5,
+        map: fac.map, emissiveMap: fac.emissive, emissive: 0xffe6c8, emissiveIntensity: 0.72,
+        color: 0x5c6374, roughness: 0.62, metalness: 0.15, envMapIntensity: 0.42,
       });
       dispose.push(cityMat);
 
@@ -2906,8 +3739,44 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         const clearCam = bx > -2 && bx < 30 ? 17 : 0;
         push(bx, ROAD_Z + 11.5 + clearCam + rnd(i, 163) * 5, i, 5, 13);
       }
-      // Behind the site.
-      for (let i = 0; i < 8; i++) push(-30 + i * 8.2, -BZ - 15 - rnd(i, 167) * 5, i + 20, 5, 11);
+      /* ---- THE STREET THE ROAD ACTUALLY RUNS THROUGH ----------------------
+         The car exit was playing against darkness, and the reason is a camera
+         fact rather than a missing-model one: through the outro the lens sits
+         at z ~20 and looks toward z ~6-9, so everything that fills the frame
+         behind the carriageway is at z < 9. The existing far-side street wall
+         lives at z 26-43 — BEHIND the camera for that whole shot. It was never
+         going to be seen there.
+         So the frontage that matters is the near side, beyond the plot, along
+         the same street Alipson fronts. Row one is the street wall proper
+         (shops and low blocks, z ~0-6, set back clear of the footway at 7.6);
+         row two sits further in at z ~-6 and runs taller, so there is a second
+         plane behind the first and the gap reads as depth rather than a flat.
+         They go through the same `push()` as every other block, which is what
+         keeps them secondary BY CONSTRUCTION: same instanced draw call, same
+         desaturated mid-tone, same facade texture and lit-window map, same
+         atmospheric falloff. They cannot out-compete the hero building because
+         they are made of the same material. */
+      ([-1, 1] as const).forEach((side, si) => {
+        for (let i = 0; i < 5; i++) {            // street wall, low and close
+          const x = side * (13.5 + i * 7.2 + rnd(i + si * 9, 211) * 2.2);
+          push(x, 2.6 + rnd(i + si * 9, 223) * 2.4, 100 + i + si * 9, 3.2, 8.0);
+        }
+        for (let i = 0; i < 5; i++) {            // second plane, taller
+          const x = side * (16.0 + i * 7.6 + rnd(i + si * 9, 227) * 2.4);
+          push(x, -6.5 - rnd(i + si * 9, 229) * 3.5, 140 + i + si * 9, 6.0, 14.0);
+        }
+      });
+
+      /* Behind the site. TWO OF THESE EIGHT ARE SKIPPED and rebuilt below as a
+         hospital and a shopping mall — the brief's "replace the generic blocks
+         with believable buildings", done literally: same band, same set-out,
+         same depth into the haze, so nothing about the skyline's rhythm moves.
+         Indices 2 and 5 are the ones the camera arc reads most squarely. */
+      const NAMED = new Set([2, 5]);
+      for (let i = 0; i < 8; i++) {
+        if (NAMED.has(i)) continue;
+        push(-30 + i * 8.2, -BZ - 15 - rnd(i, 167) * 5, i + 20, 5, 11);
+      }
       // Mid band.
       for (let i = 0; i < 16; i++) {
         const a = (i / 16) * Math.PI * 2 + 0.3;
@@ -2928,6 +3797,94 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         put(cityIM, i);
       });
       cityIM.instanceMatrix.needsUpdate = true;
+
+      /* PODIUMS — massing variety, not labels.
+         The blocks already vary in height, footprint and rotation, but every
+         one of them was a plain extruded box, and a street of plain boxes reads
+         as procedural however much you jitter the dimensions. What actually
+         distinguishes a hospital, a school, a hotel or a civic hall from an
+         office slab at this distance is MASSING: a wide low base with a
+         narrower mass rising out of it. That is one extra box per building.
+         Near bands only — the first 19 blocks are the ones the camera reads as
+         architecture; the mid and far bands are silhouette and haze, where a
+         podium is a triangle nobody resolves and 30 more instances for nothing.
+         About 55% get one, so the street still has plain slabs among them. */
+      const pods: Blk[] = [];
+      blocks.forEach((b, i) => {
+        if (i >= 19 || rnd(i, 181) < 0.45) return;
+        pods.push({
+          x: b.x, z: b.z, r: b.r,
+          w: b.w * (1.26 + rnd(i, 191) * 0.18),
+          d: b.d * (1.22 + rnd(i, 193) * 0.16),
+          h: b.h * (0.20 + rnd(i, 197) * 0.15),
+        });
+      });
+      /* ---- TWO TYPED NEIGHBOURS -------------------------------------------
+         A hospital and a shopping mall, told entirely through MASSING and
+         glazing — no signage, no text, nothing readable. At this distance that
+         is the only channel that survives anyway, and it is how you actually
+         recognise these two building types from across a city:
+
+           HOSPITAL   a long ward slab on a wide low entrance podium, with a
+                      taller stair/lift core breaking the roofline. Deep window
+                      grid, small punched openings, warm rooms behind them.
+           MALL       low, wide and horizontal — three trading floors, not
+                      storeys of offices — with a tall continuous glazed
+                      frontage and a projecting entrance box.
+
+         Built from the same `cityMat` as every other block, so they take the
+         identical facade texture, lit-window emissive map and atmospheric
+         falloff, and can never separate from the skyline they belong to. */
+      const bgGlassMat = new THREE.MeshStandardMaterial({
+        color: 0x2a3446, roughness: 0.22, metalness: 0.5,
+        // Warm rooms behind the glass, dim enough to stay background.
+        emissive: 0xffcf9a, emissiveIntensity: 0.34, envMapIntensity: 0.7,
+      });
+      dispose.push(bgGlassMat);
+      const box = (w: number, h: number, d: number, x: number, y: number, z: number,
+                   mat: THREE.Material, parent: THREE.Object3D) => {
+        const m = new THREE.Mesh(fromBase(new THREE.BoxGeometry(w, h, d), h), mat);
+        m.position.set(x, y, z);
+        parent.add(m);
+        return m;
+      };
+
+      // HOSPITAL — index 2's slot.
+      {
+        const g = new THREE.Group();
+        g.position.set(-30 + 2 * 8.2, 0, -BZ - 15 - rnd(2, 167) * 5);
+        g.rotation.y = -0.12;
+        box(13.5, 8.4, 5.2, 0, 0, 0, cityMat, g);          // ward slab
+        box(17.0, 2.6, 8.4, 0, 0, 3.4, cityMat, g);        // entrance podium
+        box(3.6, 11.2, 4.0, -5.4, 0, 0.4, cityMat, g);     // stair / lift core
+        box(11.0, 1.5, 0.35, 0, 0.7, 7.7, bgGlassMat, g);  // podium glazing band
+        box(4.4, 0.45, 2.2, 0, 2.6, 6.6, cityMat, g);      // porte-cochere canopy
+        world.add(g);
+      }
+
+      // SHOPPING MALL — index 5's slot.
+      {
+        const g = new THREE.Group();
+        g.position.set(-30 + 5 * 8.2, 0, -BZ - 15 - rnd(5, 167) * 5);
+        g.rotation.y = 0.16;
+        box(19.0, 5.0, 11.0, 0, 0, 0, cityMat, g);         // trading floors, low and wide
+        box(16.5, 3.9, 0.4, 0, 0.5, 5.7, bgGlassMat, g);   // full-height glazed frontage
+        box(5.2, 6.2, 2.6, -2.0, 0, 6.2, cityMat, g);      // projecting entrance box
+        box(4.2, 4.4, 0.3, -2.0, 0.6, 7.6, bgGlassMat, g); // its glazing
+        box(21.0, 0.5, 12.0, 0, 5.0, 0, cityMat, g);       // roof parapet
+        world.add(g);
+      }
+
+      if (pods.length) {
+        const podIM = mkIM(fromBase(new THREE.BoxGeometry(1, 1, 1), 1), cityMat, pods.length, false);
+        pods.forEach((p, i) => {
+          dummy.position.set(p.x, 0, p.z);
+          dummy.rotation.set(0, p.r, 0);
+          dummy.scale.set(p.w, p.h, p.d);
+          put(podIM, i);
+        });
+        podIM.instanceMatrix.needsUpdate = true;
+      }
 
       /* A distant tree line threading between the blocks — cities are not made
          only of buildings, and the green band is what stops the middle distance
@@ -3137,7 +4094,13 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
          of lights that were already clipping. Exposure is the wrong tool for a
          local hot spot anyway: it moves the whole frame. The fix for the
          entrance is the entrance lights, above. */
-      renderer.toneMappingExposure = mix(1.02, 1.06, clamp01(h - 0.9));
+      /* PHONE GETS A THIRD OF A STOP MORE. Not a correction to the render —
+         a correction for the viewing condition. A phone is held in daylight,
+         at arm's length, behind a reflective sheet of glass, and a blue-hour
+         frame graded for a monitor in a dim room loses its shadow detail
+         entirely there. Desktop and tablet are unchanged. */
+      const expo = phoneView ? 1.13 : 1.02;
+      renderer.toneMappingExposure = mix(expo, expo + 0.04, clamp01(h - 0.9));
 
       const litNow = ease(span(P.lit[0], P.lit[1], t));
       /* HALVED. These are the wall-washers on the entrance elevation and the
@@ -3197,8 +4160,15 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       if (!w || !h) return;
       /* Re-evaluated on every resize, not just at mount — a phone rotating to
          landscape crosses the breakpoint, and the two key sets are different
-         COMPOSITIONS, not a scale factor. */
-      const phone = isPhone();
+         COMPOSITIONS, not a scale factor.
+         CHOSEN BY ASPECT, NOT BY WIDTH. `isPhone()` is a 767px media query,
+         which is the right question for LAYOUT and the wrong one for FRAMING: a
+         768px tablet held upright is a 0.75 frame, and handing it the landscape
+         keys — authored for ~1.6 — puts the 22 m frontage across a frame half
+         that wide and loses the building. Anything taller than it is wide gets
+         the portrait set, which is what those keys were actually written for. */
+      const phone = isPhone() || w / h < 1.0;
+      phoneView = isPhone();
       KEYS = phone ? KEYS_M : KEYS_D;
       OUTK = phone ? OUT_M : OUT_D;
       renderer.setPixelRatio(DPR_CAP);
@@ -3217,16 +4187,22 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
        rest of the page. */
     let visible = true, raf = 0, last = 0, playhead = 0, tailv = 0;
     let shadowAt = -1;
+    let shadowTail = -1;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
       if (!visible) { last = now; return; }
       const dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
       last = now;
       update(playhead, dt, tailv);
-      // Shadows only need redrawing when geometry actually moved.
-      if (!lite && Math.abs(playhead - shadowAt) > 0.0015) {
+      /* Shadows only need redrawing when geometry actually moved — and the
+         TRAFFIC moves on the outro playhead, not the build one. This tested
+         `playhead` alone, which is pinned at 1 for the whole car-exit shot, so
+         a fleet that now casts would have dragged a frozen shadow down the road
+         behind it. Both playheads, one condition. */
+      if (!lite && (Math.abs(playhead - shadowAt) > 0.0015 || Math.abs(tailv - shadowTail) > 0.0015)) {
         renderer.shadowMap.needsUpdate = true;
         shadowAt = playhead;
+        shadowTail = tailv;
       }
       if (composer) composer.render(); else renderer.render(scene, camera);
     };

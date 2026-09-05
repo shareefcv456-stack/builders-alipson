@@ -39,8 +39,8 @@
    breakpoint — 48px in a 64px capsule, ~118px wide. Height only, `width: auto`,
    so the artwork's ratio is untouched. */
 @media (max-width: 1080px) {
-  .logo-lockup { height: 56px; }
-  .logo--compact .logo-lockup { height: 48px; }
+  .logo-lockup { height: 60px; }
+  .logo--compact .logo-lockup { height: 50px; }
 }
 /* Below 380px the row does get tight, so give back a little. 46px is 113px
    wide — still a third larger than the 34px it started at. */
@@ -226,11 +226,20 @@
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   font-family: var(--font-grotesk); font-weight: 600; font-size: 0.9rem; letter-spacing: 0.02em; white-space: nowrap;
   transition: background-color 0.35s var(--ease-lux), border-color 0.35s var(--ease-lux); }
+/* INVERTED. The badge was a solid red disc with a white glyph, which made the
+   loudest thing on a white glass pill a block of brand red — it read as a
+   second primary button beside "Explore Projects" rather than as the secondary
+   it is. White disc, RED glyph: the brand colour is still there, carried by
+   the mark instead of the mass, and the pair now reads as primary + secondary
+   at a glance. The inner hairline is what keeps the white disc from
+   disappearing into the white pill around it. */
 .btn-watch__play { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
-  background: var(--accent); color: #fff; flex-shrink: 0; padding-left: 2px;
-  box-shadow: none; transition: background-color 0.35s var(--ease-lux); }
+  background: rgba(255, 255, 255, 0.97); color: var(--accent); flex-shrink: 0; padding-left: 2px;
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.24), 0 2px 7px rgba(6, 12, 26, 0.16);
+  transition: background-color 0.35s var(--ease-lux), box-shadow 0.35s var(--ease-lux); }
 .btn-watch:hover { border-color: var(--accent); background-color: rgba(var(--accent-rgb), 0.12); }
-.btn-watch:hover .btn-watch__play { background: var(--accent-deep); box-shadow: none; }
+.btn-watch:hover .btn-watch__play { background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.5), 0 3px 10px rgba(6, 12, 26, 0.22); }
 .btn-watch:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .hero__sub { margin-top: 1.2rem; display: flex; flex-wrap: wrap; gap: 0.45rem 1.15rem; color: rgba(248,248,246,0.9); font-family: var(--font-grotesk); font-size: clamp(0.92rem, 1.25vw, 1.12rem); letter-spacing: 0.01em; }
 .hero__sub span { position: relative; }
@@ -486,23 +495,13 @@
 .studio__visual { position: relative; padding: 0; background: none; box-shadow: none;
   display: flex; align-items: stretch; justify-content: center; }
 
-/* Blueprint sits behind the photo's top-right, bleeding past it. */
-.studio__bp { position: absolute; z-index: 0; top: -9%; right: -14%;
-  width: 66%; height: auto; pointer-events: none;
-  fill: none; stroke-linecap: round; stroke-linejoin: round;
-  opacity: 0.85; transition: opacity 0.6s var(--ease-lux);
-  animation: studioDrift 14s ease-in-out infinite; }
-.studio__bp-grid  { stroke: #0B132B; stroke-width: 0.7; opacity: 0.16;
-  animation: studioGrid 9s ease-in-out infinite; }
-.studio__bp-line  { stroke: #0B132B; stroke-width: 1.5; opacity: 0.3; }
-.studio__bp-dim   { stroke: #d31018; stroke-width: 1.4; opacity: 0.45; }
 
 .studio__stack { position: relative; z-index: 1; width: 100%; height: 100%;
-  display: flex; flex: 1; }
+  display: flex; flex-direction: column; flex: 1; }
 
 /* Fills the column so the two sides finish level — no aspect-ratio cap on
    desktop, where the right card sets the height. */
-.studio__frame { position: relative; margin: 0; width: 100%; flex: 1; min-height: 440px;
+.studio__frame { position: relative; margin: 0; width: 100%; flex: 1; min-height: 380px;
   overflow: hidden;
   border-radius: 24px; background: #0B132B;
   box-shadow: 0 30px 60px -28px rgba(11, 19, 43, 0.45); }
@@ -511,8 +510,12 @@
 /* `translateZ(0)` promotes the whole time-lapse to its own compositor layer, so
    the six dash-drawn stages repaint into that layer instead of into the section
    behind them. Without it every frame of the 8s loop dirties the studio card. */
-.studio__sheet { position: absolute; inset: 0; width: 100%; height: 100%;
+.studio__sheet { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%;
   fill: none; stroke-linecap: round; stroke-linejoin: round;
+  /* Written from scroll in Studio.tsx: the linework owns the panel while the
+     site is bare and drops to a hairline once the real building is standing. */
+  opacity: var(--sheet-fade, 1);
+  right: var(--rail);
   scale: 1.02; transition: scale 0.7s var(--ease-lux);
   transform: translateZ(0); backface-visibility: hidden; }
 
@@ -559,7 +562,20 @@
    to an invalid value, the whole shorthand is dropped, and the caption sits
    inert on "Foundation" while the drawing runs. The frame is the nearest
    ancestor of both. */
-.studio__frame { --build-clock: 9s; }
+/* `--build-delay` is written from scroll by Studio.tsx. A NEGATIVE delay on a
+   PAUSED animation freezes it that far into its own timeline, which is what
+   turns these keyframes into a scrub without a single keyframe changing. */
+.studio__frame { --build-clock: 9s; --build-delay: 0s; }
+.studio__frame .studio__st {
+  animation-play-state: paused;
+  animation-delay: var(--build-delay);
+}
+/* Reduced motion gets the finished drawing, held. Past the 31% mark where the
+   last stage tops out, so it is the complete building rather than a frame from
+   the middle of the build. */
+@media (prefers-reduced-motion: reduce) {
+  .studio__frame .studio__st { animation-delay: -3.4s; }
+}
 
 @keyframes studioS1 {  /* plot + axes + dims      0 → 0.35s */
   0%   { stroke-dashoffset: var(--dash); }
@@ -592,40 +608,6 @@
   100%      { stroke-dashoffset: 0; opacity: 0; }
 }
 
-/* Phase caption, on the same clock as the drawing. Foundation covers stages
-   1–2, Framing 3–4, and Finish lights as the glazing goes in and then STAYS
-   lit for the whole hold — so the caption agrees with the panel's resting
-   state instead of resetting under a finished building. */
-.studio__phase { animation: var(--build-clock) linear infinite; }
-.studio__phase:nth-child(1) { animation-name: studioPh1; }
-.studio__phase:nth-child(2) { animation-name: studioPh2; }
-.studio__phase:nth-child(3) { animation-name: studioPh3; }
-@keyframes studioPh1 {
-  0%, 8.2%   { color: #FFFFFF; }
-  8.3%, 100% { color: rgba(255, 255, 255, 0.42); }
-}
-@keyframes studioPh2 {
-  0%, 8.2%    { color: rgba(255, 255, 255, 0.42); }
-  8.3%, 19.9% { color: #FFFFFF; }
-  20%, 100%   { color: rgba(255, 255, 255, 0.42); }
-}
-@keyframes studioPh3 {
-  0%, 19.9% { color: rgba(255, 255, 255, 0.42); }
-  20%, 100% { color: #FFFFFF; }
-}
-
-/* Stage 7 — crimson sweep base→roof as the roof tops out, then the finished
-   plan holds lit for the rest of the cycle.
-   The one genuinely transform-animated layer in the sequence — GPU all the way. */
-.studio__beam { opacity: 0; will-change: transform, opacity;
-  animation: studioBeam var(--build-clock) linear infinite; }
-@keyframes studioBeam {
-  0%, 25.5% { transform: translateY(392px); opacity: 0; }
-  27%       { opacity: 1; }
-  33%       { transform: translateY(-24px); opacity: 1; }
-  36%       { transform: translateY(-24px); opacity: 0; }
-  100%      { transform: translateY(-24px); opacity: 0; }
-}
 .studio__plan { will-change: filter; animation: studioGlow var(--build-clock) linear infinite; }
 /* The glow lands with the sweep and then holds — it is what makes the finished
    plan read as "complete" for the ~6s it sits there, rather than just static. */
@@ -637,10 +619,14 @@
 
 /* Overlays sit above every animated path (badge z-index is set on its own
    rule further down — declaring it here lost the cascade). */
-.studio__wm { position: absolute; z-index: 20; left: 0; right: 0; bottom: 0.9rem;
-  text-align: center; font-family: var(--font-grotesk); font-weight: 800;
-  font-size: 0.72rem; letter-spacing: 0.34em; text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.34); pointer-events: none; }
+.studio__wm { position: absolute; z-index: 20; left: clamp(1rem, 2.4vw, 1.9rem);
+  bottom: clamp(1rem, 2.4vw, 1.6rem); text-align: left;
+  font-family: var(--font-grotesk); font-weight: 700;
+  font-size: 0.72rem; letter-spacing: 0.3em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92); pointer-events: none;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.55); }
+.studio__wm em { display: block; margin-top: 0.4rem; font-style: normal; font-weight: 500;
+  font-size: 0.55rem; letter-spacing: 0.24em; color: rgba(255, 255, 255, 0.5); }
 
 /* The one motion the brief names, shared with the Standard section. */
 @keyframes floatSketch {
@@ -649,21 +635,15 @@
 }
 
 /* Soft dark/red veil, plus the permanent bottom gradient the badge sits on. */
-.studio__scrim { position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+.studio__scrim { position: absolute; z-index: 3; inset: 0; pointer-events: none; border-radius: inherit;
   background: linear-gradient(180deg, transparent 42%, rgba(11, 19, 43, 0.82) 100%); }
 .studio__scrim::after { content: ''; position: absolute; inset: 0; border-radius: inherit;
   background: linear-gradient(135deg, rgba(211, 16, 24, 0.20), rgba(11, 19, 43, 0.35));
   opacity: 0; transition: opacity 0.6s var(--ease-lux); }
 
 /* Diagonal navy wedge, top-right of the photo. */
-.studio__cut { position: absolute; top: 0; right: 0; width: 46%; height: 34%;
+.studio__cut { position: absolute; z-index: 4; top: 0; right: 0; width: 46%; height: 34%;
   pointer-events: none; fill: rgba(211, 16, 24, 0.16);
-  transition: translate 0.7s var(--ease-lux); }
-/* Red chevron, bottom-left — the one floating accent. */
-.studio__chev { position: absolute; left: -2%; bottom: -2%; width: 38%; height: auto;
-  pointer-events: none; fill: #d31018;
-  filter: drop-shadow(0 8px 20px rgba(211, 16, 24, 0.45));
-  animation: studioFloat 7s ease-in-out infinite;
   transition: translate 0.7s var(--ease-lux); }
 
 /* Badge lives inside the photo now, bottom-right. */
@@ -682,49 +662,153 @@
 .studio__stack:hover .studio__scrim::after { opacity: 1; }
 /* The blueprint precedes .studio__stack in the DOM, so a sibling combinator
    cannot reach it — reveal it from the column instead. */
-.studio__visual:hover .studio__bp { opacity: 1; }
 .studio__stack:hover .studio__cut { translate: -4px 4px; }
-.studio__stack:hover .studio__chev { translate: 5px -5px; }
+
+
+/* ==========================================================================
+   THE BUILD STORY — ONE PANEL, ONE PLAYHEAD
+   --------------------------------------------------------------------------
+   Three layers over the navy card, all driven by the same scroll value:
+
+     1. `.studio__film`  five photographs of ONE Alipson project on one camera
+                         (the hero's own construction reel), dissolving
+                         foundation -> columns -> frame -> facade -> delivered.
+     2. `.studio__wash`  a blueprint wash — navy plus a drafting grid — opaque
+                         over the bare site, gone by the finished building.
+     3. `.studio__sheet` the dash-drawn technical elevation, scrubbed on its
+                         paused clock and fading to a hairline as the real
+                         structure takes over.
+
+   The order is the whole idea: the panel starts as a drawing and ends as a
+   photograph of the thing that was drawn. Nothing here is on a timer.
+   ========================================================================== */
+/* THE STORY OWNS THE LEFT OF THE PANEL, THE CAPTIONS OWN THE RIGHT.
+   The four acts used to be absolutely positioned OVER the photograph behind a
+   gradient — legible, but it put text across the building it was describing,
+   and on a busy frame that is one more layer to separate. `--rail` reserves a
+   band of the card for them instead: the drawing and the film both stop at its
+   edge, so nothing overlaps anything and the hairline between the two reads as
+   a drawing sheet's own margin rule. Zero on a phone, where the captions are
+   in flow underneath. */
+.studio__frame { --rail: 34%; }
+.studio__frame::before { content: ''; position: absolute; z-index: 5;
+  top: 0; bottom: 0; right: var(--rail); width: 1px;
+  background: rgba(255, 255, 255, 0.1); }
+.studio__film { position: absolute; inset: 0 var(--rail) 0 0; z-index: 1; overflow: hidden; }
+/* STACKED, AND EACH ONE FADES IN OVER THE ONE BELOW rather than peaking and
+   dropping away (see FilmFrame). A crossfade where both frames sit at 0.5 lets
+   the navy card show through the middle of every dissolve; a step-in ramp on an
+   opaque stack never does. */
+.studio__fr { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  /* Weighted left of centre, not centred: the stepper occupies the right ~40%
+     of the panel, and a centred crop of a landscape frame puts the building's
+     entrance directly under it. */
+  object-position: 42% 50%;
+  filter: saturate(0.95) contrast(1.02); }
+.studio__wash { position: absolute; inset: 0; pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg,  rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 34px),
+    linear-gradient(180deg, rgba(11, 19, 43, 0.95), rgba(8, 13, 28, 0.97)); }
+
+/* ---- THE PROGRESSION INDICATOR ------------------------------------------ */
+/* Four acts down the right edge of the visual, on a thin red rail. Which one
+   is lit comes from the same playhead as the film, so the caption cannot claim
+   "STRUCTURE" over a photograph of an excavation. */
+.studio__steps { position: absolute; z-index: 6; list-style: none; margin: 0; padding: 0;
+  right: 0; top: 13%; width: 34%; padding-inline: clamp(0.9rem, 1.7vw, 1.5rem);
+  display: grid; gap: clamp(1rem, 3.2vh, 2.4rem); }
+/* The connecting line. The scrim that used to sit behind these is gone with
+   the overlap it existed to survive — they stand on the card's own navy now. */
+.studio__steps::before { content: ''; position: absolute;
+  left: clamp(0.9rem, 1.7vw, 1.5rem); top: 0.5rem; bottom: 1rem;
+  width: 1px; background: linear-gradient(180deg, rgba(211, 16, 24, 0.85), rgba(211, 16, 24, 0.12)); }
+.studio__step { position: relative; padding-left: 1.15rem; }
+.studio__step-dot { position: absolute; left: 0; top: 0.42rem; width: 7px; height: 7px;
+  border-radius: 50%; background: rgba(255, 255, 255, 0.28);
+  transition: background-color 0.45s var(--ease-lux), box-shadow 0.45s var(--ease-lux); }
+.studio__step.is-on .studio__step-dot { background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(211, 16, 24, 0.18); }
+.studio__step-n { display: inline-block; padding: 0.1rem 0.32rem; border-radius: 3px;
+  font-family: var(--font-grotesk); font-weight: 700; font-size: 0.6rem; letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.55); background: rgba(255, 255, 255, 0.09);
+  transition: color 0.45s var(--ease-lux), background-color 0.45s var(--ease-lux); }
+.studio__step.is-on .studio__step-n { color: #fff; background: var(--accent); }
+.studio__step-l { display: block; margin-top: 0.32rem; font-style: normal;
+  font-family: var(--font-grotesk); font-weight: 600; font-size: 0.76rem;
+  letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 255, 255, 0.5);
+  transition: color 0.45s var(--ease-lux); }
+.studio__step.is-on .studio__step-l { color: #fff; }
+.studio__step-s { display: block; margin-top: 0.2rem; font-family: var(--font-grotesk);
+  font-size: 0.58rem; letter-spacing: 0.12em; line-height: 1.6; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.34); }
+
+/* ---- THE SCANNER --------------------------------------------------------
+   ONE moving mark on the whole panel, and it is a survey line rather than a
+   beam: a 1px crimson rule with a tick at each end, a short falloff under it
+   and no animation of its own — its position IS the scroll position, running
+   from the foundation at 0 to the parapet at 1. Everything else on the panel
+   is a crossfade, which reads as state; this is what reads as PROGRESS. */
+.studio__scan { position: absolute; z-index: 5; left: 0; right: var(--rail);
+  height: 5px; margin-top: -2px; pointer-events: none;
+  background: linear-gradient(90deg,
+    #d31018 0 7px, transparent 7px calc(100% - 7px), #d31018 calc(100% - 7px)); }
+.studio__scan::before { content: ''; position: absolute; left: 7px; right: 7px; top: 2px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(211, 16, 24, 0.1), #d31018 48%, rgba(211, 16, 24, 0.1));
+  box-shadow: 0 0 9px rgba(211, 16, 24, 0.4); }
+.studio__scan::after { content: ''; position: absolute; left: 7px; right: 7px; top: 3px;
+  height: 42px;
+  background: linear-gradient(180deg, rgba(211, 16, 24, 0.13), rgba(211, 16, 24, 0)); }
+
+/* Top-left label — the panel's thesis in three words. */
+.studio__vision { position: absolute; z-index: 6;
+  left: clamp(1rem, 2.4vw, 1.9rem); top: clamp(1rem, 2.4vw, 1.8rem);
+  font-family: var(--font-grotesk); font-weight: 600; font-size: 0.62rem;
+  letter-spacing: 0.24em; line-height: 1.9; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78); pointer-events: none;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.5); }
+.studio__vision::after { content: ''; display: block; width: 26px; height: 2px;
+  margin-top: 0.5rem; background: var(--accent); }
 
 /* ---- RIGHT · content card ------------------------------------------------ */
 .studio__detailsWrap { display: flex; height: 100%; }
 .studio__details { flex: 1; height: 100%; background: #FFFFFF; color: #0B132B;
   border-radius: 28px; border: 1px solid #F1F5F9;
   box-shadow: 0 24px 56px -28px rgba(11, 19, 43, 0.16);
-  padding: clamp(1.4rem, 2.4vw, 2.2rem); }
-@media (max-width: 940px) { .studio__details { padding: 1.5rem; } }
+  padding: clamp(1.15rem, 1.9vw, 1.7rem); }
+/* ---- COMPACT STACK ------------------------------------------------------
+   Below 900px the two columns stack, so the section's height is the sum of
+   both panels rather than the taller of them — 1.78 viewports on a 390px
+   phone. These bring it under 1.4 without dropping a single element or
+   reducing any type below its readable size: the blueprint keeps a strong
+   presence at 320px (a 390px-wide phone still reads it at roughly 5:4), the
+   card padding comes in, and the step list and badge tighten.
+   The scroll animation is untouched — its range is expressed as a fraction of
+   the section, so a shorter section compresses it proportionally. */
+@media (max-width: 940px) { .studio__details { padding: 1.2rem; } }
+@media (max-width: 900px) {
+  .studio__grid { gap: 1.25rem; }
+  .studio__frame { min-height: 320px; }
+}
 
 .studio__eyebrow { justify-content: flex-start; color: #d31018; }
 .studio__eyebrow::before, .studio__eyebrow::after { background: #d31018; opacity: 1; }
-.studio__title { color: #0B132B; margin-top: 0.9rem; }
+.studio__title { color: #0B132B; margin-top: 0.6rem; }
 .studio__title em { color: #d31018; font-style: italic; }
 
-.studio__quote { margin: 1.1rem 0 0; padding-left: 1.25rem; border-left: 3px solid #d31018;
+.studio__quote { margin: 0.8rem 0 0; padding-left: 1.1rem; border-left: 3px solid #d31018;
   font-family: var(--font-display); font-style: italic; font-weight: 400;
   font-size: clamp(1.05rem, 1.7vw, 1.25rem); line-height: 1.55; color: #0B132B; }
 .studio__quote span { color: #d31018; font-style: italic; }
 
-.studio__body { margin-top: 1rem; color: #475569; font-size: 0.92rem; line-height: 1.7; }
+.studio__body { margin-top: 0.7rem; color: #475569; font-size: 0.92rem; line-height: 1.7; }
 
-/* ---- VALUE STEPPER ------------------------------------------------------- */
-/* Three boxed cards became one vertical stepper, on the same mechanism as
-   `.ptimeline` in <Process>: an absolutely positioned rail behind the icon
-   column, and a crimson `.studio__hl-fill` whose scaleY is driven by scroll.
-   The icons ARE the nodes — the rail is tucked behind their centres — so the
-   stepper costs one extra element rather than a node per row. */
-.studio__highlights { position: relative; list-style: none; margin: 1.2rem 0 0; padding: 0; }
-/* `--border`, not a hard-coded #E8EDF4: this panel is a `.section--noir`, where
-   that light hairline reads as a bright white bar down the middle of the card.
-   The token is already dark-aware.
-   `top` and `height` are written from JS (see the rail measurement in
-   Studio.tsx) so the line stops exactly on icon 03's centre. The offsets here
-   are the pre-measurement fallback for the frame before layout is read. */
-.studio__hl-rail { position: absolute; left: 26px; top: 34px; bottom: 34px; width: 2px;
-  margin-left: -1px; background: var(--border); border-radius: 2px; overflow: hidden;
-  z-index: 0; }
-.studio__hl-fill { position: absolute; inset: 0; transform-origin: top;
-  background: linear-gradient(180deg, #d31018, #e52e35);
-  box-shadow: 0 0 12px rgba(211, 16, 24, 0.45); }
+/* ---- THE THREE PRINCIPLES ------------------------------------------------ */
+/* Standalone specification cards. They were a scroll-filled stepper; the panel
+   now has a scroll-driven build in the left column, and two mechanisms racing
+   each other for the same attention is one too many. */
+.studio__highlights { position: relative; list-style: none; margin: 0.9rem 0 0; padding: 0; }
 
 /* THREE CARDS, NOT ONE BOX. `.studio__hl` used to be a transparent row, and the
    noir theme's blanket rule (`.section--noir :is(… .studio__hl …)`) gave each
@@ -734,17 +818,51 @@
    separating. The border colour is deliberately NOT final here: framer-motion
    animates it between the rest and active states, so declaring it twice would
    just be a value that never wins. */
-.studio__hl { position: relative; z-index: 1;
-  display: flex; gap: 0.9rem; align-items: flex-start;
-  padding: 1rem 1.1rem; margin-bottom: 0.85rem;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  transition: background-color 0.4s var(--ease-lux); }
+.studio__hl {
+  position: relative; display: flex; align-items: flex-start; gap: 0.85rem;
+  padding: 0.78rem 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px;
+  /* A specification panel, not a card: a barely-there glass fill over the navy
+     so the panel edge does the work rather than a change of value. Brighter
+     than this and the list starts competing with the blueprint beside it. */
+  background: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+  transition: background-color 0.4s var(--ease-lux), border-color 0.4s var(--ease-lux),
+              transform 0.4s var(--ease-lux);
+}
+/* The accent is a rule down the leading edge, not a border colour change — an
+   architectural panel is tabbed, and it keeps the red to a hairline rather than
+   ringing the whole card. */
+.studio__hl::before {
+  content: ''; position: absolute; left: 0; top: 12%; bottom: 12%; width: 2px;
+  border-radius: 2px; background: var(--accent);
+  opacity: 0; transition: opacity 0.4s var(--ease-lux);
+}
+.studio__hl:hover { background: rgba(255, 255, 255, 0.055); transform: translateX(2px); }
+.studio__hl:hover::before { opacity: 0.8; }
+/* The step number is the hierarchy cue: it sits above the title, tracked out
+   and in the accent, so the eye reads 01 -> title -> body. */
+.studio__hl-step { display: block; margin-bottom: 0.3rem;
+  font-family: var(--font-grotesk); font-weight: 700; font-style: normal;
+  font-size: 0.62rem; letter-spacing: 0.22em; color: var(--accent-soft); }
+.studio__hl-icon { flex: 0 0 auto; margin-top: 0.15rem; color: rgba(255, 255, 255, 0.72); }
+@media (prefers-reduced-motion: reduce) {
+  .studio__hl, .studio__hl::before { transition: none; }
+  .studio__hl:hover { transform: none; }
+}
+/* COMPACTION. Every value above and below was set for a card with three
+   principles in it; there are four now, and each one grew a panel treatment,
+   so the same rhythm stacked into a section that ran well past a viewport.
+   Nothing is removed and nothing shrinks below a readable size — the gaps
+   between blocks tighten, the card padding comes in, and the icon drops from
+   42 to 36px. The scroll animation needs no separate change: its range is a
+   fraction of the section, so a shorter section compresses it proportionally,
+   which is exactly the "compress, don't speed up" the brief asks for. */
+.studio__highlights > li { margin-bottom: 0.6rem; }
 .studio__highlights > li:last-child { margin-bottom: 0; }
 
 /* The icon is the node, so it needs an opaque fill — the rail runs behind it. */
-.studio__hl-icon { flex-shrink: 0; display: grid; place-items: center; width: 42px; height: 42px;
+.studio__hl-icon { flex-shrink: 0; display: grid; place-items: center; width: 36px; height: 36px;
   border-radius: 50%; background: #FFFFFF; border: 1px solid #E8EDF4; color: #0B132B;
   transition: transform 0.4s var(--ease-lux), background-color 0.4s var(--ease-lux),
               color 0.4s var(--ease-lux), border-color 0.4s var(--ease-lux); }
@@ -772,60 +890,41 @@
 /* Phase caption — Foundation / Framing / Finish. Sits on the sheet's bottom
    edge; which one is lit is driven by `studioPh1..3` on the build clock, up
    with the keyframes it has to stay in step with. */
-.studio__phases { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0;
-  display: flex; justify-content: center; gap: clamp(0.5rem, 2vw, 1.1rem);
-  padding: 0.7rem 0.6rem;
-  background: linear-gradient(180deg, transparent, rgba(6, 10, 22, 0.72) 55%); }
-.studio__phase { font-family: var(--font-grotesk); font-weight: 600;
-  font-size: clamp(0.56rem, 1.6vw, 0.68rem); letter-spacing: 0.16em; text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.42); white-space: nowrap; }
-
 /* ---- CTAs ---------------------------------------------------------------- */
-.studio__cta { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-top: 1.4rem; }
+.studio__cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
 .studio__cta .btn-primary { transition: translate 0.35s var(--ease-lux), box-shadow 0.35s var(--ease-lux); }
 .studio__cta .btn-primary:hover { translate: 0 -3px;
   box-shadow: 0 14px 30px -10px rgba(211, 16, 24, 0.55); }
 .studio__cta .btn svg { transition: transform 0.35s var(--ease-lux); }
 .studio__cta .btn-primary:hover svg { transform: translateX(5px); }
+.studio__link { align-self: center; padding: 0.5rem 0.15rem;
+  font-family: var(--font-grotesk); font-weight: 600; font-size: 0.9rem;
+  color: var(--text, #0B132B); border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  transition: color 0.35s var(--ease-lux), border-color 0.35s var(--ease-lux); }
+.studio__link:hover { color: var(--accent-soft); border-color: var(--accent-soft); }
 .studio__cta .btn-ghost { border-color: #E2E8F0; color: #0B132B;
   transition: border-color 0.35s var(--ease-lux), color 0.35s var(--ease-lux); }
 .studio__cta .btn-ghost:hover { border-color: #d31018; color: #d31018; background-color: transparent; }
 @media (max-width: 480px) { .studio__cta .btn, .studio__cta > * { width: 100%; justify-content: center; } }
 
 /* ---- ambient motion ------------------------------------------------------ */
-@keyframes studioDrift {
-  0%, 100% { translate: 0 0; }
-  50%      { translate: -3px 4px; }
-}
-@keyframes studioGrid {
-  0%, 100% { opacity: 0.12; }
-  50%      { opacity: 0.05; }
-}
-@keyframes studioFloat {
-  0%, 100% { translate: 0 0; }
-  50%      { translate: 0 -7px; }
-}
 
 /* ---- stacked ------------------------------------------------------------- */
 @media (max-width: 900px) {
   .studio__grid { gap: 1.5rem; }
   .studio__frame { aspect-ratio: 4/5; flex: none; min-height: 0; max-height: 420px; }
-  .studio__bp { width: 50%; right: -6%; top: -6%; }
 }
 @media (max-width: 560px) {
   .studio__frame { aspect-ratio: 3/4; flex: none; min-height: 0; max-height: 380px; border-radius: 20px; }
-  .studio__bp { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .studio__bp, .studio__bp-grid, .studio__chev,
-  .studio__plan, .studio__st, .studio__beam { animation: none; }
+  .studio__plan, .studio__st { animation: none; }
   .studio__st { stroke-dashoffset: 0; }
-  .studio__beam { opacity: 0; }
-  .studio__sheet, .studio__scrim::after, .studio__cut, .studio__chev,
+  .studio__sheet, .studio__scrim::after, .studio__cut,
   .studio__hl, .studio__hl-icon, .studio__hl::after,
   .studio__cta .btn-primary, .studio__cta .btn svg { transition-duration: 0.01ms; }
-  .studio__stack:hover .studio__cut, .studio__stack:hover .studio__chev { translate: none; }
+  .studio__stack:hover .studio__cut { translate: none; }
   .studio__hl:hover { translate: none; }
   .studio__cta .btn-primary:hover { translate: none; }
 }
@@ -1107,34 +1206,167 @@
 #work .filter { color: rgba(248, 248, 246, 0.82); border-color: rgba(255, 255, 255, 0.2); }
 #work .filter:hover { color: #fff; border-color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.06); }
 #work .filter.active { color: #fff; background: var(--accent); border-color: var(--accent); }
-.projects__grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
-/* 768px, not the 800 that was here — one breakpoint for "this is a phone",
-   shared with the `max-width: 767.98px` block that restyles the card overlay.
-   Two thresholds 32px apart meant a 780px window got the single column but
-   kept the desktop card treatment. */
-@media (max-width: 767.98px) { .projects__grid { grid-template-columns: 1fr; gap: 1.5rem; } }
-.proj { position: relative; border-radius: var(--radius-lg); overflow: hidden; cursor: pointer; background: var(--surface); }
-.proj__img { position: relative; aspect-ratio: 16/11; overflow: hidden; }
-.proj__img img { width: 100%; height: 100%; object-fit: cover; transition: transform 1.1s var(--ease-lux), filter 0.8s; filter: saturate(0.92); }
-.proj:hover .proj__img img { transform: scale(1.06); filter: saturate(1.05); }
-.proj__scrim { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 18%, rgba(0,0,0,0.4) 55%, rgba(0,0,0,0.82) 100%); opacity: 1; transition: opacity 0.5s; }
-.proj__tag { position: absolute; top: 1.1rem; left: 1.1rem; z-index: 2; padding: 0.4rem 0.9rem; border-radius: 100px; font-family: var(--font-grotesk); font-weight: 600; font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; }
-.proj__meta { position: absolute; left: 1.4rem; right: 1.4rem; bottom: 1.3rem; z-index: 2; }
-.proj__loc { display: flex; flex-wrap: wrap; gap: 0.5rem; font-size: 0.74rem; letter-spacing: 0.04em; margin-bottom: 0.7rem; }
-/* Frosted dark badges for crisp readability over any image */
-.proj__loc span { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.28rem 0.6rem; border-radius: 8px;
-  background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-  color: #fff; font-weight: 500; }
-.proj__loc span svg { color: var(--accent-soft); }
-.proj__title { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.5rem, 2.6vw, 2.1rem); color: #fff; text-shadow: 0 2px 18px rgba(0,0,0,0.5); }
-.proj__reveal { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.6s var(--ease-lux), opacity 0.5s, margin 0.5s; }
-/* Pointer-only. On touch there is no hover to open this with — the mobile block
-   further down puts the copy permanently on screen instead. */
-@media (hover: hover) and (pointer: fine) {
-  .proj:hover .proj__reveal { max-height: 120px; opacity: 1; margin-top: 0.6rem; }
+/* ---- STICKY CASE-STUDY SHOWCASE --------------------------------------------
+   ONE project on screen at a time, and only one.
+
+   The track (`.pshow`) is tall; the viewport inside it (`.pshow__vp`) is
+   sticky and one screen high, so scrolling the track SWAPS which panel is
+   painted rather than moving anything down the page. Panels share the same
+   box, but the inactive ones are `visibility: hidden` — which also drops them
+   out of the accessibility tree — so there is never a second photograph, a
+   second heading, or a stack of half-visible cards to decode. Scroll position
+   picks the index (see Projects.tsx); nothing here animates per frame.
+
+   On a phone the whole mechanism switches off: the track is auto-height, the
+   viewport is static and the panels simply flow one under the other, each with
+   its own number, photograph and specs. No sticky, no overlap, and nothing
+   wider than the column, so there is no horizontal overflow to fight. */
+.pshow { position: relative; height: calc(100svh + (var(--n) - 1) * 74vh); }
+.pshow__vp {
+  position: sticky; top: 6.5rem;           /* clears the fixed navbar capsule */
+  height: calc(100svh - 9rem);
 }
-.proj__reveal p { color: rgba(247,242,232,0.74); font-size: 0.86rem; line-height: 1.6; }
-.proj__view { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.7rem; font-family: var(--font-grotesk); font-size: 0.8rem; color: var(--accent-soft); }
+.pshow__panel {
+  position: absolute; inset: 0;
+  display: grid; gap: 0 3rem;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: 'frame idx' 'frame body';
+  opacity: 0; visibility: hidden;
+  transition: opacity 0.7s var(--ease-lux), visibility 0.7s;
+}
+.pshow__panel.is-on { opacity: 1; visibility: visible; }
+
+/* The photograph. It arrives by opening from the centre — a clip, not a slide
+   — and settles out of a 6% overscale, so the outgoing frame has left before
+   the incoming one is legible. That is the entire transition. */
+.pshow__frame {
+  grid-area: frame; position: relative; overflow: hidden; cursor: pointer;
+  border-radius: var(--radius-lg); border: 1px solid var(--glass-brd);
+  background: var(--glass);
+  clip-path: inset(7% 0 7% 0);
+  transition: clip-path 0.9s var(--ease-lux);
+}
+.is-on .pshow__frame { clip-path: inset(0 0 0 0); }
+.pshow__frame img {
+  width: 100%; height: 100%; object-fit: cover;
+  filter: saturate(0.94);
+  transform: scale(1.06);
+  transition: transform 1.6s var(--ease-lux), filter 0.8s;
+}
+.is-on .pshow__frame img { transform: scale(1); }
+@media (hover: hover) and (pointer: fine) {
+  .pshow__frame:hover img { filter: saturate(1.05); transform: scale(1.03); }
+}
+/* A hairline of metal down the top edge of the frame — the only ornament. */
+.pshow__frame::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.pshow__idx {
+  grid-area: idx; display: flex; align-items: center; gap: 0.8rem;
+  font-family: var(--font-grotesk); font-size: 0.82rem; letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.42); padding-bottom: 1.2rem;
+}
+.pshow__idx b { font-weight: 600; color: #fff; }
+.pshow__idx i { flex: 1; height: 1px; background: rgba(255, 255, 255, 0.16); }
+
+.pshow__body { grid-area: body; align-self: center; min-width: 0; }
+/* Copy lifts in behind the image so the two do not change at the same instant.
+   One shared rule, one delay: a per-line stagger here would be motion for its
+   own sake. */
+.pshow__body > * {
+  opacity: 0; transform: translateY(14px);
+  transition: opacity 0.6s var(--ease-lux) 0.15s, transform 0.6s var(--ease-lux) 0.15s;
+}
+.is-on .pshow__body > * { opacity: 1; transform: none; }
+.pshow__cat {
+  display: block; font-family: var(--font-grotesk); font-weight: 600;
+  font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 0.7rem;
+}
+.pshow__title {
+  font-family: var(--font-display); font-weight: 400; color: #fff;
+  font-size: clamp(1.9rem, 3.4vw, 3rem); line-height: 1.06; margin-bottom: 1.4rem;
+}
+.pshow__specs { margin: 0 0 1.4rem; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.pshow__specs > div {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  padding: 0.7rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.pshow__specs dt {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-family: var(--font-grotesk); font-size: 0.68rem; letter-spacing: 0.16em;
+  text-transform: uppercase; color: rgba(255, 255, 255, 0.45);
+}
+.pshow__specs dt svg { color: var(--accent-soft); }
+.pshow__specs dd {
+  margin: 0; font-family: var(--font-grotesk); font-weight: 500;
+  font-size: 0.95rem; color: #fff; text-align: right;
+}
+.pshow__desc { color: rgba(247, 242, 232, 0.68); font-size: 0.92rem; line-height: 1.7; margin-bottom: 1.3rem; }
+.pshow__view {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  font-family: var(--font-grotesk); font-weight: 600; font-size: 0.82rem;
+  letter-spacing: 0.06em; color: var(--accent-soft);
+}
+.pshow__view:hover { color: var(--accent); }
+
+/* Progress: one marker per project, the live one in Alipson red. */
+.pshow__rail {
+  position: absolute; left: 0; bottom: 0; z-index: 3;
+  display: flex; align-items: center; gap: 0.45rem;
+}
+.pshow__dot {
+  width: 30px; height: 2px; border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+  transition: width 0.5s var(--ease-lux), background-color 0.5s var(--ease-lux);
+}
+.pshow__dot.is-on { width: 58px; background: var(--accent); }
+
+@media (max-width: 900px) {
+  /* PHONE / SMALL TABLET: the sticky mechanism is off. Every panel is a full
+     block in normal flow, so no photograph can ever sit over another one. */
+  .pshow { height: auto; }
+  .pshow__vp { position: static; height: auto; display: flex; flex-direction: column; gap: 3.5rem; }
+  .pshow__panel {
+    position: static; opacity: 1; visibility: visible;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    grid-template-areas: 'idx' 'frame' 'body';
+    gap: 0;
+  }
+  /* No clip, no overscale, no lift: those exist to hand one panel to the next,
+     and on a phone nothing is being handed over — the page just scrolls. */
+  .pshow__frame { clip-path: none; aspect-ratio: 4 / 3; }
+  .pshow__frame img { transform: none; }
+  .pshow__body > * { opacity: 1; transform: none; }
+  .pshow__idx { padding-bottom: 0.9rem; font-size: 0.75rem; }
+  .pshow__body { padding-top: 1.2rem; }
+  .pshow__title { font-size: 1.6rem; margin-bottom: 1rem; }
+  .pshow__desc { font-size: 0.88rem; }
+  /* Last child of the track, pinned to the bottom edge — so the marker row
+     rides along for the whole section instead of appearing only at its end. */
+  .pshow__rail {
+    position: sticky; bottom: calc(4.5rem + env(safe-area-inset-bottom)); left: auto;
+    align-self: center; margin-top: 0.5rem;
+    padding: 0.5rem 0.85rem; border-radius: 100px;
+    background: rgba(8, 12, 20, 0.66); border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .pshow__dot { width: 18px; }
+  .pshow__dot.is-on { width: 34px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pshow__panel, .pshow__frame, .pshow__frame img, .pshow__body > *, .pshow__dot {
+    transition-duration: 0.01ms;
+  }
+  .pshow__frame { clip-path: none; }
+  .pshow__frame img { transform: none; }
+}
 
 /* ---- BEFORE / AFTER ------------------------------------------------------ */
 /* ---- DRAG TO COMPARE -------------------------------------------------------
@@ -1292,6 +1524,22 @@
    list, so the three states can never drift apart.
    ========================================================================== */
 .std { position: relative; background: #F8FAFC; overflow: hidden; }
+/* HERO HAND-OFF. The hero ends on #070B18 and this section starts on #F8FAFC —
+   a hard navy-to-white edge with nothing between them, which is the "sudden
+   white gap" at the bottom of the scroll. This carries the hero's own navy a
+   little way into the section and dissolves it, so the eye reads one continuous
+   descent out of the dusk rather than a cut to a new page.
+   Inside `.std`, so it cannot affect the hero's height, its pin, or the scroll
+   timeline — it is purely the receiving end. Short and eased: long enough to
+   remove the seam, not so long it darkens the section's own opening. */
+.std::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0;
+  height: clamp(72px, 13vh, 150px); z-index: 0; pointer-events: none;
+  background: linear-gradient(180deg,
+    #0B132B 0%,
+    rgba(11, 19, 43, 0.62) 32%,
+    rgba(11, 19, 43, 0.22) 62%,
+    rgba(248, 250, 252, 0) 100%); }
 /* Continuous, very low-contrast blueprint behind the whole section. */
 .std__sketch { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%;
   pointer-events: none;
@@ -1731,12 +1979,23 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 /* Left-weighted, FULL-BLEED. A gradient that runs the whole width has no edge
    to see; a scrim sized to the copy box draws a hard vertical seam across the
    render, which is the same seam that bit the hero photos. */
+/* READABILITY GRADIENT, NOT A NAVY PANEL.
+   This used to run 0.85 at the left edge and was still at 0.20 nearly halfway
+   across the frame — a heavy navy wash over most of the render, held at FULL
+   opacity for the entire construction sequence. It is the reason the building,
+   the concrete and the site read as washed out and hidden behind a blue sheet,
+   and it is also the "solid dark-blue block behind the hero text".
+   Roughly halved and pulled in hard: it now clears by 52% instead of 72%, so
+   the right half of the frame — where the landmark actually stands — is
+   completely untouched. The copy keeps its contrast because the type carries
+   its own shadow now (below); the scrim only has to take the edge off, not do
+   the whole job. */
 .story__copy-scrim { position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
   background: linear-gradient(to right,
-    rgba(11, 19, 43, 0.85) 0%,
-    rgba(11, 19, 43, 0.55) 26%,
-    rgba(11, 19, 43, 0.2) 48%,
-    transparent 72%); }
+    rgba(11, 19, 43, 0.46) 0%,
+    rgba(11, 19, 43, 0.28) 20%,
+    rgba(11, 19, 43, 0.09) 38%,
+    transparent 52%); }
 .story--static .story__copy-scrim { opacity: 1; }
 
 .story__grade { position: absolute; inset: 0; z-index: 3; pointer-events: none;
@@ -1927,14 +2186,16 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
    card, and it carries its own cinematic shadow up in the drag-to-compare
    block — which this rule, being later in the file, would otherwise flatten
    back to the generic card shadow. */
-.tcard, .contact__form, .proj {
+.tcard, .contact__form {
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.3s var(--ease-lux), border-color 0.3s var(--ease-lux),
               transform 0.3s var(--ease-lux), background-color 0.3s var(--ease-lux);
 }
-:is(.tcard, .contact__form, .proj):hover {
+@media (hover: hover) and (pointer: fine) {
+:is(.tcard, .contact__form):hover {
   box-shadow: var(--shadow-xl);
   border-color: var(--border-strong);
+}
 }
 
 /* Key stats read in brand red — the one place a number should shout. */
@@ -2200,7 +2461,15 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 @media (max-width: 760px) {
   .story--3d .story__finale-copy { width: calc(100% - var(--pad-x) * 2); }
 }
-.story--3d .story__headline { color: #FFFFFF; }
+/* The type does its own legibility work now that the scrim behind it is a
+   fraction of what it was. A tight shadow plus a wide soft one reads as depth
+   rather than as a glow, and — unlike a panel — it costs the render nothing:
+   it darkens only the pixels immediately around each letterform. */
+.story--3d .story__headline {
+  color: #FFFFFF;
+  text-shadow: 0 1px 2px rgba(4, 8, 18, 0.55), 0 2px 22px rgba(4, 8, 18, 0.45); }
+.story--3d :is(.story__eyebrow, .story__sub) {
+  text-shadow: 0 1px 2px rgba(4, 8, 18, 0.6), 0 1px 14px rgba(4, 8, 18, 0.4); }
 .story--3d .story__headline em { color: #d31018; }
 .story--3d .story__eyebrow { color: #FFFFFF; }
 .story--3d .story__sub { color: #E2E8F0; opacity: 0.9; }
@@ -2365,46 +2634,75 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   @media (min-height: 800px) {
     .story, .story--3d .story__stage { height: 90svh; min-height: 90svh; }
   }
-  .story--3d .story__stage {
-    display: flex; flex-direction: column; justify-content: flex-start;
-    padding-top: clamp(3.25rem, 8vh, 5rem); }
+  /* THE STAGE IS NOT A FLEX COLUMN ANY MORE — this is the actual fix.
+     It used to lay the render out as a FLOWED BLOCK capped at 440px with the
+     copy stacked underneath it, which builds, by construction, exactly the
+     thing that looked broken: scene, hard cut-off, then several hundred pixels
+     of stage background behind the text. No brightness or gradient tweak can
+     remove that, because the navy is not covering the scene — it is the region
+     where the scene was told to stop.
+     The canvas is full-bleed on a phone now, the same as desktop, and the copy
+     overlays it. There is no longer any part of the stage the render does not
+     reach, so the empty block cannot exist. This is only safe now because
+     KEYS_M/OUT_M are authored for a 0.46 portrait frame and the camera picks
+     them by ASPECT — when that layout was written, a full-bleed phone canvas
+     would have been shown the landscape composition. */
   /* The stage turns dark so the render's own sky continues into the band above
      it. Recolouring the copy for a light ground was the alternative and it is
      the worse one: the headline, accent, eyebrow pill, sub and Watch Story
      button would each need a mobile variant, and the render below would still
      meet a pale strip at its top edge. */
-  .story--3d { background: linear-gradient(180deg, #0B132B 0%, #0E1730 62%, #070B18 100%); }
+  /* Backdrop behind a now full-bleed canvas — visible only before the WebGL
+     chunk lands. Kept off black so that pre-load frame is blue hour rather
+     than a dark rectangle. */
+  .story--3d { background: linear-gradient(180deg, #0B132B 0%, #101B36 56%, #17244A 100%); }
+  /* Copy OVER the render, seated just under the navbar. Absolute, so it takes
+     no layout height and therefore cannot push the scene down or leave a band
+     behind itself. GSAP still drives autoAlpha and yPercent on it exactly as
+     before, and it still clears before the stats rise. */
   .story--3d .story__finale-copy {
-    position: relative; order: 1; inset: auto;
-    width: 100%; max-width: none; flex: 0 0 auto;
+    position: absolute; order: 0;
+    top: calc(72px + 1rem + 1.1rem); bottom: auto;
+    left: 0; right: 0;
+    width: 100%; max-width: none;
     padding: 0 var(--pad-x); }
+  /* Tighter internal rhythm than the desktop overlay, which floats in open sky
+     and can afford the air. Sizes, weights, colours and the red accent are all
+     untouched — only the gaps. */
+  .story--3d .story__eyebrow { margin-bottom: 0.55rem; }
+  .story--3d .story__sub { margin-top: 0.5rem; }
+  .story__finale-copy .story__cta { margin-top: 0.9rem; gap: 0.6rem; }
+  /* FULL-BLEED. No flex basis, no 440px cap, no order, no mask.
+     Every one of those existed to make the render share a column with the copy;
+     with the copy overlaying instead, the render simply fills the stage the way
+     it does on desktop. The mask went with them — it was feathering the bottom
+     of the canvas into the stage colour, which is where the road, the gate and
+     the car are, so it was erasing the scene at exactly the height the brief
+     needs it visible. Inheriting `position: absolute; inset: 0` from the base
+     rule is the whole declaration now. */
   .story--3d :is(.story__three, .story__video, .story__poster) {
-    position: relative; order: 2; inset: auto;
-    /* 50vh, capped at 420px. Expressed as a flex BASIS with shrink allowed and
-       GROW OFF: the cap is what keeps the render tight instead of stretching to
-       fill the stage (which is what re-opened a band of empty ground above the
-       building), and the shrink is what stops it being clipped by the stage's
-       `overflow: hidden` on a short viewport — 320×700 and the SE cannot seat
-       the copy plus a full 50vh. The 260px floor is the point below which the
-       site stops being legible at all. */
-    width: 100%; margin-top: 1.1rem;
-    flex: 0 1 clamp(260px, 50vh, 420px); min-height: 0;
-    /* Both edges feather into the stage. The top fade used to be doing the whole
-       job of hiding a near-white sky meeting a navy stage; the scene's own
-       backdrop is the stage colour now, so this is a short blend rather than a
-       cover-up. The BOTTOM fade is the new one: it dissolves the cut across the
-       road so the ground plane hands off to the section below instead of ending
-       on a hard horizontal line. */
-    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 9%, #000 88%, transparent 100%);
-    mask-image: linear-gradient(180deg, transparent 0%, #000 9%, #000 88%, transparent 100%); }
+    -webkit-mask-image: none; mask-image: none; }
   /* GSAP drives autoAlpha + yPercent on these two across the whole pin, and the
      stats bar slides up over the render. Naming the properties keeps both on
      the compositor for the length of a touch-scroll instead of re-rasterising. */
   .story__finale-copy, .story__stats { will-change: transform, opacity; }
-  /* The left-weighted scrim exists to lift copy off the render. Nothing sits on
-     the render any more, so it is pure cost — and over a dark stage it only
-     muddies the left edge of the frame. */
-  .story--3d .story__copy-scrim { display: none; }
+  /* The copy sits on the render again, so it needs a little help — but a TOP
+     gradient, not the desktop's left-weighted one, because mobile copy runs
+     full width. Peaks at 0.34 and is gone by 46% of the frame: enough to hold
+     a headline, transparent enough that the building reads straight through
+     it. This is the "very subtle readable text gradient", not a navy panel. */
+  .story--3d .story__copy-scrim {
+    display: block;
+    background: linear-gradient(180deg,
+      rgba(11, 19, 43, 0.34) 0%,
+      rgba(11, 19, 43, 0.18) 24%,
+      rgba(11, 19, 43, 0.05) 38%,
+      transparent 46%); }
+  /* The vignette is a lens artefact for a wide cinematic frame; on a portrait
+     one the same radial reaches the building rather than just the corners.
+     Near off. */
+  .story--3d .story__grade {
+    background: radial-gradient(150% 110% at 50% 46%, transparent 68%, rgba(3, 6, 14, 0.10) 100%); }
   /* Headline steps down a size class on mobile (~text-3xl) and back up to the
      desktop scale (~text-5xl) above the breakpoint, where the base clamp()
      takes over again. */
@@ -2477,7 +2775,6 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   .services__grid,
   .std__grid,
   .gate__features,
-  .projects__grid,
   .studio__grid,
   .contact__grid,
   .intro__grid,
@@ -2498,62 +2795,6 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   /* The stats ribbon keeps two-up: four numbers stacked is a scroll, not a
      summary. It is a readout, not a card grid. */
 
-  /* ---- PROJECT CARDS: A READABLE BOTTOM PLATE ---------------------------- */
-  /* The overlay was three free-floating frosted pills scattered across the
-     middle of a busy construction photo — location and area wrapping onto
-     separate lines, "2025" stranded on a third, and the title fighting whatever
-     was behind it. Nothing was pinned to anything.
-     Now the meta block is one plate at the foot of the card: a full-width
-     gradient mask carries title + location + area, always visible, always in
-     the same place regardless of what the photo is doing behind it. */
-  /* ---- THE CARD FACE CARRIES TWO THINGS ---------------------------------- */
-  /* Place and name. That is the whole overlay.
-     Category, area, year and the description are not shortened here, they are
-     MOVED — into the sheet that opens on tap (`.psheet`). A phone card is a
-     thumbnail with a label on it; every extra line was another strip of a
-     photograph the section exists to show. */
-  .proj__img { aspect-ratio: 4/3; }
-  /* Scoped through `.proj__loc` on purpose: the base rule is `.proj__loc span`,
-     which is (0,1,1) and outranks a bare `.proj__area` at (0,1,0) — so the
-     unscoped version of this lost the cascade and the area and year stayed on
-     the card face. */
-  .proj__tag,
-  .proj__loc .proj__area,
-  .proj__loc .proj__year,
-  .proj__reveal p { display: none; }
-
-  /* The scrim is gone as a separate layer — with the tag no longer in the top
-     corner there is nothing up there to protect, and it was the first of the
-     two stacked masks that made the old card so dark. */
-  .proj__scrim { background: none; }
-
-  /* ONE gradient, over the BOTTOM THIRD only: black/80 → black/20 →
-     transparent. Everything above 33% is the photograph, untouched. */
-  .proj__meta { left: 0; right: 0; bottom: 0; top: auto; height: 33%;
-    padding: 0 1rem 0.9rem;
-    background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 55%, transparent 100%);
-    /* Two rows: the badge, then name and CTA on a shared baseline. The DOM
-       order is loc → title → reveal, which `grid-template-areas` re-seats
-       without a second markup path for one breakpoint. */
-    display: grid; align-content: end; column-gap: 0.75rem;
-    grid-template-columns: 1fr auto;
-    grid-template-areas: 'place  place'
-                         'title  cta'; }
-  /* Location badge — the one place a frosted pill still earns its keep, since
-     it sits where the gradient is at its weakest. */
-  .proj__loc { grid-area: place; gap: 0; margin-bottom: 0.4rem; font-size: 0.7rem; }
-  .proj__place { display: inline-flex; align-items: center; gap: 0.3rem;
-    padding: 0.26rem 0.6rem; border-radius: 100px; color: #FFFFFF;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    border: 1px solid rgba(255, 255, 255, 0.18); }
-  .proj__title { grid-area: title; align-self: end; font-size: 1.25rem; line-height: 1.2;
-    margin-bottom: 0; text-shadow: 0 1px 12px rgba(0,0,0,0.6); }
-  /* `.proj__reveal` is now only a wrapper for the CTA — its paragraph is
-     hidden above, so the box collapses to the button. */
-  .proj__reveal { grid-area: cta; align-self: end; justify-self: end;
-    max-height: none; opacity: 1; overflow: visible; margin: 0; }
-  .proj__view { margin: 0; font-size: 0.75rem; white-space: nowrap; }
 
   /* ---- FLOATER KEEP-OUT AT THE FOOT OF THE SECTION ----------------------- */
   /* The FAB row is `position: fixed`, so nothing in the document can move it
@@ -2629,6 +2870,60 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
      without the 440px desktop floor. */
   .studio__frame { min-height: 0; height: auto; aspect-ratio: 1 / 1; flex: 0 0 auto; }
   .studio__visual, .studio__stack { height: auto; }
+
+  /* ---- THE BUILD STORY, RECOMPOSED FOR A PHONE ---------------------------
+     On a phone the four acts and the 15+ badge stop being overlays and drop
+     into normal flow under the visual, which is both the reading order the
+     story wants and the only way four captions and a photograph both get the
+     room they need at 390px:
+         [ construction visual ]  ->  01..04  ->  15+ years
+     They are already SIBLINGS of the frame rather than children of it, so this
+     is `position: static` and nothing else — no duplicate markup, no second
+     component, and the photograph keeps the full width of the card. */
+  /* No reserved band on a phone: the captions are in normal flow under the
+     visual, so the film and the drawing take the full width of the card. */
+  .studio__frame { --rail: 0px; }
+  .studio__fr { object-position: center; }
+  .studio__frame::before { display: none; }
+  .studio__steps {
+    position: static; width: auto; display: grid; gap: 0.5rem;
+    padding: 0.85rem 0 0; }
+  /* The rail and its scrim were drawn for a caption floating over a
+     photograph; in flow the list has the card's own ground behind it. */
+  .studio__steps::before { display: none; }
+  .studio__step {
+    display: grid; grid-template-columns: auto 1fr; align-items: baseline;
+    column-gap: 0.6rem; padding: 0 0 0.4rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09); }
+  .studio__step:last-child { border-bottom: none; }
+  /* The dot is the rail's node; with no rail it is noise beside a numbered
+     chip that already carries the accent. */
+  .studio__step-dot { display: none; }
+  .studio__step-l { margin-top: 0; font-size: 0.72rem; }
+  /* The sub-caption spans under the number so the four labels stay flush —
+     a ragged left edge reads as a list of words, a flush one as a sequence. */
+  .studio__step-s { grid-column: 2; margin-top: 0.1rem; }
+  /* The watermark is absolute against the FRAME, which is still the
+     photograph — so it stays where it is, over the image, and the label above
+     it does too. Nothing below the frame is an overlay any more. */
+
+  /* Supporting credibility line, not the headline act. Full width under the
+     steps, quiet, and physically separated from THE STUDIO below it. */
+  .studio__badge {
+    position: static; right: auto; top: auto; margin-top: 0.7rem;
+    display: flex; align-items: baseline; gap: 0.6rem;
+    padding-top: 0.65rem; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+  .studio__badge b { display: inline; font-size: 1.5rem; line-height: 1; }
+  .studio__badge span { display: inline; margin-top: 0; font-size: 0.62rem;
+    letter-spacing: 0.2em; }
+  /* The rule under the badge was a decorative flourish for the floating
+     version; in flow it is a second line immediately under a border. */
+  .studio__badge::after { display: none; }
+  .studio__badge br { display: none; }
+
+  /* Clear air before THE STUDIO card, and enough bottom room that the last
+     step never lands under the floating call/WhatsApp row. */
+  .studio__visual { margin-bottom: 1.6rem; }
   /* 44px minimum touch target on every control in a stacked card. */
   .svc__more, .gate__more { min-height: 44px; align-items: center; }
 
@@ -2683,7 +2978,6 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
      what actually holds the 60fps. */
   .studio__plan { animation: none; filter: none; will-change: auto; }
   .studio__sheet { scale: 1; }
-  .studio__chev { filter: none; }
 
   /* Ambient decoration nobody looks at, repainting behind every section. */
   .ambient-bg { display: none; }
@@ -2810,7 +3104,6 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
    a near-white section, which is why the inactive filters read as blank space.
    Moving the section to navy is what makes those rules correct; nothing here
    re-states them. */
-.section--noir .proj { background: var(--glass); border: 1px solid var(--glass-brd); }
 .section--noir .ba { border: 1px solid var(--glass-brd); }
 
 /* ---- Contact ------------------------------------------------------------- */
@@ -2855,16 +3148,14 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
   /* Gallery captions, project copy and the testimonial thumb label are all
      "appears on hover" on a pointer device. Resting state = visible. */
   .gitem__over { opacity: 1; }
-  .proj__reveal { max-height: none; opacity: 1; overflow: visible; margin-top: 0.55rem; }
 
   /* Card lifts. `.tcard` and friends share one hover-lift rule; on touch it
      fires on tap and the card stays raised behind the modal it just opened. */
-  :is(.tcard, .contact__form, .proj, .ba, .svc, .collab__item, .studio__hl):hover {
+  :is(.tcard, .contact__form, .ba, .svc, .collab__item, .studio__hl):hover {
     transform: none; translate: none; }
 
   /* The 3D-tilt/scale on the studio sheet, same reason. */
   .studio__stack:hover .studio__sheet { scale: 1; }
-  .studio__visual:hover .studio__bp { opacity: 0.55; }
 }
 
 /* ==========================================================================

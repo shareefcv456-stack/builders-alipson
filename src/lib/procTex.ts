@@ -613,6 +613,7 @@ export function brandTexture(w = 1024, h = 256): { map: THREE.Texture; alpha: TH
     g.clearRect(0, 0, w, h);
     g.drawImage(img, dx, dy, dw, dh);
 
+
     // Cleared, NOT filled: compositing over black would make every pixel opaque
     // and the mask would come back solid white.
     gm.clearRect(0, 0, w, h);

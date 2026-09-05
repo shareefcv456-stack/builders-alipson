@@ -59,6 +59,29 @@ the procedural fallback stands:
 Bring your own. Nothing here is fetched automatically, deliberately — check the
 licence of anything you add covers commercial use on a client site.
 
+## Checking what loaded
+
+Run `npm run dev`, open the console, and scroll to the hero. One consolidated
+line reports every slot:
+
+```
+[models] hero assets — 2/8 loaded
+  ✓ sedan.glb       loaded
+  ✗ van.glb         missing -> procedural fallback
+  ! mixer.glb       rejected -> procedural fallback
+```
+
+- `✓ loaded` — the model passed validation and replaced its procedural mesh.
+- `✗ missing` — no file at that path. Normal until you add one.
+- `!  rejected` — the file is there but broke the contract above. A second
+  `console.warn` line says which rule (usually export units). The procedural
+  fallback stands either way.
+
+**This is development-only.** Vite compiles `import.meta.env.DEV` to a literal
+`false` for production, so minification removes the whole path — it is absent
+from the built bundle, not merely silent in it. It is console output and never
+renders, so it cannot appear in the site UI.
+
 ## Expect 404s in the network tab
 
 Eight `HEAD` requests fire once per page load, one per slot, after the hero is

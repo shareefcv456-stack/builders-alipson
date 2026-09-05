@@ -391,21 +391,41 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
      on. `row-reverse` keeps WhatsApp in the corner, where the thumb expects it.
      z-index stays under the modal scrim (1000) so an open video still covers
      them; it only clears page content and the mobile nav sheet. */
+  /* SAFE AREA, not a flat 1rem. On a phone with a home indicator the bottom
+     inset is 34px, so a fixed 16px offset puts these buttons half inside the
+     system gesture strip — where a tap is as likely to dismiss the app as hit
+     WhatsApp. `max()` keeps the 1rem on hardware that has no inset. */
   .floaters { flex-direction: row-reverse; align-items: center;
-    right: 1rem; bottom: 1rem; gap: 0.6rem; z-index: 940; }
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, calc(env(safe-area-inset-bottom) + 0.35rem));
+    gap: 0.6rem; z-index: 940; }
   .floater { width: 40px; height: 40px; box-shadow: 0 8px 20px -6px rgba(0,0,0,0.45);
     backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .floater svg { width: 18px; height: 18px; }
   /* The pulse ring is sized off the button, so it shrinks with it; at 40px its
      1.7× bloom reaches into the card beside it, so rein it in. */
-  .floater-pulse { animation-name: floaterPulseSm; }
+  .floater-pulse { animation: none; }
 }
 @keyframes floaterPulseSm { 0% { transform: scale(1); opacity: 0.45; } 70%, 100% { transform: scale(1.4); opacity: 0; } }
 .floater:hover { transform: translateY(-4px) scale(1.06); }
 .floater--wa { background: #25d366; }
 .floater--call { background: var(--accent); color: #fff; }
 .floater--up { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); backdrop-filter: blur(10px); }
-.floater-pulse { position: absolute; inset: 0; border-radius: 50%; background: #25d366; opacity: 0.6; animation: floaterPulse 2.2s var(--ease-lux) infinite; z-index: -1; }
+/* NO CONSTANT PULSE. This ring expanded forever at 2.2s, which on a premium
+   architectural page reads as a notification badge nagging for attention — and
+   it is the one element on screen that never stops moving. It now sits still
+   and only breathes once on hover, so the affordance is still there for anyone
+   who reaches for it and absent for everyone who does not. */
+.floater-pulse { position: absolute; inset: 0; border-radius: 50%; background: #25d366;
+  opacity: 0.34; z-index: -1; transition: transform 0.45s var(--ease-lux), opacity 0.45s var(--ease-lux); }
+.floater:hover .floater-pulse { transform: scale(1.35); opacity: 0; }
+/* Subtle lift on hover, matching the rest of the site's interaction language. */
+.floater { transition: transform 0.35s var(--ease-lux), box-shadow 0.35s var(--ease-lux); }
+.floater:hover { transform: translateY(-2px) scale(1.06); }
+@media (prefers-reduced-motion: reduce) {
+  .floater, .floater-pulse { transition: none; }
+  .floater:hover { transform: none; }
+}
 @keyframes floaterPulse { 0% { transform: scale(1); opacity: 0.5; } 70%,100% { transform: scale(1.7); opacity: 0; } }
 
 /* --------------------------------------------------------------------------
