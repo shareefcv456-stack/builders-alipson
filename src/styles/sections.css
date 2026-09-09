@@ -1971,7 +1971,13 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
    Frames live in JS, not the DOM, so the sequence can grow to hundreds of
    frames without adding a single node. JS only touches the canvas transform. */
 .story__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block;
-  background: #0b0d13; will-change: transform; transform-origin: center 62%; touch-action: pan-y; }
+  background: #0b0d13; will-change: transform; transform-origin: center 62%; touch-action: pan-y;
+  /* NEVER A TAP TARGET. The 3D canvas (`.story__three`) has carried this since
+     it was added; the frame-sequence canvas did not, and it is full-bleed over
+     the whole stage. It sits below the copy so it never actually swallowed a
+     button press, but "below in the stacking order" is a weaker guarantee than
+     "cannot be hit at all", and this costs nothing. */
+  pointer-events: none; }
 
 /* Daylight grade: a whisper of a cool vignette, nothing more. The old filmic
    version fell to black at the bottom — under a daylight render that reads as a
@@ -2059,7 +2065,14 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
    edge, the label beside it, and ~100px of empty pill trailing off to the
    right. Both size to their content now, and both stay left-aligned under a
    left-aligned headline. */
-.story__cta { margin-top: 2rem; display: flex; flex-wrap: wrap; align-items: flex-start;
+/* THE BUTTONS ARE THE ONE INTERACTIVE THING IN THE OVERLAY, so they get their
+   own stacking context rather than inheriting whatever the block resolves to:
+   `.story__finale-copy` paints a radial scrim at z-index -1 behind itself and
+   GSAP writes transforms on the block, either of which can create a context
+   the buttons then sit inside. `pointer-events: auto` is what re-enables them
+   inside a block that is deliberately `none`. */
+.story__cta { position: relative; z-index: 2;
+  margin-top: 2rem; display: flex; flex-wrap: wrap; align-items: flex-start;
   gap: 1rem; pointer-events: auto; }
 /* The copy block is absolutely positioned and its height changes with each
    phase's line count; anchoring the CTAs to the block's own flow (rather than
@@ -2671,7 +2684,31 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
      untouched — only the gaps. */
   .story--3d .story__eyebrow { margin-bottom: 0.55rem; }
   .story--3d .story__sub { margin-top: 0.5rem; }
-  .story__finale-copy .story__cta { margin-top: 0.9rem; gap: 0.6rem; }
+  /* ---- HERO CTAs ON A PHONE: ONE ROW, UNDER THE COPY ---------------------
+     Side by side, left-aligned, directly beneath the description with a clear
+     2rem of air above them. Two full-width stacked pills were taking ~120px of
+     the stage — most of it empty pill — straight across the middle of the
+     building the section exists to show.
+     Side by side only fits if the pills come in: at the desktop 52px/1.75rem/
+     0.9rem the pair measures ~375px against the 328px a 360px phone has
+     between its gutters, so it WOULD have overflowed. Compact sizing is what
+     makes the row fit, not a preference. */
+  .story__finale-copy .story__cta {
+    margin-top: 2rem; gap: 0.75rem;
+    flex-direction: row; align-items: center; justify-content: flex-start; }
+  .story__finale-copy .story__cta :is(.btn, .btn-watch) {
+    /* 44px, not the `py-2` that would land at ~36px. Height is the touch
+       target and these are the hero's only call to action — the padding and
+       type size come in instead, which is where the width actually was. */
+    height: 44px; min-height: 44px; font-size: 0.84rem;
+    padding-inline: 0.85rem; }
+  .story__finale-copy .story__cta .btn-watch { padding-left: 0.28rem; gap: 0.55rem; }
+  .story__finale-copy .story__cta .btn-watch__play { width: 32px; height: 32px; }
+  /* MEASURED, not eyeballed. At these values the pair comes to roughly 304px
+     against the 328px a 360px phone leaves between its gutters — about 24px of
+     slack, which is what stops a slightly wider font metric from wrapping the
+     row on the most common phone width. Narrower than that and `flex-wrap`
+     takes over and they stack, which is the correct failure. */
   /* FULL-BLEED. No flex basis, no 440px cap, no order, no mask.
      Every one of those existed to make the render share a column with the copy;
      with the copy overlaying instead, the render simply fills the stage the way

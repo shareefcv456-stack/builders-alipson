@@ -733,12 +733,16 @@ export default function StoryScroll() {
               <p className="story__sub">{PHASES[phase].sub}</p>
             </motion.div>
           </AnimatePresence>
-          {/* No `items-stretch` here. That utility carries `!important` (see the
-              shim in index.css) and stretched both pills to the full column on
-              a phone — which left "Watch Story" with its play disc pinned left
-              and a dead 100px of empty pill to the right of the label. Sizing
-              belongs to `.story__cta`, which sizes both buttons to content. */}
-          <div className="story__cta flex flex-col sm:flex-row sm:items-center gap-4">
+          {/* NO LAYOUT UTILITIES ON THIS ROW. They were `flex flex-col
+              sm:flex-row sm:items-center gap-4`, and every one of those shims
+              carries `!important` (see index.css) — so `flex-col` was what
+              stacked the two pills full-height on a phone, and no rule in the
+              stylesheet could say otherwise. `.story__cta` is already a
+              wrapping flex ROW; letting it own the layout is what puts the
+              buttons side by side on small screens, and `flex-wrap` is the
+              escape hatch that drops them back to two lines below ~340px
+              rather than pushing the page into horizontal scroll. */}
+          <div className="story__cta">
             <button className="btn btn-primary" onClick={() => scrollToId('work')}>
               Explore Projects <ArrowUpRight size={16} />
             </button>
