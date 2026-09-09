@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import RevealText from './ui/RevealText';
@@ -30,6 +30,25 @@ export default function Gallery() {
     };
   }, [index, close, move]);
 
+  /* TOUCH: SWIPE TO CHANGE FRAME. The arrows are a pointer affordance and the
+     keyboard has its own handler; a phone had neither, so the only way through
+     the gallery was to close each image and open the next. Threshold is 45px
+     with the horizontal travel required to beat the vertical, so a scroll
+     gesture that starts on the image never registers as a swipe. */
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.changedTouches[0];
+    swipe.current = { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const s0 = swipe.current;
+    if (!s0) return;
+    swipe.current = null;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - s0.x, dy = t.clientY - s0.y;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) move(dx < 0 ? 1 : -1);
+  };
+
   const active = index !== null ? GALLERY[index] : null;
 
   return (
@@ -56,8 +75,20 @@ export default function Gallery() {
 
       <AnimatePresence>
         {active && (
-          <motion.div className="lightbox" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close}>
-            <button className="lightbox__x" onClick={close} aria-label="Close"><X size={20} /></button>
+          <motion.div
+            className="lightbox"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={close}
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+          >
+            {/* `stopPropagation` even though the backdrop behind it also closes:
+                the two used to be the same action by luck, and any future
+                backdrop behaviour would have made this button do two things at
+                once. The real bug was in CSS — see `.lightbox__x`. */}
+            <button className="lightbox__x" onClick={(e) => { e.stopPropagation(); close(); }} aria-label="Close"><X size={20} /></button>
             <button className="lightbox__nav lightbox__nav--prev" onClick={(e) => { e.stopPropagation(); move(-1); }} aria-label="Previous"><ChevronLeft size={22} /></button>
             <motion.img
               key={index}

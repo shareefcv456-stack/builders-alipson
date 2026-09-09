@@ -1,0 +1,33 @@
+/* Shared shell for the two standalone legal pages. They are plain HTML in
+   `public/` on purpose: the site is a single-page app with no router, and two
+   documents that are read once and printed do not justify pulling one in.
+   Vite copies `public/` verbatim, and a static host serves /privacy and /terms
+   from their index.html, so the URLs are real ones. */
+:root {
+  --ink: #0B132B; --ink-soft: #475569; --accent: #d31018;
+  --line: #E2E8F0; --bg: #F8FAFC;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.7; -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 780px; margin: 0 auto; padding: clamp(2rem, 6vw, 4.5rem) clamp(1rem, 5vw, 2rem) 5rem; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding-bottom: 1.5rem; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.brand { font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; font-size: 0.8rem; }
+.brand b { color: var(--accent); }
+.back { color: var(--ink-soft); text-decoration: none; font-size: 0.85rem; font-weight: 600; }
+.back:hover { color: var(--accent); }
+h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); line-height: 1.15; margin: 2.5rem 0 0.5rem; font-weight: 700; }
+.updated { color: var(--ink-soft); font-size: 0.82rem; letter-spacing: 0.04em; margin: 0 0 2rem; }
+h2 { font-size: 1.05rem; margin: 2.25rem 0 0.6rem; font-weight: 700; }
+p, li { color: var(--ink-soft); font-size: 0.95rem; }
+ul { padding-left: 1.1rem; }
+li { margin-bottom: 0.4rem; }
+a { color: var(--accent); }
+.note { margin-top: 2.5rem; padding: 1rem 1.15rem; border-left: 3px solid var(--accent);
+  background: #fff; border-radius: 0 10px 10px 0; font-size: 0.88rem; }
+footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--line);
+  color: var(--ink-soft); font-size: 0.82rem; }

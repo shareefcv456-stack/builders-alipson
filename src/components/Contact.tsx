@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Phone, Mail, CheckCircle2, ArrowUpRight } from 'lucide-react';
+import { MapPin, Phone, Mail, CheckCircle2, ArrowUpRight, RotateCcw } from 'lucide-react';
 import RevealText from './ui/RevealText';
 import Reveal from './ui/Reveal';
 import { CONTACT } from '../data/site';
@@ -99,11 +99,31 @@ export default function Contact() {
         <Reveal dir="left" delay={0.1}>
           <div className="contact__form glass">
             {sent ? (
-              <div style={{ padding: '2rem 0', textAlign: 'center' }}>
-                <div className="success-note" style={{ justifyContent: 'center' }}>
+              <div className="form-sent">
+                <div className="success-note">
                   <CheckCircle2 size={22} />
                   <span>Thank you — your enquiry is in. Our team will reach out within 24 hours.</span>
                 </div>
+                {/* A WAY BACK. The panel used to be terminal: send once and the
+                    form was gone for the rest of the session, so a visitor who
+                    left something out, or who wanted to ask about a second
+                    project, had to reload the page to find the fields again.
+                    The message text is cleared and the name, email and phone
+                    are kept — a second enquiry from the same person is the
+                    common case, and re-typing contact details is the friction
+                    that stops it being sent. */}
+                <button
+                  type="button"
+                  className="btn btn-ghost form-resend"
+                  onClick={() => {
+                    setValues((v) => ({ ...v, message: '' }));
+                    setErrors({});
+                    setTouched({});
+                    setSent(false);
+                  }}
+                >
+                  <RotateCcw size={15} /> Resend Message
+                </button>
               </div>
             ) : (
               <>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowUpRight, ArrowRight, ArrowLeft } from 'lucide-react';
+import { ArrowUpRight, ArrowRight } from 'lucide-react';
 import RevealText from './ui/RevealText';
 import Reveal, { Stagger, staggerItem } from './ui/Reveal';
 import AmbientCanvas from './AmbientCanvas';
@@ -71,11 +71,12 @@ function Card({ service, sketch, active, onToggle }: {
 
 export default function Services() {
   const [active, setActive] = useState<number | null>(null);
-  /* Nudges the grid on narrow screens, where the cards scroll horizontally. */
-  const nudge = (dir: -1 | 1) => {
-    const el = document.querySelector<HTMLElement>('.services__grid');
-    if (el) el.scrollBy({ left: dir * (el.clientWidth * 0.6), behavior: 'smooth' });
-  };
+  /* NO PREV/NEXT HERE ANY MORE, and they were never doing anything: they called
+     `scrollBy` on `.services__grid`, which is a CSS GRID at every width — four
+     columns, then two, then one stacked — with no horizontal overflow to
+     scroll. A control that cannot move what it points at is worse than no
+     control, so both buttons and the `nudge` that fed them are gone. The
+     capabilities are reached by scrolling the page, as they always were. */
 
   return (
     <section id="services" className="section svcs">
@@ -88,16 +89,6 @@ export default function Services() {
             <Reveal><span className="eyebrow svcs__eyebrow">Capabilities</span></Reveal>
             <RevealText className="title svcs__title" lines={[<>Every discipline,</>, <>under <em>one roof.</em></>]} />
           </div>
-          <Reveal dir="left" delay={0.1}>
-            <div className="svcs__nav">
-              <button className="svcs__nav-btn" onClick={() => nudge(-1)} aria-label="Previous capabilities">
-                <ArrowLeft size={18} />
-              </button>
-              <button className="svcs__nav-btn svcs__nav-btn--dark" onClick={() => nudge(1)} aria-label="Next capabilities">
-                <ArrowRight size={18} />
-              </button>
-            </div>
-          </Reveal>
         </div>
 
         <Stagger className="services__grid" gap={0.12}>

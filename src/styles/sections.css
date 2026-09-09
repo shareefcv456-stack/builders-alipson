@@ -131,10 +131,16 @@
 /* ---- MOBILE MENU --------------------------------------------------------- */
 .mnav { position: fixed; inset: 0; z-index: 950; background: var(--ink-900); display: flex; flex-direction: column; padding: 6rem var(--pad-x) 3rem; }
 .mnav__x { position: absolute; top: 1.6rem; right: var(--pad-x); width: 48px; height: 48px; border-radius: 50%; border: 1px solid rgba(248,248,246,0.25); display: grid; place-items: center; color: #f8f8f6; }
-.mnav__links { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 2rem; }
-.mnav__link { font-family: var(--font-display); font-size: clamp(2rem, 9vw, 3.2rem); font-weight: 300; color: #f8f8f6; padding: 0.4rem 0; border-bottom: 1px solid rgba(248,248,246,0.14); transition: color 0.3s var(--ease-lux); }
+.mnav__links { display: flex; flex-direction: column; gap: 0.15rem; margin-top: 1.25rem; }
+/* DOWN FROM clamp(2rem, 9vw, 3.2rem). At 9vw a 390px phone rendered these at
+   35px and a 430px one at 39px — six items of near-headline type filling the
+   panel, which read as a splash screen rather than as navigation. At 5.2vw the
+   same phone gets ~20px: still a display face, still the tallest thing in the
+   drawer, but a list you scan instead of a wall you read. The numerals and the
+   rules come down with it so the rhythm holds. */
+.mnav__link { font-family: var(--font-display); font-size: clamp(1.3rem, 5.2vw, 1.9rem); font-weight: 300; color: #f8f8f6; padding: 0.55rem 0; border-bottom: 1px solid rgba(248,248,246,0.14); transition: color 0.3s var(--ease-lux); }
 .mnav__link:hover { color: var(--accent); }
-.mnav__link em { font-style: normal; color: rgba(248,248,246,0.5); font-size: 0.9rem; font-family: var(--font-grotesk); margin-right: 1rem; }
+.mnav__link em { font-style: normal; color: rgba(248,248,246,0.5); font-size: 0.7rem; letter-spacing: 0.1em; font-family: var(--font-grotesk); margin-right: 0.85rem; }
 .mnav__foot { margin-top: auto; display: flex; flex-direction: column; gap: 1.2rem; }
 .mnav__foot a { color: rgba(248,248,246,0.72); font-size: 0.95rem; }
 
@@ -1066,17 +1072,6 @@
 .svcs__title { color: #0B132B; }
 .svcs__title em { color: #d31018; font-style: italic; }
 
-.svcs__nav { display: flex; gap: 0.7rem; flex-shrink: 0; }
-.svcs__nav-btn { width: 58px; height: 42px; border-radius: 12px; display: grid; place-items: center;
-  background: #FFFFFF; color: #d31018; border: 1px solid #E8EDF4;
-  box-shadow: 0 6px 18px -10px rgba(11, 19, 43, 0.25);
-  transition: transform 0.35s var(--ease-lux), background-color 0.35s var(--ease-lux),
-              color 0.35s var(--ease-lux); }
-.svcs__nav-btn--dark { background: #0B132B; color: #FFFFFF; border-color: #0B132B; }
-.svcs__nav-btn:hover { transform: translateY(-2px); }
-.svcs__nav-btn:not(.svcs__nav-btn--dark):hover { background: #d31018; color: #FFFFFF; border-color: #d31018; }
-.svcs__nav-btn:focus-visible { outline: 2px solid #d31018; outline-offset: 3px; }
-
 /* ---- the road ------------------------------------------------------------ */
 .svc__road { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
 .svc__road svg { width: 100%; height: 100%; display: block; }
@@ -1180,7 +1175,6 @@
 
 @media (max-width: 900px) {
   .svcs__head { flex-direction: column; }
-  .svcs__nav { display: none; }
   .svc__road-bed { stroke-width: 44; }
 }
 
@@ -1198,7 +1192,7 @@
    ========================================================================== */
 .projects__head { display: flex; justify-content: space-between; align-items: flex-end; gap: 2rem; flex-wrap: wrap; margin-bottom: 2.5rem; }
 .filters { display: flex; flex-wrap: wrap; gap: 0.6rem; }
-.filter { padding: 0.55rem 1.2rem; border-radius: 100px; border: 1px solid var(--border); font-family: var(--font-grotesk); font-size: 0.82rem; color: var(--text-soft); transition: 0.4s var(--ease-lux); }
+.filter { scroll-snap-align: start; padding: 0.55rem 1.2rem; border-radius: 100px; border: 1px solid var(--border); font-family: var(--font-grotesk); font-size: 0.82rem; color: var(--text-soft); transition: 0.4s var(--ease-lux); }
 .filter:hover { color: var(--text); border-color: var(--border-strong); }
 .filter.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 /* Projects sits on the deep charcoal (#0D1117) overlay — its filter pills need
@@ -1221,7 +1215,10 @@
    viewport is static and the panels simply flow one under the other, each with
    its own number, photograph and specs. No sticky, no overlap, and nothing
    wider than the column, so there is no horizontal overflow to fight. */
-.pshow { position: relative; height: calc(100svh + (var(--n) - 1) * 74vh); }
+.pshow { position: relative; max-width: 100%;
+  /* Anchor navigation lands on the section head, not mid-track. */
+  scroll-margin-top: var(--nav-h, 104px);
+  height: calc(100svh + (var(--n) - 1) * 74vh); }
 .pshow__vp {
   position: sticky; top: 6.5rem;           /* clears the fixed navbar capsule */
   height: calc(100svh - 9rem);
@@ -1815,14 +1812,49 @@
 /* Lightbox */
 .lightbox { position: fixed; inset: 0; z-index: 1100; background: rgba(4,5,6,0.92); backdrop-filter: blur(8px); display: grid; place-items: center; padding: 2rem; }
 .lightbox img { max-width: min(1100px, 92vw); max-height: 86vh; border-radius: 12px; object-fit: contain; }
-.lightbox__x, .lightbox__nav { position: absolute; width: 52px; height: 52px; border-radius: 50%; border: 1px solid rgba(247,242,232,0.2); display: grid; place-items: center; color: var(--bone-100); background: rgba(255,255,255,0.04); transition: 0.3s; }
+/* WHY THE CLOSE BUTTON DID NOT CLOSE.
+   The image is a `motion.img`, so framer writes a transform on it — and a
+   transformed element paints in the positioned layer as if it were
+   `z-index: 0`. These buttons are positioned with `z-index: auto`, which is
+   also 0, so the two were resolved by DOM ORDER: the image comes after the
+   close button and therefore painted OVER it. At most viewport sizes the
+   image's top-right corner reaches under the X, and the image stops
+   propagation on click, so the tap landed on the photograph and nothing
+   happened. One z-index fixes it for the X, both arrows and the caption. */
+.lightbox__x, .lightbox__nav { position: absolute; z-index: 2; width: 52px; height: 52px; border-radius: 50%; border: 1px solid rgba(247,242,232,0.2); display: grid; place-items: center; color: var(--bone-100); background: rgba(255,255,255,0.04); transition: 0.3s; }
 .lightbox__x { top: 1.6rem; right: 1.6rem; }
 .lightbox__x:hover, .lightbox__nav:hover { background: rgba(255,255,255,0.12); }
 .lightbox__nav { top: 50%; transform: translateY(-50%); }
 .lightbox__nav--prev { left: 1.6rem; } .lightbox__nav--next { right: 1.6rem; }
-.lightbox__cap { position: absolute; bottom: 1.8rem; left: 50%; transform: translateX(-50%); text-align: center; }
-.lightbox__cap h3 { font-family: var(--font-display); font-weight: 300; color: var(--bone-100); }
+/* The caption had no width, so a long title grew from the centre in both
+   directions and ran under the two arrow buttons — which is what read as
+   "the text is not aligned". Bounded, padded clear of the arrows, and its two
+   lines stacked on one centred axis. */
+.lightbox__cap { position: absolute; z-index: 2; bottom: 1.8rem; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+  width: min(90vw, 34rem); padding-inline: 5rem; text-align: center; }
+.lightbox__cap h3 { font-family: var(--font-display); font-weight: 300; color: var(--bone-100);
+  margin: 0; line-height: 1.25; }
 .lightbox__cap span { font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-soft); }
+@media (max-width: 640px) {
+  /* Arrows come in, the caption sits under them rather than beside them, and
+     the image gets the height back. Swiping is the primary gesture here. */
+  .lightbox { padding: 1rem; }
+  .lightbox__x, .lightbox__nav { width: 44px; height: 44px; }
+  .lightbox__x { top: 1rem; right: 1rem; }
+  .lightbox__nav--prev { left: 0.6rem; } .lightbox__nav--next { right: 0.6rem; }
+  .lightbox__cap { bottom: 1.1rem; padding-inline: 1rem; }
+  .lightbox img { max-height: 74vh; }
+}
+
+/* ---- SENT STATE ----------------------------------------------------------
+   The confirmation and the way back out of it. Centred as a block rather than
+   with inline `textAlign` on the wrapper, so the note and the button share one
+   axis instead of each inheriting a different one. */
+.form-sent { display: flex; flex-direction: column; align-items: center; gap: 1.25rem;
+  padding: 2rem 0; text-align: center; }
+.form-sent .success-note { justify-content: center; }
+.form-resend { align-self: center; }
 
 /* ==========================================================================
    FAQ
@@ -2853,6 +2885,10 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
      a 4px track under 4 chips reads as a rendering artefact; the chips are cut
      off mid-row at the right edge, which is the affordance that says "more". */
   .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    /* Momentum on iOS, and `contain` so swiping past the last chip scrolls the
+       row rather than triggering the browser's back-swipe gesture. */
+    -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
     /* Full-bleed: the row scrolls edge to edge rather than stopping inside the
        container's gutter, and the padding restores the gutter as start/end
        runway so the first and last chip still line up with the heading. */
@@ -2868,9 +2904,8 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
      40px of padding either side. At desktop those gaps are proportionate to a
      1200px column; on a phone they are a third of a screen of nothing.
      `.svcs__head` also carried 32px of dead height from the flex row whose
-     other child (`.svcs__nav`) is `display: none` at this width. */
+     other child was the prev/next pair, now removed entirely. */
   .svcs__head { display: block; margin-bottom: 1rem; }
-  .svcs__nav { display: none; }
   #process .section-head { margin-bottom: 0.75rem; }
   #process .lede { margin-top: 0.9rem; }
   .ptimeline { margin-top: 1.25rem; }

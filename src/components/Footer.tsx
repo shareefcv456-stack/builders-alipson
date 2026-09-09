@@ -55,8 +55,13 @@ export default function Footer() {
         <div className="container footer__bottom-inner">
           <p>© {new Date().getFullYear()} Alipson Builders Pvt Ltd. All rights reserved.</p>
           <div style={{ display: 'flex', gap: '1.8rem' }}>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms &amp; Conditions</a>
+            {/* Real pages, not `#`. They are static HTML in `public/`
+                (`/privacy/index.html`, `/terms/index.html`) rather than routes:
+                this is a single-page app with no router, and two documents that
+                are read once and printed do not justify pulling one in. A
+                static host serves the extensionless URLs from those files. */}
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms &amp; Conditions</a>
           </div>
         </div>
       </div>

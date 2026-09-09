@@ -128,7 +128,15 @@ body {
   color: var(--text);
   font-family: var(--font-sans);
   line-height: 1.6;
-  overflow-x: hidden;
+  /* `clip`, NOT `hidden`. This is what was breaking the sticky project
+     showcase. `overflow-x: hidden` on body computes overflow-y to `auto`,
+     which makes body a scroll container — and a `position: sticky` element
+     then sticks to THAT container rather than to the viewport, so the whole
+     Projects panel scrolled straight past instead of holding. `clip` does the
+     same clipping without creating a scroller. It is also the value `.section`
+     was already switched to for exactly this reason (see the note there); this
+     rule was the one left behind. */
+  overflow-x: clip;
   transition: color 0.5s ease-in-out;
   /* Optimize painting performance */
   -webkit-font-smoothing: antialiased;
