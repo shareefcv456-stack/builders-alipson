@@ -111,14 +111,29 @@
 .nav__links { display: flex; gap: 1.7rem; align-items: center; }
 .nav__link { position: relative; font-family: var(--font-grotesk); font-size: 0.86rem; letter-spacing: 0.02em; color: #0F172A; padding: 4px 0; transition: color 0.3s; }
 .nav__link::after { content: ''; position: absolute; left: 0; bottom: -2px; width: 100%; height: 1px; background: var(--accent); transform: scaleX(0); transform-origin: right; transition: transform 0.45s var(--ease-lux); }
-.nav__link:hover, .nav__link.active { color: var(--accent); }
-.nav__link:hover::after, .nav__link.active::after { transform: scaleX(1); transform-origin: left; }
+/* SPLIT FROM THE HOVER PAIR. `.active` is the scrollspy's state — it has to
+   keep working on a phone, where the hover half is gated off. */
+.nav__link.active { color: var(--accent); }
+/* `@media (hover: hover) and (pointer: fine)` blocks below: hover is fenced off
+   from touch screens, where a tap sets `:hover` and leaves it stuck. The full
+   reasoning is in index.css — search for "WHY EVERY `:hover`". */
+@media (hover: hover) and (pointer: fine) {
+  .nav__link:hover { color: var(--accent); }
+}
+.nav__link.active::after { transform: scaleX(1); transform-origin: left; }
+@media (hover: hover) and (pointer: fine) {
+  .nav__link:hover::after { transform: scaleX(1); transform-origin: left; }
+}
 .nav__right { display: flex; align-items: center; gap: 1rem; }
 .nav .btn-primary { background: #d31018; box-shadow: none; height: 44px; padding-inline: 1.25rem; }
-.nav .btn-primary:hover { background: #A00D24; box-shadow: none; }
+@media (hover: hover) and (pointer: fine) {
+  .nav .btn-primary:hover { background: #A00D24; box-shadow: none; }
+}
 .nav__toggle { display: none; width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); place-items: center; color: #0F172A; }
 .theme-btn { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); display: grid; place-items: center; color: var(--text-soft); transition: 0.4s var(--ease-lux); }
-.theme-btn:hover { color: var(--accent-soft); border-color: var(--accent); transform: rotate(-20deg); }
+@media (hover: hover) and (pointer: fine) {
+  .theme-btn:hover { color: var(--accent-soft); border-color: var(--accent); transform: rotate(-20deg); }
+}
 
 @media (max-width: 1080px) {
   .nav__links, .nav__right .btn { display: none; }
@@ -139,7 +154,9 @@
    drawer, but a list you scan instead of a wall you read. The numerals and the
    rules come down with it so the rhythm holds. */
 .mnav__link { font-family: var(--font-display); font-size: clamp(1.3rem, 5.2vw, 1.9rem); font-weight: 300; color: #f8f8f6; padding: 0.55rem 0; border-bottom: 1px solid rgba(248,248,246,0.14); transition: color 0.3s var(--ease-lux); }
-.mnav__link:hover { color: var(--accent); }
+@media (hover: hover) and (pointer: fine) {
+  .mnav__link:hover { color: var(--accent); }
+}
 .mnav__link em { font-style: normal; color: rgba(248,248,246,0.5); font-size: 0.7rem; letter-spacing: 0.1em; font-family: var(--font-grotesk); margin-right: 0.85rem; }
 .mnav__foot { margin-top: auto; display: flex; flex-direction: column; gap: 1.2rem; }
 .mnav__foot a { color: rgba(248,248,246,0.72); font-size: 0.95rem; }
@@ -243,9 +260,11 @@
   background: rgba(255, 255, 255, 0.97); color: var(--accent); flex-shrink: 0; padding-left: 2px;
   box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.24), 0 2px 7px rgba(6, 12, 26, 0.16);
   transition: background-color 0.35s var(--ease-lux), box-shadow 0.35s var(--ease-lux); }
-.btn-watch:hover { border-color: var(--accent); background-color: rgba(var(--accent-rgb), 0.12); }
-.btn-watch:hover .btn-watch__play { background: #fff;
-  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.5), 0 3px 10px rgba(6, 12, 26, 0.22); }
+@media (hover: hover) and (pointer: fine) {
+  .btn-watch:hover { border-color: var(--accent); background-color: rgba(var(--accent-rgb), 0.12); }
+  .btn-watch:hover .btn-watch__play { background: #fff;
+    box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.5), 0 3px 10px rgba(6, 12, 26, 0.22); }
+}
 .btn-watch:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .hero__sub { margin-top: 1.2rem; display: flex; flex-wrap: wrap; gap: 0.45rem 1.15rem; color: rgba(248,248,246,0.9); font-family: var(--font-grotesk); font-size: clamp(0.92rem, 1.25vw, 1.12rem); letter-spacing: 0.01em; }
 .hero__sub span { position: relative; }
@@ -293,7 +312,18 @@
    frame it landed on YouTube's own settings gear in the top-right corner —
    two overlapping controls, and ours near-invisible against the black video.
    `.video-modal` does the corner rounding now that the modal no longer clips. */
-.modal--wide { width: min(1120px, 100%, calc((90vh - 170px) * 16 / 9)); padding: 0; overflow: visible; }
+/* THE THREE NUMBERS HAVE TO AGREE. This caps the player's width by the height
+   available to it, so it has to be measured against the SAME height the panel
+   is capped at — `.modal` is 85dvh, so this reads 85dvh too. It said 90vh, and
+   the 5% plus the vh/dvh difference is exactly the band where a phone with its
+   URL bar showing pushed the caption under the fold and made a modal that is
+   supposed to fit scroll instead.
+   `dvh`, not `vh`: on a phone `vh` is the LARGE viewport — the one you only get
+   once the URL bar has gone — so a player sized in `vh` is taller than the
+   screen for as long as the bar is up. Both are one CSS value, so the player
+   re-solves on rotation and on a breakpoint change without a resize listener,
+   a transition or a second component. */
+.modal--wide { width: min(1120px, 100%, calc((85dvh - 170px) * 16 / 9)); padding: 0; overflow: visible; }
 .modal--wide .video-modal { border-radius: var(--radius-lg) var(--radius-lg) 0 0; overflow: hidden; }
 .modal--wide .video-modal__cap { border-radius: 0 0 var(--radius-lg) var(--radius-lg); background: var(--bg-elev); }
 .video-modal { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; }
@@ -305,11 +335,22 @@
 .modal--wide .modal-x { top: -3.25rem; right: 0; background: rgba(13,13,13,0.55);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   color: #fff; border-color: rgba(255,255,255,0.3); }
-.modal--wide .modal-x:hover { background: var(--accent); border-color: var(--accent); }
+@media (hover: hover) and (pointer: fine) {
+  .modal--wide .modal-x:hover { background: var(--accent); border-color: var(--accent); }
+}
 /* Under ~640px tall there is no room above the player; put it back inside, in
    the LEFT corner, which YouTube leaves empty. */
 @media (max-height: 640px) {
   .modal--wide .modal-x { top: 0.75rem; right: auto; left: 0.75rem; }
+}
+/* PORTRAIT PHONE. The player is width-bound rather than height-bound here, so
+   the caption is what decides whether the modal fits — it gets tighter type and
+   the panel is allowed to scroll if a long title still wraps past the cap.
+   Nothing moves position: the player is centred by the scrim at every width. */
+@media (max-width: 480px) {
+  .video-modal__cap { padding: 0.9rem 1rem 1.1rem; }
+  .video-modal__cap h3 { font-size: 1.1rem; }
+  .video-modal__cap p { font-size: 0.82rem; }
 }
 
 /* ==========================================================================
@@ -430,10 +471,12 @@
   box-shadow: 0 8px 26px rgba(6, 12, 26, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
 }
-.ribbon__cell:hover .ribbon__cell-edge { background: rgba(255, 255, 255, 0.74); }
-.ribbon__cell:hover .ribbon__cell-edge {
-  border-color: #d31018;
-  box-shadow: 0 12px 24px -6px rgba(211, 16, 24, 0.12);
+@media (hover: hover) and (pointer: fine) {
+  .ribbon__cell:hover .ribbon__cell-edge { background: rgba(255, 255, 255, 0.74); }
+  .ribbon__cell:hover .ribbon__cell-edge {
+    border-color: #d31018;
+    box-shadow: 0 12px 24px -6px rgba(211, 16, 24, 0.12);
+  }
 }
 /* Centred on both axes, so a one-line label and a two-line label sit optically
    level in equal-height boxes instead of both starting flush to the top. */
@@ -685,12 +728,14 @@
 .studio__badge::after { content: ''; display: block; width: 46px; height: 2px;
   margin: 0.7rem 0 0 auto; background: #d31018; }
 
-/* ---- hover on the image composition -------------------------------------- */
-.studio__stack:hover .studio__sheet { scale: 1.06; }
-.studio__stack:hover .studio__scrim::after { opacity: 1; }
-/* The blueprint precedes .studio__stack in the DOM, so a sibling combinator
-   cannot reach it — reveal it from the column instead. */
-.studio__stack:hover .studio__cut { translate: -4px 4px; }
+@media (hover: hover) and (pointer: fine) {
+  /* ---- hover on the image composition -------------------------------------- */
+  .studio__stack:hover .studio__sheet { scale: 1.06; }
+  .studio__stack:hover .studio__scrim::after { opacity: 1; }
+  /* The blueprint precedes .studio__stack in the DOM, so a sibling combinator
+     cannot reach it — reveal it from the column instead. */
+  .studio__stack:hover .studio__cut { translate: -4px 4px; }
+}
 
 
 /* ==========================================================================
@@ -866,8 +911,10 @@
   border-radius: 2px; background: var(--accent);
   opacity: 0; transition: opacity 0.4s var(--ease-lux);
 }
-.studio__hl:hover { background: rgba(255, 255, 255, 0.055); transform: translateX(2px); }
-.studio__hl:hover::before { opacity: 0.8; }
+@media (hover: hover) and (pointer: fine) {
+  .studio__hl:hover { background: rgba(255, 255, 255, 0.055); transform: translateX(2px); }
+  .studio__hl:hover::before { opacity: 0.8; }
+}
 /* The step number is the hierarchy cue: it sits above the title, tracked out
    and in the accent, so the eye reads 01 -> title -> body. */
 .studio__hl-step { display: block; margin-bottom: 0.3rem;
@@ -876,7 +923,9 @@
 .studio__hl-icon { flex: 0 0 auto; margin-top: 0.15rem; color: rgba(255, 255, 255, 0.72); }
 @media (prefers-reduced-motion: reduce) {
   .studio__hl, .studio__hl::before { transition: none; }
-  .studio__hl:hover { transform: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .studio__hl:hover { transform: none; }
+  }
 }
 /* COMPACTION. Every value above and below was set for a card with three
    principles in it; there are four now, and each one grew a panel treatment,
@@ -921,18 +970,26 @@
 /* ---- CTAs ---------------------------------------------------------------- */
 .studio__cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
 .studio__cta .btn-primary { transition: translate 0.35s var(--ease-lux), box-shadow 0.35s var(--ease-lux); }
-.studio__cta .btn-primary:hover { translate: 0 -3px;
-  box-shadow: 0 14px 30px -10px rgba(211, 16, 24, 0.55); }
+@media (hover: hover) and (pointer: fine) {
+  .studio__cta .btn-primary:hover { translate: 0 -3px;
+    box-shadow: 0 14px 30px -10px rgba(211, 16, 24, 0.55); }
+}
 .studio__cta .btn svg { transition: transform 0.35s var(--ease-lux); }
-.studio__cta .btn-primary:hover svg { transform: translateX(5px); }
+@media (hover: hover) and (pointer: fine) {
+  .studio__cta .btn-primary:hover svg { transform: translateX(5px); }
+}
 .studio__link { align-self: center; padding: 0.5rem 0.15rem;
   font-family: var(--font-grotesk); font-weight: 600; font-size: 0.9rem;
   color: var(--text, #0B132B); border-bottom: 1px solid rgba(255, 255, 255, 0.35);
   transition: color 0.35s var(--ease-lux), border-color 0.35s var(--ease-lux); }
-.studio__link:hover { color: var(--accent-soft); border-color: var(--accent-soft); }
+@media (hover: hover) and (pointer: fine) {
+  .studio__link:hover { color: var(--accent-soft); border-color: var(--accent-soft); }
+}
 .studio__cta .btn-ghost { border-color: #E2E8F0; color: #0B132B;
   transition: border-color 0.35s var(--ease-lux), color 0.35s var(--ease-lux); }
-.studio__cta .btn-ghost:hover { border-color: #d31018; color: #d31018; background-color: transparent; }
+@media (hover: hover) and (pointer: fine) {
+  .studio__cta .btn-ghost:hover { border-color: #d31018; color: #d31018; background-color: transparent; }
+}
 @media (max-width: 480px) { .studio__cta .btn, .studio__cta > * { width: 100%; justify-content: center; } }
 
 /* ---- ambient motion ------------------------------------------------------ */
@@ -952,9 +1009,11 @@
   .studio__sheet, .studio__scrim::after, .studio__cut,
   .studio__hl, .studio__hl-icon, .studio__hl::after,
   .studio__cta .btn-primary, .studio__cta .btn svg { transition-duration: 0.01ms; }
-  .studio__stack:hover .studio__cut { translate: none; }
-  .studio__hl:hover { translate: none; }
-  .studio__cta .btn-primary:hover { translate: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .studio__stack:hover .studio__cut { translate: none; }
+    .studio__hl:hover { translate: none; }
+    .studio__cta .btn-primary:hover { translate: none; }
+  }
 }
 
 /* ==========================================================================
@@ -1167,8 +1226,7 @@
 .svc__more svg { color: #d31018; transition: transform 0.4s var(--ease-lux); }
 .svc__more:focus-visible { outline: 2px solid #d31018; outline-offset: 3px; border-radius: 4px; }
 
-/* ---- hover / focus / click ----------------------------------------------- */
-.svc:hover, .svc:focus-within, .svc.is-active {
+.svc:focus-within, .svc.is-active {
   translate: 0 -8px;
   background: rgba(11, 19, 43, 0.92);
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
@@ -1176,21 +1234,49 @@
   /* No red bloom — it read as a gradient mask bleeding off the card foot. */
   box-shadow: 0 22px 44px -18px rgba(11, 19, 43, 0.55);
 }
-:is(.svc:hover, .svc:focus-within, .svc.is-active) .svc__sketch { --sk: rgba(211, 16, 24, 0.4); }
-:is(.svc:hover, .svc:focus-within, .svc.is-active) .sketch { transform: scale(1.03); }
-:is(.svc:hover, .svc:focus-within, .svc.is-active) .svc__title,
-:is(.svc:hover, .svc:focus-within, .svc.is-active) .svc__more { color: #FFFFFF; }
-:is(.svc:hover, .svc:focus-within, .svc.is-active) .svc__desc { color: rgba(255, 255, 255, 0.8); }
-:is(.svc:hover, .svc:focus-within, .svc.is-active) .svc__num { color: rgba(255, 255, 255, 0.65); }
-:is(.svc:hover, .svc:focus-within, .svc.is-active) .svc__icon {
+:is(.svc:focus-within, .svc.is-active) .svc__sketch { --sk: rgba(211, 16, 24, 0.4); }
+:is(.svc:focus-within, .svc.is-active) .sketch { transform: scale(1.03); }
+:is(.svc:focus-within, .svc.is-active) .svc__title, :is(.svc:focus-within, .svc.is-active) .svc__more { color: #FFFFFF; }
+:is(.svc:focus-within, .svc.is-active) .svc__desc { color: rgba(255, 255, 255, 0.8); }
+:is(.svc:focus-within, .svc.is-active) .svc__num { color: rgba(255, 255, 255, 0.65); }
+:is(.svc:focus-within, .svc.is-active) .svc__icon {
   background: #d31018; color: #FFFFFF; transform: scale(1.08); }
-:is(.svc:hover, .svc:focus-within, .svc.is-active) .svc__more svg { transform: translateX(6px); }
+:is(.svc:focus-within, .svc.is-active) .svc__more svg { transform: translateX(6px); }
+/* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
+   edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
+   outside the fence: those are real on a touch screen, `:hover` is not. */
+@media (hover: hover) and (pointer: fine) {
+  .svc:hover {
+    translate: 0 -8px;
+    background: rgba(11, 19, 43, 0.92);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-color: rgba(211, 16, 24, 0.6);
+    /* No red bloom — it read as a gradient mask bleeding off the card foot. */
+    box-shadow: 0 22px 44px -18px rgba(11, 19, 43, 0.55);
+  }
+  .svc:hover .svc__sketch { --sk: rgba(211, 16, 24, 0.4); }
+  .svc:hover .sketch { transform: scale(1.03); }
+  .svc:hover .svc__title, .svc:hover .svc__more { color: #FFFFFF; }
+  .svc:hover .svc__desc { color: rgba(255, 255, 255, 0.8); }
+  .svc:hover .svc__num { color: rgba(255, 255, 255, 0.65); }
+  .svc:hover .svc__icon { background: #d31018; color: #FFFFFF; transform: scale(1.08); }
+  .svc:hover .svc__more svg { transform: translateX(6px); }
+}
 
 @media (prefers-reduced-transparency: reduce) {
   .svc { background: #FFFFFF; backdrop-filter: none; -webkit-backdrop-filter: none;
     border-color: #E2E8F0; }
-  .svc:hover, .svc:focus-within, .svc.is-active { background: #0B132B;
+  .svc:focus-within, .svc.is-active { background: #0B132B;
     backdrop-filter: none; -webkit-backdrop-filter: none; }
+  /* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
+     edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
+     outside the fence: those are real on a touch screen, `:hover` is not. */
+  @media (hover: hover) and (pointer: fine) {
+    .svc:hover {
+      background: #0B132B;
+      backdrop-filter: none; -webkit-backdrop-filter: none;
+    }
+  }
 }
 
 .svcs__foot { position: relative; z-index: 2; margin-top: 3rem; }
@@ -1203,10 +1289,17 @@
 @media (prefers-reduced-motion: reduce) {
   .svc__road-dash, .svc__car { animation: none; }
   .svc, .svc__icon, .svc__more svg, .svc__num, .svc__title, .svc__desc, .sketch, .sketch g { transition-duration: 0.01ms; }
-  :is(.svc:hover, .svc:focus-within, .svc.is-active) .sketch { transform: none; }
-  .svc:hover, .svc:focus-within, .svc.is-active { translate: none; }
-  :is(.svc:hover, .svc:focus-within, .svc.is-active) .svc__icon,
-  :is(.svc:hover, .svc:focus-within, .svc.is-active) .svc__more svg { transform: none; }
+  :is(.svc:focus-within, .svc.is-active) .sketch { transform: none; }
+  .svc:focus-within, .svc.is-active { translate: none; }
+  :is(.svc:focus-within, .svc.is-active) .svc__icon, :is(.svc:focus-within, .svc.is-active) .svc__more svg { transform: none; }
+  /* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
+     edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
+     outside the fence: those are real on a touch screen, `:hover` is not. */
+  @media (hover: hover) and (pointer: fine) {
+    .svc:hover .sketch { transform: none; }
+    .svc:hover { translate: none; }
+    .svc:hover .svc__icon, .svc:hover .svc__more svg { transform: none; }
+  }
 }
 
 /* ==========================================================================
@@ -1215,12 +1308,16 @@
 .projects__head { display: flex; justify-content: space-between; align-items: flex-end; gap: 2rem; flex-wrap: wrap; margin-bottom: 2.5rem; }
 .filters { display: flex; flex-wrap: wrap; gap: 0.6rem; }
 .filter { scroll-snap-align: start; padding: 0.55rem 1.2rem; border-radius: 100px; border: 1px solid var(--border); font-family: var(--font-grotesk); font-size: 0.82rem; color: var(--text-soft); transition: 0.4s var(--ease-lux); }
-.filter:hover { color: var(--text); border-color: var(--border-strong); }
+@media (hover: hover) and (pointer: fine) {
+  .filter:hover { color: var(--text); border-color: var(--border-strong); }
+}
 .filter.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 /* Projects sits on the deep charcoal (#0D1117) overlay — its filter pills need
    light text/borders so they read clearly on the dark backdrop. */
 #work .filter { color: rgba(248, 248, 246, 0.82); border-color: rgba(255, 255, 255, 0.2); }
-#work .filter:hover { color: #fff; border-color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.06); }
+@media (hover: hover) and (pointer: fine) {
+  #work .filter:hover { color: #fff; border-color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.06); }
+}
 #work .filter.active { color: #fff; background: var(--accent); border-color: var(--accent); }
 /* ---- STICKY CASE-STUDY SHOWCASE --------------------------------------------
    ONE project on screen at a time, and only one.
@@ -1331,7 +1428,9 @@
   font-family: var(--font-grotesk); font-weight: 600; font-size: 0.82rem;
   letter-spacing: 0.06em; color: var(--accent-soft);
 }
-.pshow__view:hover { color: var(--accent); }
+@media (hover: hover) and (pointer: fine) {
+  .pshow__view:hover { color: var(--accent); }
+}
 
 /* Progress: one marker per project, the live one in Alipson red. */
 .pshow__rail {
@@ -1467,7 +1566,9 @@
   box-shadow: 0 0 12px 1px rgba(211, 16, 24, 0.6), 0 0 44px 5px rgba(211, 16, 24, 0.22);
   transition: box-shadow 0.35s var(--ease-lux);
 }
-.ba:hover .ba__handle { box-shadow: 0 0 16px 2px rgba(211, 16, 24, 0.8), 0 0 64px 9px rgba(211, 16, 24, 0.34); }
+@media (hover: hover) and (pointer: fine) {
+  .ba:hover .ba__handle { box-shadow: 0 0 16px 2px rgba(211, 16, 24, 0.8), 0 0 64px 9px rgba(211, 16, 24, 0.34); }
+}
 .ba__grip {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
   width: 48px; height: 48px; border-radius: 50%;
@@ -1483,12 +1584,14 @@
     0 8px 24px rgba(0, 0, 0, 0.42);
   transition: transform 0.35s var(--ease-lux), box-shadow 0.35s var(--ease-lux);
 }
-.ba:hover .ba__grip {
-  transform: translate(-50%, -50%) scale(1.1);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    0 10px 30px rgba(0, 0, 0, 0.5),
-    0 0 0 7px rgba(211, 16, 24, 0.15);
+@media (hover: hover) and (pointer: fine) {
+  .ba:hover .ba__grip {
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      0 10px 30px rgba(0, 0, 0, 0.5),
+      0 0 0 7px rgba(211, 16, 24, 0.15);
+  }
 }
 /* Keyboard users drive the range, which is invisible — so the focus ring has to
    be drawn on the grip, or there is no visible focus at all. `:has()` on the
@@ -1642,36 +1745,56 @@
   transition: color 0.45s var(--ease-lux); }
 .std__more svg { color: #d31018; transition: transform 0.4s var(--ease-lux); }
 
-/* ==========================================================================
-   ACTIVE / HOVER / FOCUS — the dark state
-   ========================================================================== */
-.std__card:hover, .std__card:focus-within, .std__card.is-active {
+.std__card:focus-within, .std__card.is-active {
   translate: 0 -8px;
   background: #0B132B;
   border-color: #d31018;
   box-shadow: 0 12px 30px rgba(211, 16, 24, 0.25);
 }
-:is(.std__card:hover, .std__card:focus-within, .std__card.is-active)::before { background: rgba(255, 255, 255, 0.05); }
-:is(.std__card:hover, .std__card:focus-within, .std__card.is-active)::after  { background: rgba(211, 16, 24, 0.22); }
+:is(.std__card:focus-within, .std__card.is-active)::before { background: rgba(255, 255, 255, 0.05); }
+:is(.std__card:focus-within, .std__card.is-active)::after { background: rgba(211, 16, 24, 0.22); }
 
-:is(.std__card:hover, .std__card:focus-within, .std__card.is-active) h3,
-:is(.std__card:hover, .std__card:focus-within, .std__card.is-active) p,
-:is(.std__card:hover, .std__card:focus-within, .std__card.is-active) .std__more { color: #FFFFFF; }
+:is(.std__card:focus-within, .std__card.is-active) h3, :is(.std__card:focus-within, .std__card.is-active) p, :is(.std__card:focus-within, .std__card.is-active) .std__more { color: #FFFFFF; }
 
-:is(.std__card:hover, .std__card:focus-within, .std__card.is-active) .std__bp {
+:is(.std__card:focus-within, .std__card.is-active) .std__bp {
   opacity: 0.4; stroke: #FFFFFF; transform: translateY(-4px); }
-:is(.std__card:hover, .std__card:focus-within, .std__card.is-active) .std__bp .hl { opacity: 1; }
+:is(.std__card:focus-within, .std__card.is-active) .std__bp .hl { opacity: 1; }
 
-:is(.std__card:hover, .std__card:focus-within, .std__card.is-active) .std__ic {
+:is(.std__card:focus-within, .std__card.is-active) .std__ic {
   border-color: #d31018; box-shadow: 0 0 0 3px rgba(211, 16, 24, 0.18); }
-:is(.std__card:hover, .std__card:focus-within, .std__card.is-active) .std__dot {
+:is(.std__card:focus-within, .std__card.is-active) .std__dot {
   opacity: 1; transform: scale(1); animation: stdDot 1.6s var(--ease-lux) infinite; }
 
-:is(.std__card:hover, .std__card:focus-within, .std__card.is-active) .std__more svg { transform: translateX(4px); }
+:is(.std__card:focus-within, .std__card.is-active) .std__more svg { transform: translateX(4px); }
 
-/* One fast diagonal pass, not a loop. */
-:is(.std__card:hover, .std__card:focus-within, .std__card.is-active) .std__sweep {
+:is(.std__card:focus-within, .std__card.is-active) .std__sweep {
   opacity: 1; transform: translateX(90%); transition: transform 0.75s var(--ease-out), opacity 0.2s linear; }
+/* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
+   edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
+   outside the fence: those are real on a touch screen, `:hover` is not. */
+@media (hover: hover) and (pointer: fine) {
+  .std__card:hover {
+    translate: 0 -8px;
+    background: #0B132B;
+    border-color: #d31018;
+    box-shadow: 0 12px 30px rgba(211, 16, 24, 0.25);
+  }
+  .std__card:hover::before { background: rgba(255, 255, 255, 0.05); }
+  .std__card:hover::after { background: rgba(211, 16, 24, 0.22); }
+  .std__card:hover h3, .std__card:hover p, .std__card:hover .std__more { color: #FFFFFF; }
+  .std__card:hover .std__bp { opacity: 0.4; stroke: #FFFFFF; transform: translateY(-4px); }
+  .std__card:hover .std__bp .hl { opacity: 1; }
+  .std__card:hover .std__ic {
+    border-color: #d31018; box-shadow: 0 0 0 3px rgba(211, 16, 24, 0.18);
+  }
+  .std__card:hover .std__dot {
+    opacity: 1; transform: scale(1); animation: stdDot 1.6s var(--ease-lux) infinite;
+  }
+  .std__card:hover .std__more svg { transform: translateX(4px); }
+  .std__card:hover .std__sweep {
+    opacity: 1; transform: translateX(90%); transition: transform 0.75s var(--ease-out), opacity 0.2s linear;
+  }
+}
 
 @keyframes stdDot {
   0%, 100% { box-shadow: 0 0 0 0 rgba(211, 16, 24, 0.55); }
@@ -1685,7 +1808,9 @@
 .std__cta { color: #0F172A; font-weight: 600; }
 .std__cta::after { background: #d31018; }
 .std__cta svg { color: #d31018; }
-.std__cta:hover { color: #d31018; }
+@media (hover: hover) and (pointer: fine) {
+  .std__cta:hover { color: #d31018; }
+}
 
 /* The dark state is a colour change; the movement is decoration. Keep the
    colours, drop the travel, the sweep and the pulsing dot. */
@@ -1711,7 +1836,9 @@
   display: grid; place-items: center; background: var(--bg-alt);
   border: 1px solid var(--border-strong); transition: 0.5s var(--ease-lux);
 }
-.ptl:hover .ptl__node { border-color: var(--accent); box-shadow: 0 0 0 5px rgba(var(--accent-rgb), 0.08); }
+@media (hover: hover) and (pointer: fine) {
+  .ptl:hover .ptl__node { border-color: var(--accent); box-shadow: 0 0 0 5px rgba(var(--accent-rgb), 0.08); }
+}
 .ptl__node b { font-family: var(--font-display); font-weight: 500; font-size: 1.35rem; color: var(--accent-soft); }
 .ptl__body { padding: 0.9rem 0 1.4rem; border-bottom: 1px solid var(--border); }
 .ptl:last-child .ptl__body { border-bottom: none; }
@@ -1806,9 +1933,13 @@
 .tcard { flex: 0 0 min(84vw, 380px); padding: 1.6rem; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--border); display: flex; flex-direction: column; }
 .tcard__thumb { position: relative; display: block; width: 100%; aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; margin-bottom: 1.1rem; }
 .tcard__thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s var(--ease-lux); filter: brightness(0.72) saturate(0.95); }
-.tcard__thumb:hover img { transform: scale(1.06); }
+@media (hover: hover) and (pointer: fine) {
+  .tcard__thumb:hover img { transform: scale(1.06); }
+}
 .tcard__play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; box-shadow: 0 10px 30px -6px rgba(0,0,0,0.6); transition: transform 0.4s var(--ease-lux); }
-.tcard__thumb:hover .tcard__play { transform: translate(-50%, -50%) scale(1.12); }
+@media (hover: hover) and (pointer: fine) {
+  .tcard__thumb:hover .tcard__play { transform: translate(-50%, -50%) scale(1.12); }
+}
 .tcard__thumb-lbl { position: absolute; left: 0.9rem; bottom: 0.8rem; font-family: var(--font-grotesk); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bone-100); }
 .tcard__stars { display: flex; gap: 0.2rem; color: var(--accent-soft); margin-bottom: 1.2rem; }
 .tcard__quote { font-family: var(--font-display); font-weight: 300; font-style: italic; font-size: 1.05rem; line-height: 1.55; color: var(--text); margin-bottom: 1.2rem; }
@@ -1825,9 +1956,13 @@
 @media (max-width: 560px) { .gallery__grid { columns: 1; } }
 .gitem { position: relative; break-inside: avoid; margin-bottom: 1.1rem; border-radius: var(--radius); overflow: hidden; cursor: pointer; }
 .gitem img { width: 100%; height: auto; display: block; transition: transform 1s var(--ease-lux); }
-.gitem:hover img { transform: scale(1.07); }
+@media (hover: hover) and (pointer: fine) {
+  .gitem:hover img { transform: scale(1.07); }
+}
 .gitem__over { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 1.3rem; background: linear-gradient(180deg, transparent 40%, rgba(8,9,10,0.8)); opacity: 0; transition: opacity 0.5s; }
-.gitem:hover .gitem__over { opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+  .gitem:hover .gitem__over { opacity: 1; }
+}
 .gitem__over h3 { font-family: var(--font-display); font-weight: 300; font-size: 1.3rem; color: var(--bone-100); }
 .gitem__over span { font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-soft); }
 
@@ -1849,7 +1984,9 @@
    happened. One z-index fixes it for the X, both arrows and the caption. */
 .lightbox__x, .lightbox__nav { position: absolute; z-index: 2; width: 52px; height: 52px; border-radius: 50%; border: 1px solid rgba(247,242,232,0.2); display: grid; place-items: center; color: var(--bone-100); background: rgba(255,255,255,0.04); transition: 0.3s; }
 .lightbox__x { top: 1.6rem; right: 1.6rem; }
-.lightbox__x:hover, .lightbox__nav:hover { background: rgba(255,255,255,0.12); }
+@media (hover: hover) and (pointer: fine) {
+  .lightbox__x:hover, .lightbox__nav:hover { background: rgba(255,255,255,0.12); }
+}
 .lightbox__nav { top: 50%; transform: translateY(-50%); }
 .lightbox__nav--prev { left: 1.6rem; } .lightbox__nav--next { right: 1.6rem; }
 /* The caption had no width, so a long title grew from the centre in both
@@ -1888,14 +2025,18 @@
 .faq { max-width: 820px; margin-inline: auto; }
 .faq__item { border-bottom: 1px solid var(--border); margin-bottom: 0.75rem; }
 .faq__q { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 2rem; text-align: left; padding: 1.25rem 1.75rem; font-family: var(--font-grotesk); font-weight: 500; font-size: clamp(1.05rem, 2vw, 1.35rem); color: var(--text); transition: color 0.3s; }
-.faq__q:hover { color: var(--accent-soft); }
+@media (hover: hover) and (pointer: fine) {
+  .faq__q:hover { color: var(--accent-soft); }
+}
 /* A bare chevron that flips 180deg — no disc, no border, no fill swap. The old
    circular "+" rotated 45deg into an "x", which reads as "dismiss", not
    "collapse". */
 .faq__ic { flex-shrink: 0; display: grid; place-items: center; color: var(--accent);
   transition: transform 0.4s var(--ease-lux), color 0.3s; }
 .faq__item.open .faq__ic { transform: rotate(180deg); }
-.faq__q:hover .faq__ic { color: var(--accent-soft); }
+@media (hover: hover) and (pointer: fine) {
+  .faq__q:hover .faq__ic { color: var(--accent-soft); }
+}
 .faq__a { overflow: hidden; }
 .faq__a p { padding: 0 1.75rem 1.25rem; color: #334155; font-size: 1.05rem; line-height: 1.6; max-width: 62ch; }
 
@@ -1929,7 +2070,13 @@
   border: 0; cursor: pointer; transition: background-color 0.3s var(--ease-lux), color 0.3s var(--ease-lux); }
 .contact__map-load svg { color: var(--accent-soft); }
 .contact__map-load small { font-weight: 400; font-size: 0.78rem; color: var(--text-mute); max-width: 30ch; text-align: center; }
-.contact__map-load:hover, .contact__map-load:focus-visible { background: var(--tint); color: var(--text); }
+.contact__map-load:focus-visible { background: var(--tint); color: var(--text); }
+/* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
+   edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
+   outside the fence: those are real on a touch screen, `:hover` is not. */
+@media (hover: hover) and (pointer: fine) {
+  .contact__map-load:hover { background: var(--tint); color: var(--text); }
+}
 .contact__form { padding: clamp(1.6rem, 4vw, 2.6rem); border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--border); }
 .contact__form h3 { font-family: var(--font-grotesk); font-weight: 600; font-size: 1.5rem; margin-bottom: 0.4rem; }
 .contact__form > p { color: var(--text-mute); font-size: 0.9rem; margin-bottom: 1.8rem; }
@@ -1970,11 +2117,15 @@
 .footer .logo svg path:not(:last-of-type) { fill: #FF2E2E; }
 .footer .footer__col h4 { color: #FFFFFF; }
 .footer .footer__contact-line svg { color: #FF2E2E; }
-.footer :is(a.footer__contact-line, .footer__col a):hover { color: #FF2E2E; }
+@media (hover: hover) and (pointer: fine) {
+  .footer :is(a.footer__contact-line, .footer__col a):hover { color: #FF2E2E; }
+}
 .footer__col--contact h4, .footer__col--brand h4 { margin-bottom: 1.1rem; }
 .footer__col .footer__contact-line { display: flex; align-items: flex-start; gap: 0.55rem; color: var(--text-soft); font-size: 0.94rem; margin-bottom: 0.7rem; transition: color 0.3s; }
 .footer__col .footer__contact-line svg { color: var(--accent-soft); flex-shrink: 0; margin-top: 3px; }
-a.footer__contact-line:hover { color: var(--accent-soft); }
+@media (hover: hover) and (pointer: fine) {
+  a.footer__contact-line:hover { color: var(--accent-soft); }
+}
 .footer__contact-addr { max-width: 30ch; }
 .footer__col--contact .footer__social { margin-top: 1.4rem; }
 @media (max-width: 900px) { .footer__top { grid-template-columns: 1fr 1fr; } .footer__col--brand { grid-column: 1 / -1; } }
@@ -1982,11 +2133,15 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .footer__desc { color: var(--text-soft); font-size: 0.9rem; line-height: 1.7; margin: 1.2rem 0 1.5rem; max-width: 34ch; }
 .footer__social { display: flex; gap: 0.7rem; }
 .footer__social a { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--border); display: grid; place-items: center; color: var(--text-soft); transition: 0.4s var(--ease-lux); }
-.footer__social a:hover { color: #fff; background: var(--accent); border-color: var(--accent); transform: translateY(-3px); }
+@media (hover: hover) and (pointer: fine) {
+  .footer__social a:hover { color: #fff; background: var(--accent); border-color: var(--accent); transform: translateY(-3px); }
+}
 .footer__col h4 { font-family: var(--font-grotesk); font-weight: 600; font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 1.3rem; }
 .footer__col ul { display: flex; flex-direction: column; gap: 0.8rem; }
 .footer__col a, .footer__col li { color: var(--text-soft); font-size: 0.92rem; transition: color 0.3s; }
-.footer__col a:hover { color: var(--accent-soft); }
+@media (hover: hover) and (pointer: fine) {
+  .footer__col a:hover { color: var(--accent-soft); }
+}
 .footer__news { display: flex; margin-top: 1rem; border: 1px solid var(--border); border-radius: 100px; overflow: hidden; padding: 0.3rem 0.3rem 0.3rem 1.1rem; }
 .footer__news input { flex: 1; background: none; border: none; outline: none; color: var(--text); font-size: 0.88rem; }
 .footer__news button { width: 42px; height: 42px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; flex-shrink: 0; }
@@ -1997,7 +2152,9 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   padding-top: 2rem; padding-bottom: 2rem;
   border-top: 1px solid #E2E8F0; color: var(--text-mute); font-size: 0.82rem; }
 .footer__bottom-inner { width: 100%; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
-.footer__bottom a { color: var(--text-mute); } .footer__bottom a:hover { color: var(--accent); }
+.footer__bottom a { color: var(--text-mute); } @media (hover: hover) and (pointer: fine) {
+  .footer__bottom a:hover { color: var(--accent); }
+.footer__bottom a { color: var(--text-mute); } }
 
 /* ==========================================================================
    QUOTE MODAL BITS
@@ -2244,8 +2401,10 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   color: rgba(248,248,246,0.6); padding: 0.6rem 1.1rem; border: 1px solid rgba(248,248,246,0.16); border-radius: 100px;
   background: rgba(0,0,0,0.35); backdrop-filter: blur(6px);
   transition: color 0.3s var(--ease-lux), border-color 0.3s var(--ease-lux), box-shadow 0.3s var(--ease-lux); }
-.intro__skip:hover { color: #fff; border-color: rgba(var(--accent-rgb), 0.7);
-  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.25), 0 0 22px rgba(var(--accent-rgb), 0.45); }
+@media (hover: hover) and (pointer: fine) {
+  .intro__skip:hover { color: #fff; border-color: rgba(var(--accent-rgb), 0.7);
+    box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.25), 0 0 22px rgba(var(--accent-rgb), 0.45); }
+}
 
 /* ==========================================================================
    WHITE & RED — CARD ELEVATION
@@ -2303,7 +2462,9 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   background: var(--bg-alt); border: 1px solid var(--border); }
 .intro__copy p { color: var(--text-soft); line-height: 1.85; }
 .intro__link { margin-top: 1.5rem; color: var(--accent); font-weight: 600; }
-.intro__link:hover { color: var(--accent-deep); }
+@media (hover: hover) and (pointer: fine) {
+  .intro__link:hover { color: var(--accent-deep); }
+}
 
 /* ==========================================================================
    ALIPSON GATE — signature entry architecture
@@ -2407,10 +2568,17 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 /* Full-bleed blueprint inside every card; brightens and grows in the dark state. */
 .gate__sketch { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%;
   pointer-events: none; }
-:is(.gate__card:hover, .gate__card:focus-within, .gate__card.is-active) .gate__sketch {
+:is(.gate__card:focus-within, .gate__card.is-active) .gate__sketch {
   --sk: rgba(211, 16, 24, 0.4); }
-:is(.gate__card:hover, .gate__card:focus-within, .gate__card.is-active) .gate__sketch.sketch {
+:is(.gate__card:focus-within, .gate__card.is-active) .gate__sketch.sketch {
   transform: scale(1.03); }
+/* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
+   edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
+   outside the fence: those are real on a touch screen, `:hover` is not. */
+@media (hover: hover) and (pointer: fine) {
+  .gate__card:hover .gate__sketch { --sk: rgba(211, 16, 24, 0.4); }
+  .gate__card:hover .gate__sketch.sketch { transform: scale(1.03); }
+}
 
 .gate__geo { position: absolute; right: 0; bottom: 0; z-index: -1; width: 90px; height: 90px;
   pointer-events: none; opacity: 0.9; transform-origin: 100% 100%;
@@ -2440,28 +2608,49 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .gate__more svg { color: #d31018; }
 .gate__more:focus-visible { outline: 2px solid #d31018; outline-offset: 3px; border-radius: 4px; }
 
-/* ---- hover / focus ------------------------------------------------------- */
-.gate__card:hover, .gate__card:focus-within, .gate__card.is-active {
+.gate__card:focus-within, .gate__card.is-active {
   translate: 0 -8px;
   background: #0B132B;
   border-color: #d31018;
   box-shadow: 0 16px 32px rgba(211, 16, 24, 0.25);
 }
-:is(.gate__card:hover, .gate__card:focus-within, .gate__card.is-active) h3,
-:is(.gate__card:hover, .gate__card:focus-within, .gate__card.is-active) p,
-:is(.gate__card:hover, .gate__card:focus-within, .gate__card.is-active) .gate__more { color: #FFFFFF; }
-:is(.gate__card:hover, .gate__card:focus-within, .gate__card.is-active) .gate__geo { transform: scale(1.06) translateY(-3px); }
-:is(.gate__card:hover, .gate__card:focus-within, .gate__card.is-active) .gate__card-ic { transform: scale(1.08); }
-:is(.gate__card:hover, .gate__card:focus-within, .gate__card.is-active) .gate__more { transform: translateX(6px); }
-:is(.gate__card:hover, .gate__card:focus-within, .gate__card.is-active) .gate__more svg { color: #d31018; }
+:is(.gate__card:focus-within, .gate__card.is-active) h3, :is(.gate__card:focus-within, .gate__card.is-active) p, :is(.gate__card:focus-within, .gate__card.is-active) .gate__more { color: #FFFFFF; }
+:is(.gate__card:focus-within, .gate__card.is-active) .gate__geo { transform: scale(1.06) translateY(-3px); }
+:is(.gate__card:focus-within, .gate__card.is-active) .gate__card-ic { transform: scale(1.08); }
+:is(.gate__card:focus-within, .gate__card.is-active) .gate__more { transform: translateX(6px); }
+:is(.gate__card:focus-within, .gate__card.is-active) .gate__more svg { color: #d31018; }
+/* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
+   edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
+   outside the fence: those are real on a touch screen, `:hover` is not. */
+@media (hover: hover) and (pointer: fine) {
+  .gate__card:hover {
+    translate: 0 -8px;
+    background: #0B132B;
+    border-color: #d31018;
+    box-shadow: 0 16px 32px rgba(211, 16, 24, 0.25);
+  }
+  .gate__card:hover h3, .gate__card:hover p, .gate__card:hover .gate__more { color: #FFFFFF; }
+  .gate__card:hover .gate__geo { transform: scale(1.06) translateY(-3px); }
+  .gate__card:hover .gate__card-ic { transform: scale(1.08); }
+  .gate__card:hover .gate__more { transform: translateX(6px); }
+  .gate__card:hover .gate__more svg { color: #d31018; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .gate__card, .gate__geo, .gate__card-ic, .gate__more, .gate__sketch { transition-duration: 0.01ms; }
-  :is(.gate__card:hover, .gate__card:focus-within, .gate__card.is-active) .gate__sketch { transform: none; }
-  .gate__card:hover, .gate__card:focus-within, .gate__card.is-active { translate: none; }
-  :is(.gate__card:hover, .gate__card:focus-within, .gate__card.is-active) .gate__geo,
-  :is(.gate__card:hover, .gate__card:focus-within, .gate__card.is-active) .gate__card-ic,
-  :is(.gate__card:hover, .gate__card:focus-within, .gate__card.is-active) .gate__more { transform: none; }
+  :is(.gate__card:focus-within, .gate__card.is-active) .gate__sketch { transform: none; }
+  .gate__card:focus-within, .gate__card.is-active { translate: none; }
+  :is(.gate__card:focus-within, .gate__card.is-active) .gate__geo, :is(.gate__card:focus-within, .gate__card.is-active) .gate__card-ic, :is(.gate__card:focus-within, .gate__card.is-active) .gate__more { transform: none; }
+  /* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
+     edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
+     outside the fence: those are real on a touch screen, `:hover` is not. */
+  @media (hover: hover) and (pointer: fine) {
+    .gate__card:hover .gate__sketch { transform: none; }
+    .gate__card:hover { translate: none; }
+    .gate__card:hover .gate__geo, .gate__card:hover .gate__card-ic, .gate__card:hover .gate__more {
+      transform: none;
+    }
+  }
 }
 
 /* Opening beat — darkened plate + the architect's drawing over frame 0.
@@ -2569,7 +2758,9 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
 .story--3d .story__grade {
   background: radial-gradient(132% 96% at 50% 44%, transparent 58%, rgba(3, 6, 14, 0.28) 100%); }
 .story--3d .btn-watch { color: #0F172A; border-color: rgba(15,23,42,0.14); background: rgba(255,255,255,0.75); }
-.story--3d .btn-watch:hover { background: rgba(255,255,255,0.92); border-color: rgba(var(--accent-rgb), 0.6); }
+@media (hover: hover) and (pointer: fine) {
+  .story--3d .btn-watch:hover { background: rgba(255,255,255,0.92); border-color: rgba(var(--accent-rgb), 0.6); }
+}
 
 /* Phase 4 — interior lights coming on. `screen` so it adds light to the glass
    rather than laying a warm film over the whole frame; centred on the volume,
@@ -2604,10 +2795,12 @@ a.footer__contact-line:hover { color: var(--accent-soft); }
   border: 1px solid rgba(211, 16, 24, 0.2);
   border-radius: var(--radius);
 }
-.faq__item:hover,
-.testimonial__card:hover {
-  border-color: rgba(211, 16, 24, 0.42);
-  background: rgba(255, 255, 255, 0.055);
+@media (hover: hover) and (pointer: fine) {
+  .faq__item:hover,
+  .testimonial__card:hover {
+    border-color: rgba(211, 16, 24, 0.42);
+    background: rgba(255, 255, 255, 0.055);
+  }
 }
 /* The blur is decoration; if the OS asks for less transparency, drop to a flat
    tint rather than leaving unreadable text over a busy background. */
@@ -3193,9 +3386,13 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
 .section--noir :is(.studio__body, .studio__hl p, .studio__quote) { color: var(--text-soft); }
 .section--noir :is(.studio__eyebrow, .studio__title em, .studio__quote span) { color: var(--accent-soft); }
 .section--noir .studio__eyebrow::before, .section--noir .studio__eyebrow::after { background: var(--accent-soft); }
-.section--noir .studio__hl:hover { background: rgba(var(--accent-rgb), 0.12); }
+@media (hover: hover) and (pointer: fine) {
+  .section--noir .studio__hl:hover { background: rgba(var(--accent-rgb), 0.12); }
+}
 .section--noir .studio__cta .btn-ghost { border-color: var(--glass-brd); color: var(--text); }
-.section--noir .studio__cta .btn-ghost:hover { border-color: var(--accent-soft); color: var(--accent-soft); }
+@media (hover: hover) and (pointer: fine) {
+  .section--noir .studio__cta .btn-ghost:hover { border-color: var(--accent-soft); color: var(--accent-soft); }
+}
 
 /* ---- Projects ------------------------------------------------------------ */
 /* `#work .filter` was ALREADY written for a dark ground — near-white labels on
@@ -3395,4 +3592,91 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
   .footer__col--contact .footer__social { margin-top: 0.9rem; }
   .footer__bottom { padding-top: 1.25rem; padding-bottom: 1.25rem; }
   .footer__bottom-inner { gap: 0.6rem; }
+}
+
+/* ==========================================================================
+   MOBILE BLUR BUDGET
+   --------------------------------------------------------------------------
+   `backdrop-filter` is not a paint, it is a per-frame READ-BACK: the compositor
+   copies what is behind the element, blurs it, and composites it — and it must
+   redo that on every frame the backdrop changes. Fifty-four of them across this
+   stylesheet is fine on a desktop GPU. On a phone the handful below are the
+   expensive ones, because they are the ones sitting over something that MOVES:
+
+     .nav__inner        fixed, over the whole page, for the whole scroll
+     .floater           fixed, ditto
+     .ribbon__cell-edge four cards over the live WebGL hero
+     .btn-ghost         hero CTAs, same live canvas underneath
+     .pshow__rail       sticky for the length of the Projects section
+     .glass             panels over the animating ambient canvases
+
+   Every one of them is a blur that is recomputed for the whole of a scroll.
+   They keep their fill — the treatment is what carries the text contrast, and
+   REMOVING A BLUR DOES NOT CHANGE A CONTRAST RATIO, only sharpness — so the
+   thin ones are topped up in exchange. The modal scrim and the lightbox keep
+   theirs: they are transient, and the page is locked while they are open, so
+   the backdrop behind them is not moving.
+
+   Not a design change, a budget: at ≥768px everything below stays as authored.
+   ========================================================================== */
+@media (max-width: 767.98px) {
+  .nav__inner, .floater, .floater--up, .btn-ghost, .glass,
+  .ribbon__cell-edge, .pshow__rail {
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  /* 0.55 → 0.86. The blur was doing half the work of separating slate links
+     from whatever the capsule was passing over; the fill does all of it now. */
+  .nav__inner { background: rgba(255, 255, 255, 0.86); }
+  /* 0.66 was the contrast FLOOR, chosen against the darkest part of the render
+     showing through 16px of blur. With the render sharp behind it, small
+     uppercase labels need the fill to do that job: 0.88, same as the
+     reduced-transparency fallback these cards already ship. */
+  .ribbon__cell-edge { background: rgba(255, 255, 255, 0.88); }
+  .pshow__rail { background: rgba(8, 12, 20, 0.86); }
+  /* `.btn-ghost` has no fill at all — it was a border plus a blur. A 10% wash
+     keeps it reading as a pill over the dark hero and is invisible on a white
+     section, which is everywhere else it is used. */
+  .btn-ghost { background: rgba(255, 255, 255, 0.10); }
+  .floater--up { background: var(--bg-elev); }
+}
+
+/* ==========================================================================
+   MOBILE: WHAT THE PHONE DOES NOT RUN
+   --------------------------------------------------------------------------
+   Everything below is a phone-only budget cut. Nothing here changes a layout,
+   a colour or a typeface — it removes work that a desktop GPU absorbs and a
+   phone pays for on every composited frame of the scroll.
+   ========================================================================== */
+@media (max-width: 767.98px) {
+  /* ---- CLIENT VOICES IS OFF ON PHONES ------------------------------------
+     Requested. It is worth knowing WHY this one line is enough: the section is
+     wrapped in <Deferred>, which renders a placeholder carrying `#voices` and
+     only swaps in the real thing when an IntersectionObserver says the
+     placeholder is near the viewport. A display:none placeholder never
+     intersects, so the section is never mounted, its chunk is never fetched,
+     its five testimonial photographs are never downloaded and its marquee
+     never animates. Not hidden — never built.
+     It is also reversible by resize alone: widen past 768px and the
+     placeholder starts intersecting, so the section mounts on the spot.
+     #voices is not in NAV, so no link is left pointing at nothing. */
+  #voices { display: none; }
+
+  /* ---- FILM GRAIN: TEXTURE YES, BLEND NO ---------------------------------
+     `.grain::after` is a tiled noise bitmap at 4% opacity over a dozen
+     sections. The bitmap is cheap and cached; `mix-blend-mode: overlay` is
+     not — it forces every one of those sections into its own compositing
+     pass, blended against what is underneath, for the whole scroll. At 4% the
+     blend contributes a few levels of luminance nobody can see on a phone
+     screen. The texture stays, the per-frame blend goes. */
+  .grain::after { mix-blend-mode: normal; opacity: 0.03; }
+
+  /* ---- THE FILM, FULL WIDTH ----------------------------------------------
+     The video modal is the one panel whose content IS the width: a 16:9
+     player inside the standard 1.5rem scrim gutter is a 342px-wide film on a
+     390px phone. Tighten the gutter and the caption around it. The X keeps
+     its place above the player, where YouTube's own chrome cannot cover it. */
+  .modal-scrim:has(.modal--wide) { padding: 0.75rem; }
+  .modal--wide .video-modal__cap { padding: 0.9rem 1rem 1.1rem; }
+  .modal--wide .video-modal__cap h3 { font-size: 1.1rem; margin-bottom: 0.2rem; }
+  .modal--wide .video-modal__cap p { font-size: 0.82rem; line-height: 1.5; }
 }

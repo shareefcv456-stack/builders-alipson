@@ -188,7 +188,26 @@ input, textarea, select { font-family: inherit; }
 ::-webkit-scrollbar { width: 9px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+/* ==========================================================================
+   WHY EVERY `:hover` IN THIS PROJECT IS INSIDE A MEDIA QUERY
+   --------------------------------------------------------------------------
+   `:hover` is a MOUSE state that touch screens emulate badly: a tap sets it and
+   LEAVES IT SET until something else is tapped. So a card tapped on a phone lit
+   up and stayed lit — through the scroll, through the next section — and a card
+   brushed while scrolling did the same. There is no touch event that takes it
+   back, which is why this cannot be fixed by resetting state on scroll.
+   `(hover: hover) and (pointer: fine)` asks the only question that matters: is
+   there a real cursor here. A phone answers no and the rule never matches, so
+   there is no state to get stuck and no transition to fire mid-scroll. A mouse
+   answers yes and gets exactly what it always got — nothing below is changed,
+   only fenced. `:active` and `:focus-visible` stay outside the fence: those are
+   real on touch and are what gives a tap its feedback.
+   Any new hover rule goes inside one of these blocks. Mixed selectors get split
+   (see `.nav__link` in sections.css) so the non-hover half keeps working.
+   ========================================================================== */
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+}
 
 /* Native pointer affordance for interactive elements */
 button, [role='button'], a[href], label, summary { cursor: pointer; }
@@ -309,14 +328,18 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
    (not -color) so the gradient and the hover fill animate as one property. */
 .btn-primary { background: linear-gradient(180deg, #e03a34 0%, var(--accent) 100%); color: #fff;
   box-shadow: 0 8px 20px -10px rgba(var(--accent-rgb), 0.65); }
-.btn-primary:hover { background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%); color: #fff;
-  box-shadow: 0 14px 28px -12px rgba(var(--accent-rgb), 0.6); }
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover { background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%); color: #fff;
+    box-shadow: 0 14px 28px -12px rgba(var(--accent-rgb), 0.6); }
+}
 .btn-primary:active { background: var(--accent-deep); box-shadow: 0 4px 12px -10px rgba(var(--accent-rgb), 0.7); }
 
 .btn-ghost { color: var(--text); border-color: var(--border-strong); backdrop-filter: blur(8px); }
 .cta .btn-ghost { color: #f8f8f6; border-color: rgba(248,248,246,0.35); }
-.cta .btn-ghost:hover { border-color: var(--accent); color: #fff; }
-.btn-ghost:hover { border-color: var(--accent); background-color: rgba(var(--accent-rgb), 0.06); }
+@media (hover: hover) and (pointer: fine) {
+  .cta .btn-ghost:hover { border-color: var(--accent); color: #fff; }
+  .btn-ghost:hover { border-color: var(--accent); background-color: rgba(var(--accent-rgb), 0.06); }
+}
 .btn-ghost:active { background-color: rgba(var(--accent-rgb), 0.1); }
 
 /* Accessible focus + safe disabled state (no motion) */
@@ -327,10 +350,14 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
 
 .ul-link { position: relative; display: inline-flex; gap: 0.4rem; align-items: center; padding-bottom: 3px; color: var(--text-soft); font-family: var(--font-grotesk); font-size: 0.9rem; letter-spacing: 0.04em; }
 .ul-link::after { content: ''; position: absolute; left: 0; bottom: 0; width: 100%; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform 0.5s var(--ease-lux); }
-.ul-link:hover { color: var(--accent-soft); }
-.ul-link:hover::after { transform: scaleX(1); transform-origin: left; }
+@media (hover: hover) and (pointer: fine) {
+  .ul-link:hover { color: var(--accent-soft); }
+  .ul-link:hover::after { transform: scaleX(1); transform-origin: left; }
+}
 .ul-link svg { transition: transform 0.4s var(--ease-lux); }
-.ul-link:hover svg { transform: translateX(4px); }
+@media (hover: hover) and (pointer: fine) {
+  .ul-link:hover svg { transform: translateX(4px); }
+}
 
 /* --------------------------------------------------------------------------
    5. GLASS
@@ -421,7 +448,9 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
   .floater-pulse { animation: none; }
 }
 @keyframes floaterPulseSm { 0% { transform: scale(1); opacity: 0.45; } 70%, 100% { transform: scale(1.4); opacity: 0; } }
-.floater:hover { transform: translateY(-4px) scale(1.06); }
+@media (hover: hover) and (pointer: fine) {
+  .floater:hover { transform: translateY(-4px) scale(1.06); }
+}
 .floater--wa { background: #25d366; }
 .floater--call { background: var(--accent); color: #fff; }
 .floater--up { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); backdrop-filter: blur(10px); }
@@ -432,13 +461,19 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
    who reaches for it and absent for everyone who does not. */
 .floater-pulse { position: absolute; inset: 0; border-radius: 50%; background: #25d366;
   opacity: 0.34; z-index: -1; transition: transform 0.45s var(--ease-lux), opacity 0.45s var(--ease-lux); }
-.floater:hover .floater-pulse { transform: scale(1.35); opacity: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .floater:hover .floater-pulse { transform: scale(1.35); opacity: 0; }
+}
 /* Subtle lift on hover, matching the rest of the site's interaction language. */
 .floater { transition: transform 0.35s var(--ease-lux), box-shadow 0.35s var(--ease-lux); }
-.floater:hover { transform: translateY(-2px) scale(1.06); }
+@media (hover: hover) and (pointer: fine) {
+  .floater:hover { transform: translateY(-2px) scale(1.06); }
+}
 @media (prefers-reduced-motion: reduce) {
   .floater, .floater-pulse { transition: none; }
-  .floater:hover { transform: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .floater:hover { transform: none; }
+  }
 }
 @keyframes floaterPulse { 0% { transform: scale(1); opacity: 0.5; } 70%,100% { transform: scale(1.7); opacity: 0; } }
 
@@ -465,7 +500,7 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
    11. MODAL
    -------------------------------------------------------------------------- */
 .modal-scrim { position: fixed; inset: 0; z-index: 1000; background: rgba(4,5,6,0.72); backdrop-filter: blur(6px); display: grid; place-items: center; padding: 1.5rem; }
-.modal { position: relative; width: min(500px, 100%); max-height: 85vh; overflow-y: auto;
+.modal { position: relative; width: min(500px, 100%); max-height: 85dvh; overflow-y: auto;
   /* Reaching the end of the panel must not hand the gesture to the page
      underneath — the lock catches that anyway, this stops the rubber-band. */
   overscroll-behavior: contain; border-radius: var(--radius-lg); padding: clamp(1.75rem, 4vw, 2.75rem); background: var(--bg-elev); border: 1px solid var(--border); box-shadow: var(--shadow); }
@@ -475,7 +510,9 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
    fix the lightbox X already carries, for the same reason: the image is the
    later sibling. Hover keeps the quarter-turn it always had. */
 .modal-x { position: absolute; z-index: 3; top: 1.1rem; right: 1.1rem; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--bone-100); background: rgba(12,14,16,0.55); backdrop-filter: blur(6px); border: 1px solid rgba(247,242,232,0.22); transition: 0.3s; }
-.modal-x:hover { color: var(--text); background: rgba(12,14,16,0.78); border-color: var(--accent); transform: rotate(90deg); }
+@media (hover: hover) and (pointer: fine) {
+  .modal-x:hover { color: var(--text); background: rgba(12,14,16,0.78); border-color: var(--accent); transform: rotate(90deg); }
+}
 .modal-x:active { transform: rotate(90deg) scale(0.92); }
 .modal-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .success-note { display: flex; gap: 0.8rem; align-items: center; padding: 1.2rem; border-radius: 14px; background: rgba(var(--accent-rgb), 0.1); border: 1px solid rgba(var(--accent-rgb), 0.3); color: var(--accent-soft); }
@@ -691,7 +728,9 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
 .\!text-\[\#d31018\] { color: #d31018 !important; }
 .\!text-gray-700 { color: #374151 !important; }
 .\!text-gray-800 { color: #1f2937 !important; }
-.hover\:\!text-\[\#1A1D20\]:hover { color: #1A1D20 !important; }
+@media (hover: hover) and (pointer: fine) {
+  .hover\:\!text-\[\#1A1D20\]:hover { color: #1A1D20 !important; }
+}
 
 /* ---- Borders, radius, shadow -------------------------------------------- */
 .border-l-4 { border-left-width: 4px !important; border-left-style: solid !important; }

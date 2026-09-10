@@ -4190,7 +4190,6 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
     let shadowTail = -1;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
-      if (!visible) { last = now; return; }
       const dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
       last = now;
       update(playhead, dt, tailv);
@@ -4207,7 +4206,16 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       if (composer) composer.render(); else renderer.render(scene, camera);
     };
     update(0);
-    raf = requestAnimationFrame(loop);
+    /* THE LOOP IS PARKED WHEN THE STAGE IS OFF SCREEN, not just short-circuited
+       inside itself. It used to re-arm every frame and return early, which kept
+       a rAF callback on the main thread's critical path for the whole page —
+       cheap per call, but it is the frame budget of a phone scrolling through
+       twelve sections that this was spending. The observer below owns the
+       switch; `last` is cleared on park so the first frame back computes a
+       sane dt rather than a multi-second one. */
+    const start = () => { if (!raf) { last = 0; raf = requestAnimationFrame(loop); } };
+    const stop = () => { if (raf) { cancelAnimationFrame(raf); raf = 0; } };
+    start();
 
     const releaseFocus = () => { focusOn = false; };
     api.current = {
@@ -4233,6 +4241,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
     const io = new IntersectionObserver(([e]) => {
       visible = e.isIntersecting;
       el.style.visibility = visible ? '' : 'hidden';
+      if (visible) start(); else stop();
     }, { threshold: 0 });
     io.observe(el);
 

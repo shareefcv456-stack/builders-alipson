@@ -270,6 +270,10 @@ export default function StoryScroll() {
   const pinnedOut = useRef(pinnedAt('outro')).current;
   const [phase, setPhase] = useState(() => phaseAt(pinnedHero() ?? 0));
   const outro = useRef(0);      // 0..1 across act two — stats, gate, car, road
+  /* Restarts the playhead loop below, which parks itself once it has caught up
+     with the scroll. Held in a ref because the only caller — ScrollTrigger's
+     onUpdate — is created in a different effect. */
+  const wake = useRef<() => void>(() => {});
   const stats = useRef<HTMLDivElement>(null);
   /* One-way latch. A ref and a classList write, NOT React state: this is read
      and set from inside ScrollTrigger's onUpdate, and a setState there would
@@ -301,16 +305,33 @@ export default function StoryScroll() {
     if (!is3D) return;
     let raf = 0;
     if (still) { three.current?.update(1, 0.34); return; }
+    let lastTail = -1;
+    /* IT SLEEPS BETWEEN SCROLLS. This loop's only job is to ease `cur` toward
+       where the scroll wants the playhead — so once it has arrived and the
+       outro value has stopped moving there is nothing left to interpolate, and
+       re-arming anyway meant a rAF callback every frame for the entire life of
+       the page, hero on screen or twelve sections away. ScrollTrigger's
+       onUpdate is the only thing that can change either input, so that is what
+       wakes it (`wake.current`, below). It never parks before the lazy scene
+       has mounted, or the first playhead would never reach it. */
     const loop = () => {
-      raf = requestAnimationFrame(loop);
       const t = pinned ?? target.current;
+      const tail = pinnedOut ?? outro.current;
       if (cur.current < 0) cur.current = t;
       else cur.current += (t - cur.current) * EASE;
       if (Math.abs(t - cur.current) < 0.0002) cur.current = t;
-      three.current?.update(cur.current, pinnedOut ?? outro.current);
+      three.current?.update(cur.current, tail);
+      if (three.current && cur.current === t && tail === lastTail) { raf = 0; return; }
+      lastTail = tail;
+      raf = requestAnimationFrame(loop);
     };
+    wake.current = () => { if (!raf) raf = requestAnimationFrame(loop); };
     raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      raf = 0;
+      wake.current = () => {};
+    };
   }, [is3D, still, pinned, pinnedOut]);
 
   /**
@@ -549,6 +570,7 @@ export default function StoryScroll() {
             const build = clamp01(self.progress / BUILD_FRACTION);
             target.current = build;
             outro.current = span(BUILD_FRACTION, 1, self.progress);
+            wake.current();
             if (outro.current >= STATS_AT) revealStats();
             // Functional updater returning the SAME value makes React bail out,
             // so this is free on every frame that does not cross a boundary.

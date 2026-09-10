@@ -37,6 +37,29 @@ export const isLowPower = () => {
   );
 };
 
+/**
+ * NO REAL CURSOR — a phone or a tablet. Distinct from `isPhone` (a width) and
+ * from `isLite` (a budget): this is the question autoplay policy answers to.
+ * Every mobile browser refuses to start an UNMUTED video, however it was
+ * triggered, so the thing that needs to know is "is this a touch device", not
+ * "is this screen narrow" and not "can this GPU cope".
+ */
+export const isTouch = () =>
+  typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
+
+/**
+ * A REAL CURSOR IS PRESENT — the JS twin of the `@media (hover: hover) and
+ * (pointer: fine)` fence the stylesheet puts every `:hover` rule behind. A
+ * framer-motion `whileHover` is driven by pointerenter/pointerleave, which CSS
+ * cannot reach: on a touch screen the enter fires on tap and the leave may
+ * never come, so the card stays lifted. Anything hover-driven in JS asks this
+ * first, and asks it with the SAME query the CSS uses, so the two can never
+ * disagree about whether this device hovers.
+ */
+export const canHover = () =>
+  typeof window !== 'undefined' &&
+  window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
 export const isLite = () =>
   typeof window !== 'undefined' &&
   (isLowPower() || window.matchMedia('(prefers-reduced-motion: reduce)').matches);

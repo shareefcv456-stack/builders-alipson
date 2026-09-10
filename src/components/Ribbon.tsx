@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { STATS, type Stat } from '../data/site';
 import { useCountUp } from '../hooks/useCountUp';
 import { isCapture } from '../lib/capture';
+import { canHover } from '../lib/device';
 
 /* Slide-up + fade, staggered per card. Written inline rather than reusing
    ui/Reveal's Stagger because these cards live inside the pinned hero, which is
@@ -33,7 +34,13 @@ function Cell({ stat, index }: { stat: Stat; index: number }) {
          beats a `:hover` rule in the cascade — the CSS lift silently did
          nothing. whileHover composes with the entrance animation instead of
          fighting it. */
-      whileHover={{ y: -6 }}
+      /* MOUSE ONLY. framer drives this off pointerenter/pointerleave, and on a
+         touch screen the enter fires on tap while the leave often never does —
+         so the card stayed lifted 6px after a tap, and lifted again under a
+         finger that was only scrolling past it. `undefined` means framer never
+         attaches the listeners at all, rather than attaching them and animating
+         to nothing. Same query as the CSS hover fence, so they agree. */
+      whileHover={canHover() ? { y: -6 } : undefined}
       transition={{ type: 'spring', stiffness: 320, damping: 26 }}
     >
       {/* Two inner layers, not styling for its own sake: `-edge` is the 1px

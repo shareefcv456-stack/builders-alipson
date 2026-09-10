@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import Lenis from 'lenis';
+import { isLite } from '../lib/device';
 
 /**
  * Buttery smooth-scroll driven by Lenis, RAF-synced. Exposes the instance on
@@ -9,7 +10,22 @@ export function useLenis() {
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const noLenis = window.location.search.includes('nolenis');
-    if (reduce || noLenis) return;
+    /* NO SMOOTH-SCROLL LAYER ON A PHONE — this is the single biggest thing
+       standing between a mid-range Android and a smooth scroll on this page.
+       `syncTouch` means Lenis preventDefaults every touchmove, integrates the
+       position itself and drives the page with `scrollTo` on its own rAF: the
+       finger stops talking to the compositor's scroller and starts talking to
+       the main thread, which on this page is also running GSAP's pin, a WebGL
+       hero and two 2D canvases. Every frame the main thread misses is a frame
+       the scroll misses — that is the lag, and no amount of tuning `lerp` fixes
+       it, because the cost is the architecture and not the easing.
+       Taking it off hands scrolling back to the compositor, where it is
+       hardware-accelerated and cannot be blocked by JS at all. Nothing visual
+       is lost: every scroll-driven animation here is driven by ScrollTrigger,
+       which reads the native scroll position either way, and momentum on a
+       touch screen is the platform's job and better than ours.
+       Desktop keeps the smooth wheel exactly as authored. */
+    if (reduce || noLenis || isLite()) return;
 
     /* `lerp`, not `duration` + `easing`. Lenis accepts either, and lerp is the
        frame-rate-independent one: it eases a fixed FRACTION of the remaining

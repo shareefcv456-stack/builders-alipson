@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { isLite } from '../lib/device';
 
 /**
  * Subtle, scroll/ambient construction backgrounds for the body sections.
@@ -22,12 +23,29 @@ export default function AmbientCanvas({ variant, className }: { variant: Variant
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    /* DPR 1 ON A PHONE, 2 EVERYWHERE ELSE. This is a full-viewport canvas of
+       gradients and a few hundred fillRects, repainted continuously — at dpr 2
+       on a 412x900 phone that is 4x the fragments for line-work drawn at 5%
+       opacity behind body copy. Nobody can see the difference; the GPU can.
+       `lite` covers Save-Data and low-end desktops too, which is the point. */
+    const dpr = Math.min(window.devicePixelRatio || 1, isLite() ? 1 : 2);
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let W = 0, H = 0, raf = 0, visible = true;
+    /* HALF RATE ON A PHONE. SPEED is already 0.6 — this is a calm ambient
+       watermark, not motion anyone tracks — so 30fps looks identical and hands
+       every other frame back to the scroll. Time is read from the clock, not
+       accumulated per frame, so the animation runs at the same WALL SPEED at
+       either rate; only the sampling changes. */
+    const minFrameMs = isLite() ? 1000 / 30 : 0;
+    let W = 0, H = 0, raf = 0, visible = true, lastDraw = 0;
 
     const resize = () => {
-      W = canvas.clientWidth; H = canvas.clientHeight;
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      /* Mobile browsers fire resize every time the URL bar collapses. Writing
+         canvas.width reallocates the backing store and clears it, so bailing
+         when nothing changed is the difference between a no-op and a full
+         re-raster mid-scroll. */
+      if (w === W && h === H) return;
+      W = w; H = h;
       canvas.width = Math.floor(W * dpr); canvas.height = Math.floor(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
@@ -141,16 +159,32 @@ export default function AmbientCanvas({ variant, className }: { variant: Variant
     };
 
     const frame = (t: number) => { ctx.clearRect(0, 0, W, H); DRAW[variant](t); };
-    const loop = () => { if (visible) frame(performance.now() * 0.001 * SPEED); raf = requestAnimationFrame(loop); };
+    /* THE LOOP STOPS WHEN THE CANVAS LEAVES THE SCREEN — it does not merely skip
+       the draw. The old version scheduled a callback every frame for the life of
+       the page and returned early inside it, so two of these (Services and
+       Projects) were still waking the main thread 120 times a second while the
+       visitor read the footer. */
+    const loop = (now: number) => {
+      raf = requestAnimationFrame(loop);
+      if (now - lastDraw < minFrameMs) return;
+      lastDraw = now;
+      frame(now * 0.001 * SPEED);
+    };
+    const start = () => { if (!raf) raf = requestAnimationFrame(loop); };
+    const stop = () => { if (raf) { cancelAnimationFrame(raf); raf = 0; } };
 
     resize();
-    window.addEventListener('resize', resize);
-    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, { threshold: 0 });
+    window.addEventListener('resize', resize, { passive: true });
+    const io = new IntersectionObserver(([e]) => {
+      visible = e.isIntersecting;
+      if (reduce) return;
+      if (visible) start(); else stop();
+    }, { threshold: 0 });
     io.observe(canvas);
 
-    if (reduce) frame(1.5); else raf = requestAnimationFrame(loop);
+    if (reduce) frame(1.5); else start();
 
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); io.disconnect(); };
+    return () => { stop(); window.removeEventListener('resize', resize); io.disconnect(); };
   }, [variant]);
 
   return (

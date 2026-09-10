@@ -42,11 +42,33 @@ export default function Navbar() {
        lit up the pinned hero or the footer at all. */
     const PROBE = 160;
     let raf = 0;
+    /* THE UNDERLINE DOES NOT NEED 60 SAMPLES A SECOND. The two cheap questions
+       — has the page moved past 40px, past the gate — are plain `scrollY`
+       reads and stay per-frame. The scrollspy underneath is eleven
+       `getBoundingClientRect()` calls, and on a phone that is eleven forced
+       layouts on the frame budget of every scroll frame, to move an indicator
+       that a visitor cannot perceive changing faster than a few times a second.
+       150ms it is; the highlight still lands before the section does.
+       `document.getElementById` stays inside the loop on purpose: sections
+       mount lazily (see Deferred), so a cached node list would go stale. */
+    const SPY_MS = 150;
+    let spyAt = 0;
+    let trail = 0;
 
     const measure = () => {
       raf = 0;
       setScrolled(window.scrollY > 40);
       setPast(window.scrollY >= gateOpenScroll());
+
+      const now = performance.now();
+      if (now - spyAt < SPY_MS) {
+        /* TRAILING EDGE, or the throttle eats the sample that matters. A nav
+           click is one programmatic jump: drop its last scroll event and the
+           indicator stays on the section you just left. */
+        if (!trail) trail = window.setTimeout(() => { trail = 0; measure(); }, SPY_MS - (now - spyAt));
+        return;
+      }
+      spyAt = now;
 
       const atBottom =
         window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
@@ -70,11 +92,12 @@ export default function Navbar() {
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(measure); };
 
     window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+    window.addEventListener('resize', onScroll, { passive: true });
     // Deep links and reloads can land mid-page, where the gate is long gone.
     measure();
     return () => {
       if (raf) cancelAnimationFrame(raf);
+      if (trail) clearTimeout(trail);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
     };

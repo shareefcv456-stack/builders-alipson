@@ -10,14 +10,19 @@
 import assert from 'node:assert/strict';
 import { lockScroll, unlockScroll, __resetScrollLock } from './scrollLock.js';
 
-const stub = () => {
-  const lenis = { stopped: false, stops: 0, starts: 0, stop() { this.stopped = true; this.stops++; }, start() { this.stopped = false; this.starts++; } };
-  const doc = { documentElement: { style: { overflow: '' } } };
-  const win = { scrollY: 0, lenis, scrollTo: (_x: number, y: number) => { win.scrollY = y; } };
+type Lenis = { stopped: boolean; stops: number; starts: number; stop(): void; start(): void };
+
+/* `withLenis: false` is the PHONE, where hooks/useLenis deliberately never
+   constructs one — the branch that has to pin the body instead. */
+const stub = ({ withLenis = true } = {}) => {
+  const lenis: Lenis = { stopped: false, stops: 0, starts: 0, stop() { this.stopped = true; this.stops++; }, start() { this.stopped = false; this.starts++; } };
+  const body = { style: { position: '', top: '', left: '', right: '' } };
+  const doc = { documentElement: { style: { overflow: '' } }, body };
+  const win = { scrollY: 0, lenis: withLenis ? lenis : undefined, scrollTo: (_x: number, y: number) => { win.scrollY = y; } };
   (globalThis as Record<string, unknown>).document = doc;
   (globalThis as Record<string, unknown>).window = win;
   __resetScrollLock();
-  return { doc, win, lenis };
+  return { doc, win, lenis, body };
 };
 const locked = (d: { documentElement: { style: { overflow: string } } }) => d.documentElement.style.overflow === 'hidden';
 
@@ -65,6 +70,37 @@ const locked = (d: { documentElement: { style: { overflow: string } } }) => d.do
   assert.equal(lenis.stops, 100, 'Lenis stop/open pairing drifted');
   assert.equal(lenis.starts, 100, 'Lenis start/close pairing drifted');
   assert.equal(win.scrollY, 900, 'scroll position drifted over repeated opens');
+}
+
+/* ---- NO LENIS (a phone): the body is pinned, and released ---------------- */
+{
+  const { doc, win, body } = stub({ withLenis: false });
+  win.scrollY = 2600;
+  lockScroll();
+  assert.ok(locked(doc), 'document not locked without Lenis');
+  assert.equal(body.style.position, 'fixed', 'body not pinned — iOS would drag the page behind the modal');
+  assert.equal(body.style.top, '-2600px', 'pinned body did not carry the scroll offset, so the page jumps to the top');
+  win.scrollY = 0;                       // what pinning the body actually does
+  unlockScroll();
+  assert.equal(body.style.position, '', 'body left pinned after close — the page would never scroll again');
+  assert.equal(body.style.top, '', 'body offset left behind');
+  assert.ok(!locked(doc), 'overflow left on the document after close');
+  assert.equal(win.scrollY, 2600, 'scroll position not restored after unpinning');
+}
+
+/* ---- and it still balances over repeated opens on that path ------------- */
+{
+  const { doc, win, body } = stub({ withLenis: false });
+  win.scrollY = 512;
+  for (let i = 0; i < 50; i++) {
+    lockScroll(); lockScroll();          // an overlay opening on top of another
+    unlockScroll();
+    assert.ok(locked(doc) && body.style.position === 'fixed', 'inner overlay released the page early');
+    unlockScroll();
+    win.scrollY = 512;
+  }
+  assert.equal(body.style.position, '', 'body pin drifted over repeated opens');
+  assert.equal(win.scrollY, 512, 'scroll position drifted over repeated opens');
 }
 
 console.log('scrollLock.check: ok');

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CheckCircle2, ArrowUpRight, Download } from 'lucide-react';
 import Modal from './ui/Modal';
+import { isTouch } from '../lib/device';
 
 function SimpleForm({
   fields,
@@ -62,16 +63,30 @@ export function QuoteModal({ open, onClose }: { open: boolean; onClose: () => vo
 const STORY_ID = 'LJ0zferSLP8';
 
 export function VideoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  /* MUTED AUTOPLAY ON TOUCH, SOUND ON A DESKTOP. Every mobile browser blocks an
+     unmuted autoplay regardless of what triggered it, so on a phone the old URL
+     asked for something the browser was always going to refuse: the modal
+     opened on a still frame with a play button and the film simply did not
+     start. Muted, it starts on open and YouTube's own unmute control is right
+     there. A desktop click carries enough engagement to autoplay with sound, so
+     nothing changes there. Read per render, not at module load, so a device
+     that changes pointer type mid-session is still answered correctly. */
+  const src =
+    `https://www.youtube-nocookie.com/embed/${STORY_ID}` +
+    `?autoplay=1&rel=0&modestbranding=1&playsinline=1${isTouch() ? '&mute=1' : ''}`;
   return (
     <Modal open={open} onClose={onClose} wide>
       <div className="video-modal">
         {open && (
           <iframe
-            src={`https://www.youtube-nocookie.com/embed/${STORY_ID}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+            src={src}
             title="Together, We Build The Extraordinary — Alipson Builders"
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
             allowFullScreen
-            loading="lazy"
+            /* NOT `loading="lazy"`. The iframe is created by the click that
+               opens the modal and is on screen the moment it exists, so lazy
+               bought nothing and cost a deferral: the browser waits for layout
+               to settle before it starts the request. */
           />
         )}
       </div>
