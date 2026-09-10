@@ -77,13 +77,13 @@ export default function Projects() {
   useEffect(() => { setActive(0); }, [filter]);
 
   return (
-    /* THE SHEET IS A SIBLING OF THE SECTION, NOT A CHILD. `.section` carries
-       `isolation: isolate`, which opens a stacking context — and inside one,
-       the modal's `z-index: 1000` is only ever compared against its siblings in
-       that section. The fixed navbar (z-800) and the floating action buttons
-       (z-940) live outside it and so painted straight over the open sheet.
-       Hoisting it out of the section puts it back on the page's own stacking
-       order, where 1000 means what it says. */
+    /* The sheet is a sibling of the section rather than a child, which used to
+       be what kept it clear of `.section`'s `isolation: isolate` — inside that
+       stacking context its `z-index: 1000` was judged against the section's own
+       siblings, and the fixed navbar (z-800) and floating action column (z-940)
+       painted over it. <Modal> now portals itself to <body>, so this is belt
+       and braces rather than the fix; it costs nothing and keeps the sheet's
+       markup out of the scroll track. */
     <>
     <section id="work" className="section section--noir grain">
       <AmbientCanvas variant="cranes" className="z-10" />

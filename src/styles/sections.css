@@ -1810,7 +1810,11 @@
 .gitem__over span { font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-soft); }
 
 /* Lightbox */
-.lightbox { position: fixed; inset: 0; z-index: 1100; background: rgba(4,5,6,0.92); backdrop-filter: blur(8px); display: grid; place-items: center; padding: 2rem; }
+.lightbox { position: fixed; inset: 0; z-index: 1100; background: rgba(4,5,6,0.92); backdrop-filter: blur(8px); display: grid; place-items: center; padding: 2rem; overscroll-behavior: contain; }
+.lightbox:focus-visible, .modal:focus-visible { outline: none; }
+.lightbox__x:active, .lightbox__nav:active { transform: scale(0.92); }
+.lightbox__nav:active { transform: translateY(-50%) scale(0.92); }
+.lightbox__x:focus-visible, .lightbox__nav:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .lightbox img { max-width: min(1100px, 92vw); max-height: 86vh; border-radius: 12px; object-fit: contain; }
 /* WHY THE CLOSE BUTTON DID NOT CLOSE.
    The image is a `motion.img`, so framer writes a transform on it — and a
@@ -3282,7 +3286,9 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
      and it doubles as the visual break between sheet and scrim. */
   .modal--sheet::before { content: ''; display: block; width: 38px; height: 4px;
     border-radius: 4px; background: var(--border-strong); margin: -0.35rem auto 1rem; }
-  .modal--sheet .modal-x { top: 0.9rem; right: 0.9rem; width: 34px; height: 34px; }
+  /* 40px, not the 34px this was: below the comfortable tap target, on the one
+     device where the sheet is the primary way to read a project. */
+  .modal--sheet .modal-x { top: 0.9rem; right: 0.9rem; width: 40px; height: 40px; }
   .psheet__img { aspect-ratio: 16/9; margin-bottom: 1rem; }
 }
 
