@@ -151,6 +151,20 @@ const EASE = 0.12;
  */
 const BUILD_FRACTION = 0.70;
 
+/** WHEN THE FOUR FIGURES ARRIVE, as a fraction of ACT TWO (not of the trigger).
+ *  They used to ride the scroll: up at o 0.02, ducked out of the car's way at
+ *  0.50, back at 0.90 — three moves, every one of them re-rendered per frame,
+ *  and the first of them put four opaque cards over the building while the shot
+ *  that pays the whole hero off was still running. On a phone, where act two is
+ *  a third of the scroll it is on a desktop, that first rise lands early enough
+ *  to read as "the stats were there from the start".
+ *  So they now do ONE thing, ONCE, at the end: the camera has lifted, the car
+ *  has gone (its exit ends at o 0.96 and is off-frame well before), and the
+ *  hand-off to the section below is the next thing to happen — this is the beat
+ *  the choreography already called "the last thing standing". Latched, so
+ *  scrolling back up leaves them up rather than flickering. */
+const STATS_AT = 0.90;
+
 /**
  * Left-hand copy, keyed to construction progress. `at` is the scroll fraction
  * the beat takes over at. `accent` is the tail of the headline that carries the
@@ -257,7 +271,10 @@ export default function StoryScroll() {
   const [phase, setPhase] = useState(() => phaseAt(pinnedHero() ?? 0));
   const outro = useRef(0);      // 0..1 across act two — stats, gate, car, road
   const stats = useRef<HTMLDivElement>(null);
-  const cue = useRef<HTMLDivElement>(null);
+  /* One-way latch. A ref and a classList write, NOT React state: this is read
+     and set from inside ScrollTrigger's onUpdate, and a setState there would
+     re-render the hero mid-scrub for a thing CSS can do on its own. */
+  const revealed = useRef(false);
   const still = pinned === null && (isCapture() || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches));
 
   /**
@@ -346,50 +363,13 @@ export default function StoryScroll() {
     };
   }, [active, still, pinned]);
 
-  /** Stats bar, scroll cue and the section bridge ride act two. Style writes
-   *  only — running this through React state would re-render the tree on every
-   *  frame of the handoff, which is the one place the scroll must stay glassy. */
-  useEffect(() => {
-    if (still) return;
-    let raf = 0;
-    const loop = () => {
-      raf = requestAnimationFrame(loop);
-      const k = outro.current;
-      /* THE BAR RISES, THEN DUCKS FOR THE CAR, THEN COMES BACK.
-         It used to rise once and hold for the rest of the pin, on the reasoning
-         that the four figures are hero content rather than a transition effect.
-         That is still true — but the car exit runs from o 0.40 to 0.96 and
-         crosses the LOWER FOREGROUND, which is exactly the band the bar
-         occupies, so holding meant the payoff of the whole sequence played
-         behind four opaque cards.
-         So the bar ducks rather than leaves: down 60% of its own height and
-         back to 0.15, which keeps the figures present as a ghost instead of
-         yanking hero content off screen. It returns as the camera lifts at the
-         end of the shot and the road falls away, so the last thing standing
-         before the section hand-off is still the four numbers.
-         Pure function of `k`, like everything else here, so scrolling back up
-         un-ducks it on the way. */
-      const rise = span(0.02, 0.26, k);
-      // Out while the car is crossing the foreground, back once it has gone.
-      const duck = span(0.50, 0.62, k) * (1 - span(0.90, 0.985, k));
-      if (stats.current) {
-        const y = (1 - rise) * 100 + duck * 60;
-        stats.current.style.transform = `translate3d(0, ${y.toFixed(2)}%, 0)`;
-        stats.current.style.opacity = String(Math.min(1, rise * 2.2) * (1 - duck * 0.85));
-      }
-      // The cue appears once the stats are seated, and points onward.
-      if (cue.current) cue.current.style.opacity = String(span(0.5, 0.9, rise));
-      /* NO BRIDGE OVERLAY. Dissolving the render into the page's ground colour
-         was the right idea and the wrong colour: `--bg` is white in the default
-         theme, so the last beat played as a white wash rolling up over the
-         building, the road and the cars. The hand-over is done in the SCENE
-         instead — the camera rises, the road runs to a fogged horizon, and the
-         pin releases onto the next section the same way every other section
-         boundary on this page does. Darkness and depth, no overlay. */
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [still]);
+  /* NO rAF LOOP FOR THE STATS ANY MORE. The bar's three-move choreography was
+     the only thing this effect drove, and it wrote a transform and an opacity
+     on every animation frame of the entire pin to do it. One class, latched
+     from the scroll handler that already runs, replaces the lot — see
+     `revealStats` below and `.story__stats.is-in` in the stylesheet. The
+     hand-off needs no overlay: the camera rises, the road runs to a fogged
+     horizon, and the pin releases onto the next section. */
 
   /* Skipping the intro drops the visitor straight onto the hero. CinematicIntro
      is a sibling component, so it signals with a window event rather than a
@@ -522,6 +502,13 @@ export default function StoryScroll() {
 
     const lenis = (window as unknown as { lenis?: Lenis }).lenis;
     const onScroll = () => ScrollTrigger.update();
+    /* Idempotent and one-way: every caller below can fire on any number of
+       frames, and after the first one this is a boolean read. */
+    const revealStats = () => {
+      if (revealed.current) return;
+      revealed.current = true;
+      stats.current?.classList.add('is-in');
+    };
     if (pinned === null) lenis?.on('scroll', onScroll);
 
     const ctx = gsap.context(() => {
@@ -553,10 +540,16 @@ export default function StoryScroll() {
              this, a hard flick leaves a half-built building and a half-faded
              headline still resolving while the ribbon is already on screen. */
           fastScrollEnd: true,
+          /* Backstop for the flick that leaves the pin in one frame: onUpdate
+             does fire at progress 1, but a scroll that overshoots the trigger
+             entirely is the one case where "the end was reached" is easier to
+             ask ScrollTrigger than to infer from the last sample we saw. */
+          onLeave: revealStats,
           onUpdate: (self) => {
             const build = clamp01(self.progress / BUILD_FRACTION);
             target.current = build;
             outro.current = span(BUILD_FRACTION, 1, self.progress);
+            if (outro.current >= STATS_AT) revealStats();
             // Functional updater returning the SAME value makes React bail out,
             // so this is free on every frame that does not cross a boundary.
             const i = phaseAt(build);
@@ -597,7 +590,13 @@ export default function StoryScroll() {
           { autoAlpha: 0, ease: 'power1.out', duration: COPY_FADE * SPAN },
           COPY_OUT * SPAN);
 
-      if (pinned !== null) tl.progress(pinned);
+      /* `?hero=1&outro=0.95` freezes act two for a screenshot; the timeline is
+         paused, so onUpdate never runs and the bar would be missing from every
+         frame it belongs in. */
+      if (pinned !== null) {
+        tl.progress(pinned);
+        if ((pinnedOut ?? 0) >= STATS_AT) revealStats();
+      }
     }, root);
 
     if (pinned !== null) return () => { ctx.revert(); };
@@ -697,8 +696,10 @@ export default function StoryScroll() {
         <div className="story__stats" ref={stats}>
           {/* Cue lives INSIDE the stats block, in normal flow. Absolutely
               positioning it against the stage put it on top of the numbers as
-              soon as the bar rose past it. */}
-          <div className="story__cue" ref={cue} aria-hidden>
+              soon as the bar rose past it. It fades in off the same `is-in`
+              class the bar does, a quarter-second behind it — it used to need a
+              ref and a per-frame opacity write to do the same thing. */}
+          <div className="story__cue" aria-hidden>
             <span>Scroll to Explore Our Story</span>
             <ChevronDown size={16} />
           </div>

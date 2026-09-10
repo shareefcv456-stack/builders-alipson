@@ -315,11 +315,22 @@
 /* ==========================================================================
    STATS RIBBON
    ========================================================================== */
-/* The stats bar now lives INSIDE the pinned hero stage and rises over the 3D
-   canvas at the end of the scroll. z-index sits above the copy (30) but under
-   the gate (40); the transform is written from the scroll tail in JS. */
+/* The stats bar lives INSIDE the pinned hero stage and rises over the 3D canvas
+   ONCE, at the end of the scroll — see STATS_AT in StoryScroll for which beat
+   and why. z-index sits above the copy (30) but under the gate (40). */
 .story__stats { position: absolute; z-index: 32; left: 0; right: 0; bottom: 0;
-  opacity: 0; will-change: transform, opacity; pointer-events: auto;
+  /* HIDDEN, AND OFF THE STAGE — not merely transparent. Two reasons it is a
+     100% translate rather than a small one: the cards' count-up runs off their
+     own IntersectionObserver, so a bar sitting in the viewport at opacity 0
+     would burn its count while invisible and reveal four static numbers; and
+     nothing invisible is left over the bottom of the render to take a tap.
+     The scroll used to write both of these inline on every animation frame.
+     They are a class now (`is-in`, latched once from the scroll handler in
+     StoryScroll), so the reveal is one GPU-composited transition and the
+     scrub does no style work at all. */
+  opacity: 0; transform: translate3d(0, 100%, 0); pointer-events: none;
+  transition: transform 0.75s var(--ease-lux), opacity 0.5s ease-out;
+  will-change: transform, opacity;
   /* BARELY THERE. This used to reach 92% opaque #F8FAFC by 26% of its own
      height and go fully solid at 62%, which erased the bottom third of the
      render — the road and the site frontage vanished into a white slab well
@@ -329,7 +340,18 @@
   /* Halved. The old top padding was reserving room for the gradient's fade-in;
      with the fade gone it was just an empty white band above the cards. */
   padding-top: clamp(0.9rem, 2.5vh, 1.9rem); padding-bottom: clamp(1.1rem, 2.5vh, 1.8rem); }
-.story--static .story__stats { opacity: 1; transform: none; }
+.story__stats.is-in { opacity: 1; transform: none; pointer-events: auto; }
+/* The cue rides in behind the cards it sits above, rather than with them. */
+.story__stats.is-in .story__cue { opacity: 1; transition: opacity 0.5s ease-out 0.25s; }
+/* Reduced motion and screenshots hold the finished frame, so the bar is simply
+   there — it has no entrance to play. */
+.story--static .story__stats { opacity: 1; transform: none; pointer-events: auto; transition: none; }
+.story--static .story__cue { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  /* The fade stays, the 100% slide goes. The hidden state keeps its off-stage
+     transform — that is what holds the counters back, not decoration. */
+  .story__stats { transition: opacity 0.3s ease-out; }
+}
 
 /* Onward cue — sits just above the stats bar once it has seated. */
 .story__cue { display: flex; justify-content: center; align-items: center; gap: 0.55rem;
