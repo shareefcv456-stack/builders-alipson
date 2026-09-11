@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, m } from 'framer-motion';
 import { Menu, X, ArrowUpRight } from 'lucide-react';
 import Logo from './ui/Logo';
-import { NAV } from '../data/site';
+import { NAV, CONTACT } from '../data/site';
 import { gateOpenScroll } from './StoryScroll';
 import { useUI } from '../context/UIContext';
 import { navigate, usePath, isKnown } from '../router';
 import { onScrollFrame, viewportH } from '../lib/scrollbus';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -25,6 +26,16 @@ export default function Navbar() {
   const rawPath = usePath();
   const path = isKnown(rawPath) ? rawPath : '/';
   const isHome = path === '/';
+
+  /* THE PAGE BEHIND THE DRAWER DOES NOT MOVE. This was the one full-screen
+     overlay on the site not using the shared lock (the project sheet, the
+     lightbox and all three modals already do), so a finger that started on the
+     panel and carried past its edge scrolled the document underneath — you
+     closed the menu and the page was somewhere else, which reads as the app
+     having lost your place. `useScrollLock` is refcounted and restores the
+     exact offset on close; on a route change the restore lands first and App's
+     `toTop()` follows it, so a navigation still opens the new page at its top. */
+  useScrollLock(menuOpen);
 
   /* PUBLISH THE BAR'S REAL HEIGHT as `--nav-h`, so the page can offset anchor
      targets by what the navbar ACTUALLY measures rather than by a number typed
@@ -181,9 +192,17 @@ export default function Navbar() {
             exit={{ clipPath: 'inset(0 0 100% 0)' }}
             transition={{ duration: 0.6, ease: [0.76, 0, 0.24, 1] }}
           >
-            <button className="mnav__x" onClick={() => setMenuOpen(false)} aria-label="Close menu">
-              <X size={22} />
-            </button>
+            {/* HEADER ROW, IN FLOW. The close button used to be absolutely
+                positioned, which is why the panel carried 6rem of top padding
+                to clear it — six centimetres of empty navy above the first
+                link. In a flex row with the wordmark it takes its own height
+                and the panel's padding drops to the safe-area inset. */}
+            <div className="mnav__head">
+              <Logo compact />
+              <button className="mnav__x" onClick={() => setMenuOpen(false)} aria-label="Close menu">
+                <X size={20} />
+              </button>
+            </div>
             <div className="mnav__links">
               {NAV.map((n, i) => (
                 <m.a
@@ -201,9 +220,16 @@ export default function Navbar() {
               ))}
             </div>
             <div className="mnav__foot">
-              <button className="btn btn-primary" onClick={() => { setMenuOpen(false); openQuote(); }}>
-                Book Consultation
+              <button className="btn btn-primary mnav__cta" onClick={() => { setMenuOpen(false); openQuote(); }}>
+                Book Consultation <ArrowUpRight size={16} />
               </button>
+              {/* The two things somebody opening a builder's menu on a phone is
+                  most likely to want next. Plain links, so a tap dials or mails
+                  rather than routing — and both close the drawer on the way. */}
+              <div className="mnav__reach">
+                <a href={CONTACT.phoneHref} onClick={() => setMenuOpen(false)}>{CONTACT.phone}</a>
+                <a href={`mailto:${CONTACT.email}`} onClick={() => setMenuOpen(false)}>{CONTACT.email}</a>
+              </div>
             </div>
           </m.div>
         )}

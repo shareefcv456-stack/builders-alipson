@@ -30,14 +30,44 @@ const STAGES = [
   { n: '04', label: 'Finish', sub: 'Delivering dreams' },
 ];
 
+/* ---- THE TWO PHASES ------------------------------------------------------
+   ONE PLAYHEAD, TWO ACTS, AND A HARD SEAM BETWEEN THEM. Everything below is
+   expressed against `SPLIT`, so the two phases cannot drift apart or overlap:
+
+     0 → SPLIT   PHASE 1 · THE BLUEPRINT. The drafting sheet draws its six
+                 stages — plot and axes, raft and footings, columns, slabs,
+                 glazing, roof truss — at full opacity, over a photograph the
+                 blueprint wash is holding down to a toned navy underlay. What
+                 dominates is unmistakably a DRAWING.
+     SPLIT → 1   PHASE 2 · THE BUILD. The sheet drops to a technical ghost, the
+                 wash clears, and only NOW does the photographic film run its
+                 four dissolves to the finished, lit landmark.
+
+   THE FILM USED TO RUN ACROSS THE WHOLE RANGE, which is the bug this splits.
+   Frames 1-3 were dissolving underneath a wash sitting at 0.94 opacity — three
+   of the four transitions happened where nobody could see them — and the fourth,
+   the one that actually delivers the finished building, was still ramping at
+   build 1.0, by which point the section is leaving the viewport. So the reader
+   got a half-drawn elevation over a photograph of an unrelated stage in the
+   middle, and never quite got the payoff at the end. Confining the film to
+   phase 2 means every dissolve is visible and the landmark lands with runway to
+   spare. */
+const SPLIT = 0.5;
+/** The film finishes a beat BEFORE the playhead does, so the finished landmark
+ *  holds rather than still resolving as the panel scrolls away. */
+const FILM_END = 0.96;
+
 /* One frame of the film. A STEP-IN RAMP, NOT A CROSSFADE PEAK: each frame
    fades from 0 to 1 across the segment before it and then STAYS at 1, so the
    stack is always fully opaque and mid-dissolve never shows the navy card
    through two half-transparent photographs. Frame 0 sits at 1 throughout —
    it is the ground the rest are painted over. */
 function FilmFrame({ i, n, build }: { i: number; n: number; build: MotionValue<number> }) {
-  const seg = 1 / (n - 1);
-  const opacity = useTransform(build, [(i - 1) * seg, i * seg], [0, 1], { clamp: true });
+  /* The segment is a fraction of PHASE 2, not of the whole playhead. */
+  const seg = (FILM_END - SPLIT) / (n - 1);
+  const opacity = useTransform(
+    build, [SPLIT + (i - 1) * seg, SPLIT + i * seg], [0, 1], { clamp: true },
+  );
   return (
     <m.img
       className="studio__fr"
@@ -74,23 +104,21 @@ export default function Studio() {
      its own timeline, so feeding that from `build` plays the exact same
      sequence under the reader's thumb with no keyframe changed. The six stages
      draw across the first 40% of the clock. */
-  /* THE DRAWING FINISHES DRAWING BEFORE IT HANDS OVER. The six stages of the
-     sheet complete at 31% of its own clock, and scroll used to be mapped
-     0-40% of that — so the whole build was over by `build` 0.78 while the
-     sheet's opacity was already down to 0.14 by 0.55. The last two stages were
-     therefore drawn onto something nobody could see, and the middle of the
-     scroll showed a HALF-DRAWN elevation over a photograph of a different
-     stage. That is the layered look: two states arguing, neither dominant.
-     Now the drawing completes by `build` 0.58 — inside the STRUCTURE act, at
-     full opacity — and only then does the photograph take over. */
-  const buildDelay = useTransform(build, [0, 0.58], ['-0s', '-2.80s'], { clamp: true });
-  /* ONE HAND-OVER, LATE AND SHORT. Linework owns the frame through FOUNDATION,
-     FRAME and STRUCTURE; it drops to a technical ghost across FINISH. */
-  const sheetFade = useTransform(build, [0.6, 0.86], [1, 0.09], { clamp: true });
-  /* The blueprint wash holds the photograph back to a toned underlay for the
-     same three acts — so what dominates early is unmistakably a DRAWING — and
-     clears only as the finished landmark arrives. */
-  const wash = useTransform(build, [0.6, 0.9], [0.94, 0.04], { clamp: true });
+  /* PHASE 1 IS THE DRAWING, AND IT OWNS EXACTLY ITS OWN HALF. The sheet's six
+     stages complete at 2.80s of its 9s clock, so mapping that to [0, SPLIT]
+     means the last line lands precisely on the seam — the blueprint is finished,
+     at full opacity, at the moment the build takes over. Nothing is drawn after
+     the hand-over has started, which is what used to leave stages 5 and 6 being
+     inked onto something already fading out. */
+  const buildDelay = useTransform(build, [0, SPLIT], ['-0s', '-2.80s'], { clamp: true });
+  /* ONE HAND-OVER, ON THE SEAM AND SHORT. Linework owns the frame for the whole
+     of phase 1 and then drops to a technical ghost over the first third of
+     phase 2 — long enough to read as a dissolve, short enough that the reader is
+     never looking at two competing states for long. */
+  const sheetFade = useTransform(build, [SPLIT, SPLIT + 0.28], [1, 0.09], { clamp: true });
+  /* The wash lifts on the same seam, a little slower than the linework, so the
+     photograph resolves out from under the drawing instead of the two swapping. */
+  const wash = useTransform(build, [SPLIT, SPLIT + 0.32], [0.94, 0.04], { clamp: true });
   /* The scanner. One thin red line, bottom to top, driven by the same
      playhead: at 0 it sits on the foundation, at 1 it has run out at the
      parapet. It is a survey line, not a beam — see `.studio__scan`. */

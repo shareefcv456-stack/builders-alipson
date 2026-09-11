@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, m } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -122,6 +122,24 @@ const BUILD_END = 0.9;
 const COPY_OUT = 0.72;
 /** …and how long it takes to go. Short: it is leaving, not being animated. */
 const COPY_FADE = 0.08;
+/** WHEN THE TWO CTAs ARRIVE, as a fraction of the whole trigger.
+ *
+ *  They used to ride in with the headline at GATE_END * 0.5 — roughly the first
+ *  4% of the pin — which put "Explore Projects" and "Watch Story" on screen
+ *  while the doors were still parting and the site was a red survey grid over
+ *  bare ground. Two solid pills over the opening frame of a film is the one
+ *  thing that stops it reading as a film; and offering the exit before the
+ *  visitor has seen anything worth exiting for is backwards.
+ *
+ *  0.40 is the end of PHASE 2: the gate is long open, the excavation and the
+ *  footings are done and the columns are standing, so there is a BUILDING on
+ *  screen to have an opinion about. It is also comfortably before COPY_OUT
+ *  (0.72), which leaves the buttons a third of the runway to be tapped in —
+ *  the longest single window any element in the hero gets. */
+const CTA_AT = 0.40;
+/** Short, and deliberately shorter than the headline's entrance: the copy
+ *  RESOLVES, the buttons simply arrive. */
+const CTA_FADE = 0.06;
 /** Phase 1 and 2 edges (0.20 / 0.40). Derived from the drawing's own phase
  *  boundaries rather than restated, so the two files cannot drift out of sync. */
 const PHASE_1_END = GATE_END + P1_T * (PHASE_3_END - GATE_END);
@@ -549,7 +567,29 @@ export default function StoryScroll() {
     };
   }, [still]);
 
-  useEffect(() => {
+  /* `useLayoutEffect`, NOT `useEffect`, AND THAT IS THE WHOLE OF A CRASH FIX.
+   *
+   * ScrollTrigger's `pin: true` does not just set styles — it RE-PARENTS the
+   * element. It inserts a pin-spacer into the DOM where the section was and
+   * moves the section inside it. React knows nothing about that: its fiber
+   * still records `<main>` as the section's host parent.
+   *
+   * So on any navigation away from `/` — every link in the mobile drawer and
+   * the navbar — React unmounts this component and calls
+   * `main.removeChild(section)`. The section's real parent is the spacer, so
+   * the browser throws `NotFoundError: The node to be removed is not a child
+   * of this node`, React tears down the root, and the app stops responding.
+   * That is the "menu freezes on tap" symptom, and it fires on the FIRST
+   * navigation out of the home page.
+   *
+   * `ctx.revert()` below undoes the pin and puts the section back — but as a
+   * `useEffect` cleanup it is a PASSIVE effect, and React flushes those AFTER
+   * the mutation phase. The unwrap was arriving after the removal it needed to
+   * precede. A layout-effect cleanup runs synchronously during deletion,
+   * before the host node is touched, so the section is back under `<main>` by
+   * the time React reaches for it. This is the same reason GSAP's own
+   * `useGSAP` hook is built on `useLayoutEffect`. */
+  useLayoutEffect(() => {
     if (still || !root.current) return;
 
     const lenis = (window as unknown as { lenis?: Lenis }).lenis;
@@ -633,6 +673,21 @@ export default function StoryScroll() {
           { autoAlpha: 0 },
           { autoAlpha: 1, ease: 'power1.out', duration: PHASE_1_END * SPAN },
           GATE_END * SPAN * 0.5)
+        /* THE CTAs ARE THEIR OWN BEAT. They are children of `.story__finale-copy`,
+           so they inherit its fade and its clear-out for free — this tween only
+           holds them back until the build has something to show (see CTA_AT).
+           `immediateRender` is explicit rather than relied upon: the timeline is
+           scrubbed from progress 0, and the `from` state has to be on the
+           element at creation or the buttons flash visible on the first frame
+           before the scrub reaches this tween's start.
+           `y` and `autoAlpha`, both compositor-friendly, and autoAlpha rather
+           than opacity so the pills are out of the hit-testing and the a11y
+           tree while they are invisible — otherwise they take taps through the
+           gate that is covering them. */
+        .fromTo('.story__cta',
+          { autoAlpha: 0, y: 22 },
+          { autoAlpha: 1, y: 0, ease: 'power2.out', duration: CTA_FADE * SPAN, immediateRender: true },
+          CTA_AT * SPAN)
         // …and clear out before the handoff. autoAlpha (not opacity) so it also
         // goes visibility:hidden — at opacity 0 alone the CTAs stay clickable and
         // stay in the a11y tree, hovering invisibly over the stats section.
