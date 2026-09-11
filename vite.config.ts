@@ -86,10 +86,22 @@ export default defineConfig({
              serial download in front of first paint; as two they come down the
              same connection pool in parallel. */
           gsap: ['gsap'],
-          motion: ['framer-motion'],
+          /* framer-motion is NOT forced into one chunk any more, and that is
+             the whole point of the LazyMotion wrapper in App: naming it here
+             told Rollup to emit every export as a single eager module, so the
+             ~100 KB feature bundle `domAnimation` exists to defer came down in
+             front of first paint regardless. Left unnamed, Rollup splits it
+             along the dynamic import — the `m` primitives stay in the entry,
+             the DOM animation features land in their own async chunk. */
           scroll: ['lenis'],
           react: ['react', 'react-dom'],
-          icons: ['lucide-react'],
+          /* lucide-react is NOT named here either. Naming it collapsed every
+             icon the whole site imports into ONE chunk, and because the navbar
+             and the hero import from it, that chunk was eager — so the phone
+             downloaded the icons for the FAQ, the process timeline and the
+             contact form before it painted the hero. Rollup's default split
+             puts each icon in the chunk that actually reaches it, which for the
+             below-the-fold sections means their own lazy chunk. */
         },
       },
     },

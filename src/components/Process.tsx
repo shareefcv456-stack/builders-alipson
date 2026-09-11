@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { m, useScroll, useTransform } from 'framer-motion';
 import RevealText from './ui/RevealText';
 import Reveal from './ui/Reveal';
 import { PROCESS } from '../data/site';
@@ -29,7 +29,7 @@ export default function Process() {
 
         <div className="ptimeline" ref={ref}>
           <div className="ptimeline__rail">
-            <motion.div className="ptimeline__fill" style={{ scaleY: fill }} />
+            <m.div className="ptimeline__fill" style={{ scaleY: fill }} />
           </div>
 
           {PROCESS.map((s) => (

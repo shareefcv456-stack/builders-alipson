@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { m, useScroll, useTransform } from 'framer-motion';
 import { ShieldCheck, Landmark, Lightbulb, ArrowRight } from 'lucide-react';
 import Reveal, { Stagger, staggerItem } from './ui/Reveal';
 import RevealText from './ui/RevealText';
@@ -48,7 +48,7 @@ export default function AlipsonGate() {
         <div className="gate__stage" ref={stageRef}>
           <Reveal dir="scale">
             <figure className="gate__visual">
-              <motion.img
+              <m.img
                 src={media('gateway')}
                 alt="An Alipson entrance — lit portico, stone piers and step-lit approach at dusk"
                 style={{ scale: zoom }}
@@ -72,7 +72,7 @@ export default function AlipsonGate() {
 
         <Stagger className="gate__features" gap={0.12}>
           {FEATURES.map((f, i) => (
-            <motion.article
+            <m.article
               className={`gate__card ${active === i ? 'is-active' : ''}`}
               key={f.title}
               variants={staggerItem}
@@ -88,7 +88,7 @@ export default function AlipsonGate() {
               <button className="gate__more" onClick={(e) => { e.stopPropagation(); scrollToId('services'); }}>
                 Learn More <ArrowRight size={14} />
               </button>
-            </motion.article>
+            </m.article>
           ))}
         </Stagger>
       </div>

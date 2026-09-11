@@ -48,18 +48,14 @@
   .logo-lockup { height: 48px; }
   .logo--compact .logo-lockup { height: 42px; }
 }
-.logo-text { display: flex; flex-direction: column; line-height: 1; }
+
 /* Solid crimson, not a clipped gradient: the gradient faded to #a80a10 at the
    tail and washed out against dark bars, and background-clip:text drops the
    fill entirely wherever it is unsupported. One flat brand colour reads on
    both light and dark headers. */
-.logo-name {
-  font-family: var(--font-grotesk); font-weight: 800; font-size: 1.3rem; letter-spacing: 0.06em;
-  color: #d31018; -webkit-text-fill-color: #d31018; background: none;
-}
-.logo-name, .logo-sub { white-space: nowrap; }
-.logo-sub { font-family: var(--font-grotesk); font-weight: 700; font-size: 0.54rem;
-  letter-spacing: 0.46em; color: #0F172A; margin-top: 4px; }
+
+
+
 /* On the dark glass bar: solid crimson wordmark and mark, white subtext for
    contrast. Scoped to .nav — the footer sets its own on a light section.
    (This replaces the white-to-crimson shimmer sweep: "solid" and an animated
@@ -103,7 +99,16 @@
      it keeps the capsule's edge visible against a white section. */
   border: 1px solid rgba(255, 255, 255, 0.45);
   box-shadow: 0 10px 34px -20px rgba(15, 23, 42, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 0 0 1px rgba(15, 23, 42, 0.06);
-  transition: 0.5s var(--ease-lux);
+  /* NAMED PROPERTIES, NOT THE `all` SHORTHAND. `transition: 0.5s <ease>` with
+     no property list means `all`, so every animatable property on this element
+     — colour, background, border, all three shadows, the backdrop-filter —
+     joined a 500ms animation the moment ANY of them changed, on a `position:
+     fixed` capsule that is on screen for the entire page. Lighthouse reported
+     it under non-composited animations (`Unsupported CSS Property: color`).
+     `.nav.scrolled` changes exactly two things, and these are they. The
+     condense looks identical; what stops is ~30 property animations firing
+     alongside it to interpolate values that never move. */
+  transition: height 0.5s var(--ease-lux), margin-top 0.5s var(--ease-lux);
 }
 /* Scrolled only tightens it — the capsule itself is the resting state now. */
 .nav.scrolled .nav__inner { height: 64px; margin-top: 0.75rem; }
@@ -130,10 +135,8 @@
   .nav .btn-primary:hover { background: #A00D24; box-shadow: none; }
 }
 .nav__toggle { display: none; width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); place-items: center; color: #0F172A; }
-.theme-btn { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); display: grid; place-items: center; color: var(--text-soft); transition: 0.4s var(--ease-lux); }
-@media (hover: hover) and (pointer: fine) {
-  .theme-btn:hover { color: var(--accent-soft); border-color: var(--accent); transform: rotate(-20deg); }
-}
+
+
 
 @media (max-width: 1080px) {
   .nav__links, .nav__right .btn { display: none; }
@@ -162,81 +165,19 @@
 .mnav__foot a { color: rgba(248,248,246,0.72); font-size: 0.95rem; }
 
 /* ==========================================================================
-   HERO
+   HERO — WHAT IS LEFT OF IT
+   --------------------------------------------------------------------------
+   The `.hero__*` block that used to live here (montage frames, ken-burns
+   keyframes, scrim, vignette, glow, title, chapter caption, progress scrubber,
+   scroll hint) styled a hero component that is no longer in the tree: the hero
+   is `StoryScroll`, and it is styled by the `.story__*` block further down.
+   Nothing rendered a single one of those class names, so ~4 KB of rules — two
+   of them, `segFill` and `chapIn`, animating `width` and layout — shipped on
+   every load to match nothing. Recoverable from git if the old hero ever comes
+   back; until then the only survivors are the two rules below, which the
+   CURRENT components still use.
    ========================================================================== */
-.hero { position: relative; height: 100svh; min-height: 640px; overflow: hidden; display: flex; align-items: center; background: var(--ink-900); --accent-soft: #e8615b; }
-.hero__media { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
-
-/* ---- Cinematic image montage (cross-dissolving construction chapters) ---- */
-.hero__cine { position: absolute; inset: 0; }
-.hero__frame {
-  position: absolute; inset: 0;
-  background-size: cover; background-position: center;
-  opacity: 0; transform: scale(1.12);
-  transition: opacity 1.6s var(--ease-lux), transform 1.6s var(--ease-lux);
-  will-change: opacity, transform;
-  /* Prevent layout shift when image loads */
-  contain: layout;
-  background-attachment: local;
-}
-.hero__frame.is-active { 
-  opacity: 1; 
-  animation: kenBurns 7s linear forwards; 
-}
-.hero__frame--alt.is-active { animation-name: kenBurnsAlt; }
-@keyframes kenBurns {
-  from { transform: scale(1.05) translate(0, 0); }
-  to   { transform: scale(1.17) translate(-1.6%, -1.4%); }
-}
-@keyframes kenBurnsAlt {
-  from { transform: scale(1.17) translate(1.6%, 0); }
-  to   { transform: scale(1.05) translate(0, -1.6%); }
-}
-
-/* ---- Optional real film (fades over the montage once it can play) -------- */
-.hero__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.2s var(--ease-lux); pointer-events: none; }
-.hero__video[data-ready='true'] { opacity: 1; }
-
-/* ---- Cinematic grading: scrim + vignette + soft brand glow --------------- */
-.hero__scrim { position: absolute; inset: 0; z-index: 1;
-  background: linear-gradient(180deg, rgba(21,21,21,0.52) 0%, rgba(21,21,21,0.18) 32%, rgba(21,21,21,0.66) 78%, var(--ink-900) 100%); }
-:root[data-theme='light'] .hero__scrim {
-  background: linear-gradient(180deg, rgba(21,21,21,0.58) 0%, rgba(21,21,21,0.28) 40%, rgba(21,21,21,0.72) 82%, var(--bg) 100%); }
-.hero__vignette { position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background: radial-gradient(120% 88% at 50% 34%, transparent 52%, rgba(10,10,10,0.55) 100%); }
-.hero__glow { position: absolute; z-index: 1; pointer-events: none;
-  right: 6%; top: 24%; width: min(48vw, 680px); aspect-ratio: 1; border-radius: 50%;
-  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.22), rgba(var(--accent-rgb), 0.06) 44%, transparent 70%);
-  filter: blur(34px); mix-blend-mode: screen; }
-
-.hero__inner { 
-  position: relative; 
-  z-index: 3; 
-  width: 100%; 
-  max-width: var(--container); 
-  margin: 0 auto; 
-  padding: 0 var(--pad-x); 
-  transform: translateY(-50px);
-}
-.hero__eyebrow { margin-bottom: 1.6rem; color: var(--accent-soft); }
-.hero__title { 
-  font-family: var(--font-grotesk); 
-  font-weight: 800; 
-  text-transform: uppercase; 
-  font-size: clamp(2.05rem, 6.8vw, 5.8rem); 
-  line-height: 0.98; 
-  letter-spacing: -0.01em; 
-  color: var(--bone-100); 
-  /* Optimize text rendering for mobile */
-  text-shadow: 0 1px 24px rgba(0,0,0,0.35);
-  /* Prevent paint thrashing during animations */
-  will-change: contents;
-  /* Ensure FOUT doesn't cause layout shift */
-  contain: layout style paint;
-}
-.hero__title em { font-style: normal; color: var(--accent-soft); }
 .split-line { display: block; overflow: hidden; padding-bottom: 0.05em; }
-.hero__title .hl { display: block; will-change: transform; }
 
 /* "Watch Story" — NO GLOW. The play disc used to run a pulsing crimson
    box-shadow (`watchGlow`), which bled a red halo out over the 3D render behind
@@ -266,37 +207,10 @@
     box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.5), 0 3px 10px rgba(6, 12, 26, 0.22); }
 }
 .btn-watch:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.hero__sub { margin-top: 1.2rem; display: flex; flex-wrap: wrap; gap: 0.45rem 1.15rem; color: rgba(248,248,246,0.9); font-family: var(--font-grotesk); font-size: clamp(0.92rem, 1.25vw, 1.12rem); letter-spacing: 0.01em; }
-.hero__sub span { position: relative; }
-.hero__sub span:not(:last-child)::after { content: '·'; position: absolute; right: -0.72rem; color: var(--accent-soft); }
-.hero__cta { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; }
-.hero__trust { margin-top: 2rem; display: inline-flex; align-items: center; gap: 0.6rem; color: rgba(248,248,246,0.62); font-family: var(--font-grotesk); font-size: 0.8rem; letter-spacing: 0.04em; }
-.hero__trust svg { color: var(--accent-soft); }
 
-/* ---- Chapter caption — a passive scene marker (top-right) ---------------- */
-.hero__chapter { position: absolute; z-index: 3; right: var(--pad-x); top: clamp(6.5rem, 15vh, 9rem); display: flex; align-items: flex-start; gap: 1rem; text-align: right; max-width: min(42vw, 340px); }
-.hero__chapter-idx { font-family: var(--font-display); font-weight: 300; font-size: clamp(2rem, 4vw, 3.1rem); line-height: 0.9; color: var(--bone-100); }
-.hero__chapter-idx i { font-style: normal; font-size: 0.42em; color: var(--text-mute); vertical-align: super; margin-left: 2px; }
-.hero__chapter-body { display: flex; flex-direction: column; gap: 0.28rem; align-items: flex-end; padding-top: 0.2rem; animation: chapIn 0.9s var(--ease-lux) both; }
-.hero__chapter-title { font-family: var(--font-grotesk); font-size: 0.74rem; font-weight: 600; letter-spacing: 0.26em; text-transform: uppercase; color: var(--accent-soft); }
-.hero__chapter-cap { font-family: var(--font-grotesk); font-size: 0.82rem; line-height: 1.45; color: rgba(248,248,246,0.72); }
-@keyframes chapIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@media (max-width: 720px) { .hero__chapter { display: none; } }
 
-/* ---- Scene progress — passive film scrubber (NOT clickable navigation) --- */
-.hero__progress { position: absolute; z-index: 3; left: var(--pad-x); right: var(--pad-x); bottom: clamp(1.2rem, 3vh, 2rem); display: flex; gap: 0.5rem; }
-.hero__progress-seg { position: relative; flex: 1; height: 2px; border-radius: 2px; background: rgba(248,248,246,0.16); overflow: hidden; }
-.hero__progress-seg i { position: absolute; inset: 0; width: 0; background: var(--accent); }
-.hero__progress-seg.is-done i { width: 100%; }
-.hero__progress-seg.is-active i { animation: segFill linear forwards; }
-@keyframes segFill { from { width: 0; } to { width: 100%; } }
 
-/* Minimal scroll hint — small label + thin vertical line (no cursor motif). */
-.hero__scroll { position: absolute; z-index: 3; bottom: 2.4rem; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 0.85rem; color: var(--text-mute); }
-.hero__scroll span { font-family: var(--font-grotesk); font-size: 0.62rem; letter-spacing: 0.32em; text-transform: uppercase; }
-.hero__scroll-line { width: 1px; height: 42px; background: linear-gradient(to bottom, rgba(248,248,246,0.55), transparent); }
-@media (max-width: 720px) { .hero__scroll { display: none; } }
-@media (max-height: 680px) { .hero__scroll { display: none; } }
+
 
 /* Video tour modal — a standard responsive 16:9 player, not a cropped strip.
    THE IFRAME HAD NO RULE. Only `.video-modal video` was styled, so the YouTube
@@ -442,7 +356,13 @@
    border and both shadows are now real properties on one element.            */
 .ribbon__cell {
   position: relative;
-  transition: all 0.3s ease;
+  /* NO TRANSITION. It was `all 0.3s ease`, and there is nothing on this element
+     left for it to run: the hover lift is an inline transform written by
+     framer-motion (see the note below), and the hover styling belongs to
+     `.ribbon__cell-edge`, which carries its own scoped transition. So `all`
+     was subscribing four cards in the pinned hero to a 300ms non-composited
+     animation of every property — including `color`, which is what Lighthouse
+     named — to interpolate nothing. Removing it changes no pixel. */
 }
 /* No transform here — framer-motion writes an inline transform on these cards
    (the entrance animation), and an inline transform beats any CSS rule, so the
@@ -2164,19 +2084,15 @@
 .contact__map { margin-top: 1.5rem; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); height: 240px; }
 .contact__map iframe { width: 100%; height: 100%; border: 0; filter: grayscale(0.6) invert(0.9) contrast(0.9); }
 :root[data-theme='light'] .contact__map iframe { filter: grayscale(0.3); }
-.contact__map-load { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.45rem;
-  background: var(--surface-2); color: var(--text-soft); font-family: var(--font-grotesk); font-size: 0.92rem; font-weight: 600;
-  border: 0; cursor: pointer; transition: background-color 0.3s var(--ease-lux), color 0.3s var(--ease-lux); }
+
 .contact__map-load svg { color: var(--accent-soft); }
 .contact__map-load small { font-weight: 400; font-size: 0.78rem; color: var(--text-mute); max-width: 30ch; text-align: center; }
-.contact__map-load:focus-visible { background: var(--tint); color: var(--text); }
+
 /* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
    edit the other. `.is-active` (tap) and `:has(:focus-visible)`
    (keyboard) stay outside the fence: those are real on a touch screen,
    `:hover` is not. */
-@media (hover: hover) and (pointer: fine) {
-  .contact__map-load:hover { background: var(--tint); color: var(--text); }
-}
+
 .contact__form { padding: clamp(1.6rem, 4vw, 2.6rem); border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--border); }
 .contact__form h3 { font-family: var(--font-grotesk); font-weight: 600; font-size: 1.5rem; margin-bottom: 0.4rem; }
 .contact__form > p { color: var(--text-mute); font-size: 0.9rem; margin-bottom: 1.8rem; }
@@ -2220,7 +2136,7 @@
 /* The gradient and the whole dark token set come from `section--noir` on the
    element (it is declared further down, so it wins on source order); the flat
    #0B132B above is the floor if that class is ever dropped. */
-.footer__cta { position: relative; z-index: 1; text-align: center; padding-block: clamp(2rem, 4vw, 3rem); border-bottom: 1px solid var(--border); }
+
 .footer__cta h2 { font-family: var(--font-display); font-weight: 300; font-size: clamp(2.4rem, 7vw, 5.5rem); line-height: 1; letter-spacing: -0.02em; }
 .footer__cta h2 em { font-style: italic; color: var(--accent-soft); }
 /* Top row — Brand · Quick Links · Contact (clean 3-column) */
@@ -2265,7 +2181,7 @@
 @media (hover: hover) and (pointer: fine) {
   .footer__col a:hover { color: var(--accent-soft); }
 }
-.footer__news { display: flex; margin-top: 1rem; border: 1px solid var(--border); border-radius: 100px; overflow: hidden; padding: 0.3rem 0.3rem 0.3rem 1.1rem; }
+
 .footer__news input { flex: 1; background: none; border: none; outline: none; color: var(--text); font-size: 0.88rem; }
 .footer__news button { width: 42px; height: 42px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; flex-shrink: 0; }
 /* Bottom bar — copyright and legal links. The giant ALIPSON watermark that used
@@ -2501,10 +2417,9 @@
   letter-spacing: -0.02em; line-height: 1.16; color: #fff; max-width: 18ch; text-wrap: balance;
   text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 6px 34px rgba(0,0,0,0.95); }
 /* words animate individually — inline-block so y/blur transforms apply */
-.intro__word { display: inline-block; margin-right: 0.26em; will-change: transform, opacity, filter; }
 
-.intro__dots { position: absolute; z-index: 20; bottom: clamp(1.6rem, 4vh, 2.6rem); left: 50%;
-  transform: translateX(-50%); display: flex; gap: 0.5rem; }
+
+
 .intro__dots span { width: 22px; height: 2px; border-radius: 2px; background: rgba(248,248,246,0.22);
   transition: background 0.5s var(--ease-lux); }
 .intro__dots span.is-on { background: var(--accent); }
@@ -2572,22 +2487,18 @@
 /* ==========================================================================
    INTRO — brand statement & heritage
    ========================================================================== */
-.intro__grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: clamp(2rem, 5vw, 4.5rem); align-items: start; }
-@media (max-width: 900px) { .intro__grid { grid-template-columns: 1fr; } }
-.intro__title { margin-top: 1.3rem; max-width: 18ch; }
-.intro__badges { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-top: clamp(1.6rem, 3vw, 2.2rem); }
+
+
+
+
 /* Soft red glass badges — the accent as a highlight, not a surface. */
-.intro__badge { display: flex; align-items: baseline; gap: 0.55rem; padding: 0.75rem 1.15rem; border-radius: 100px;
-  background: var(--tint); border: 1px solid rgba(var(--accent-rgb), 0.22); }
+
 .intro__badge b { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; line-height: 1; color: var(--accent); }
 .intro__badge span { font-family: var(--font-grotesk); font-size: 0.78rem; letter-spacing: 0.06em; color: var(--text-soft); }
-.intro__copy { padding: clamp(1.5rem, 3vw, 2.2rem); border-radius: var(--radius-lg);
-  background: var(--bg-alt); border: 1px solid var(--border); }
+
 .intro__copy p { color: var(--text-soft); line-height: 1.85; }
-.intro__link { margin-top: 1.5rem; color: var(--accent); font-weight: 600; }
-@media (hover: hover) and (pointer: fine) {
-  .intro__link:hover { color: var(--accent-deep); }
-}
+
+
 
 /* ==========================================================================
    ALIPSON GATE — signature entry architecture
@@ -3433,7 +3344,7 @@
      carries `!important`, so a component-level rule cannot win — and capping it
      here fixes every future user of the class too. Later cascade position plus
      matching `!important` is what takes it. */
-  .backdrop-blur-md { backdrop-filter: blur(5px) !important; -webkit-backdrop-filter: blur(5px) !important; }
+
   .ribbon__cell-edge { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
   .floater--up { backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
   .btn-ghost { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
@@ -3487,7 +3398,7 @@
    pass, so this is roughly an eighth of the work for a barely different look. */
 @media (max-width: 767.98px) {
   .glass { backdrop-filter: blur(8px) saturate(1.2); -webkit-backdrop-filter: blur(8px) saturate(1.2); }
-  .testimonial__card, .process__step { backdrop-filter: blur(8px) saturate(115%); -webkit-backdrop-filter: blur(8px) saturate(115%); }
+
   .btn-watch, .intro__skip { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 }
 

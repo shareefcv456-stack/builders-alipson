@@ -1,11 +1,10 @@
 import { Suspense, lazy, useEffect, useState, type CSSProperties, type ReactElement } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, LazyMotion } from 'framer-motion';
 import { ThemeProvider } from './context/ThemeContext';
 import { UIProvider } from './context/UIContext';
 import { useLenis } from './hooks/useLenis';
 import { isLite } from './lib/device';
 
-import CinematicIntro from './components/CinematicIntro';
 import DroneBackground from './components/DroneBackground';
 import Navbar from './components/Navbar';
 import FloatingActions from './components/FloatingActions';
@@ -20,6 +19,14 @@ import { usePath, isKnown, currentPath, toTop } from './router';
    approach instead of competing with the hero for the first second of the page.
    Modals are lazy for a different reason: they are never on screen until the
    user opens one. */
+/* THE PHONE NEVER RENDERS IT. `loaded` initialises to true on a lite device,
+   on any route but `/`, and on `?noloader` — so on every mobile load this
+   component was 200 lines and eighteen framer-motion elements parsed at first
+   paint for a subtree that is unreachable. Eager-imported it also dragged the
+   full motion feature set past the LazyMotion split below. Lazy, it is fetched
+   only on the desktop loads that actually play it. */
+const CinematicIntro = lazy(() => import('./components/CinematicIntro'));
+
 const Intro = lazy(() => import('./components/Intro'));
 const AlipsonGate = lazy(() => import('./components/AlipsonGate'));
 const Studio = lazy(() => import('./components/Studio'));
@@ -124,8 +131,28 @@ export default function App() {
 
   return (
     <ThemeProvider>
+      {/* ONE ANIMATION ENGINE, LOADED OFF THE CRITICAL PATH.
+          `m.div` bundles the whole DOM feature set (animation, exit,
+          gestures, layout) into whatever chunk imports it — which for the five
+          eager components on this page meant ~145 KB of script in front of
+          first paint, to run a handful of opacity/transform crossfades.
+          `LazyMotion` + the `m` primitives invert that: `m` is the renderer
+          with no features attached (a few KB), and `domAnimation` — animation
+          and exit, everything this site's eager components actually use —
+          arrives as its own async chunk a moment later. Nothing changes
+          visually: the first frame renders at the element's initial state and
+          the animation runs as authored once the features land, which is the
+          same frame budget the crossfade already waited for.
+          NO `strict`, deliberately: the lazily-mounted sections below still
+          use full `motion.*` components, and they are past the fold with their
+          own chunks — there is nothing to save by converting them too. */}
+      <LazyMotion features={() => import('framer-motion').then((m) => m.domAnimation)}>
       <UIProvider value={{ openQuote: () => setQuoteOpen(true), openBrochure: () => setBrochureOpen(true), openVideo: () => setVideoOpen(true) }}>
-        <AnimatePresence>{isHome && !loaded && <CinematicIntro onDone={() => setLoaded(true)} />}</AnimatePresence>
+        <AnimatePresence>
+          {isHome && !loaded && (
+            <Suspense fallback={null}><CinematicIntro onDone={() => setLoaded(true)} /></Suspense>
+          )}
+        </AnimatePresence>
 
         <DroneBackground />
         <Navbar />
@@ -184,6 +211,7 @@ export default function App() {
           </Suspense>
         )}
       </UIProvider>
+      </LazyMotion>
     </ThemeProvider>
   );
 }

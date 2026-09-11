@@ -143,7 +143,12 @@ body {
      was already switched to for exactly this reason (see the note there); this
      rule was the one left behind. */
   overflow-x: clip;
-  transition: color 0.5s ease-in-out;
+  /* NO `transition: color` ON <body>. It was here to cross-fade the light/dark
+     theme swap — but the theme toggle is gone (ThemeContext is a stub that
+     pins 'light' and whose `toggle` is a no-op), so nothing can change body's
+     colour any more. What it still did was keep a running, non-composited
+     colour animation on the root element of the document, which is how `body`
+     ended up in Lighthouse's non-composited-animations list. */
   /* Optimize painting performance */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -151,18 +156,17 @@ body {
 
 /* ---- FPV drone fly-through: fixed full-viewport video behind all content ---- */
 .drone { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--bg); }
-.drone__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; will-change: transform; }
-.drone--failed .drone__video { opacity: 0; }   /* missing/broken file → stay ivory */
+
+   /* missing/broken file → stay ivory */
 /* Soft ivory wash so the drone never fights the foreground text */
-.drone__veil { position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(180deg, rgba(var(--bg-rgb), 0.28) 0%, rgba(var(--bg-rgb), 0.12) 45%, rgba(var(--bg-rgb), 0.34) 100%); }
+
 
 /* Smooth, layout-shift-free theme transitions across surfaces */
 .section, .bg-alt, .bg-elev, .nav.scrolled .nav__inner, .glass,
 .svc, .proj, .std__card, .tcard, .founder__quote, .founder__caption,
 .founder__values, .ptl__node, .ptl__body, .contact__form, .contact__ic,
 .svc__icon, .std__ic, .studio__hl-icon, .filter, .btn-ghost, .theme-btn,
-.faq__item, .field input, .field textarea, .footer, .hero__badge {
+.faq__item, .field input, .field textarea, .footer {
   transition: background-color 0.5s ease-in-out, border-color 0.5s ease-in-out, color 0.5s ease-in-out, box-shadow 0.5s ease-in-out;
 }
 
@@ -263,9 +267,9 @@ main > [id], footer[id], section[id] {
 .ambient-mask { position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background: rgba(255, 255, 255, 0.62); }
 .section > .container { position: relative; z-index: 1; }
-.section--tight { padding-block: clamp(2rem, 4vw, 3rem); }
+
 .bg-alt { background: var(--bg-alt); }
-.bg-elev { background: var(--bg-elev); }
+
 
 .eyebrow {
   display: inline-flex; align-items: center; gap: 0.7rem;
@@ -373,10 +377,9 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
    7. LOADER
    -------------------------------------------------------------------------- */
 .loader { position: fixed; inset: 0; z-index: 10000; background: var(--ink-900); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2rem; }
-.loader-brand { font-family: var(--font-display); font-weight: 300; letter-spacing: 0.5em; font-size: clamp(1.4rem, 4vw, 2.4rem); color: var(--bone-100); padding-left: 0.5em; }
-.loader-bar { width: min(320px, 60vw); height: 1px; background: rgba(255,255,255,0.12); overflow: hidden; }
-.loader-bar span { display: block; height: 100%; background: var(--accent); transform-origin: left; }
-.loader-count { font-family: var(--font-grotesk); font-size: 0.8rem; letter-spacing: 0.2em; color: var(--text-mute); }
+
+
+
 
 /* --------------------------------------------------------------------------
    8. MARQUEE
@@ -520,25 +523,16 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
 /* ---- MOBILE OPTIMIZATION ------------------------------------------------- */
 @media (max-width: 768px) {
   /* Skip expensive text-shadows on mobile to reduce paint time */
-  .hero__title {
-    text-shadow: 0 1px 8px rgba(0,0,0,0.5);
-    font-size: clamp(1.75rem, 5vw, 3rem);
-  }
+
   
   /* Reduce animation complexity on mobile */
-  .hero__frame {
-    transition: opacity 1s ease-out, transform 1s ease-out;
-  }
+
   
   /* Disable expensive decorative elements on mobile */
-  .hero__glow {
-    display: none;
-  }
+
   
   /* Optimize vignette for mobile */
-  .hero__vignette {
-    opacity: 0.7;
-  }
+
   
   /* Reduce button complexity */
   .btn-watch {
@@ -546,10 +540,17 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
     font-size: 0.85rem;
   }
   
+  /* NO `animation: watchGlow` HERE ANY MORE. The glow was deliberately dropped
+     from `.btn-watch__play` (see the note above the rule in sections.css) and
+     its @keyframes went with it — but this mobile override kept naming it. An
+     animation-name that resolves to nothing still creates a live CSS animation
+     on the element: it runs forever, on the main thread, on the one screen
+     size where that matters, and it is exactly the kind of element the
+     non-composited-animations audit reports. It painted nothing either way,
+     so removing it is a pure deletion with no visual change. */
   .btn-watch__play {
     width: 34px;
     height: 34px;
-    animation: watchGlow 1.8s ease-in-out infinite;
   }
 }
 
@@ -566,13 +567,13 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
 
 /* Custom UI Fix Utilities */
 .bg-black\/70 { background-color: rgba(0, 0, 0, 0.7) !important; }
-.backdrop-blur-md { backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; }
+
 .text-white { color: #ffffff !important; }
-.font-semibold { font-weight: 600 !important; }
-.shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important; }
-.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
-.py-1\.5 { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
-.rounded-full { border-radius: 9999px !important; }
+
+
+
+
+
 
 .bg-\[\#0D1117\] { 
   background-color: #0D1117 !important; 
@@ -585,15 +586,15 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
   --text-mute: rgba(255, 255, 255, 0.8);
   color: #ffffff !important;
 }
-.text-\[\#d31018\] { color: #d31018 !important; }
 
-.text-gray-900\/10 { color: rgba(11, 27, 79, 0.10) !important; }
-.font-black { font-weight: 900 !important; }
-.text-\[12vw\] { font-size: 12vw !important; }
-.tracking-widest { letter-spacing: 0.1em !important; }
+
+
+
+
+
 .uppercase { text-transform: uppercase !important; }
-.text-center { text-align: center !important; }
-.select-none { user-select: none !important; }
+
+
 .pointer-events-none { pointer-events: none !important; }
 
 /* Drone Background Video Utilities */
@@ -602,60 +603,56 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
 .inset-0 { top: 0 !important; right: 0 !important; bottom: 0 !important; left: 0 !important; }
 .w-full { width: 100% !important; }
 .h-full { height: 100% !important; }
-.object-cover { object-fit: cover !important; }
+
 .z-0 { z-index: 0 !important; }
 .z-\[-1\] { z-index: -1 !important; }
-.bg-black\/60 { background-color: rgba(0, 0, 0, 0.6) !important; }
+
 .backdrop-blur-sm { backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; }
 
 /* Tailwind Typography & Flex Utilities */
 .text-left { text-align: left !important; }
-.font-bold { font-weight: 700 !important; }
-.tracking-tight { letter-spacing: -0.025em !important; }
+
+
 .text-white { color: #ffffff !important; }
 .flex-col { flex-direction: column !important; }
-.items-stretch { align-items: stretch !important; }
+
 .gap-4 { gap: 1rem !important; }
 
 @media (min-width: 640px) {
   .sm\:text-center { text-align: center !important; }
-  .sm\:text-5xl { font-size: 3rem !important; line-height: 1 !important; }
+
   .sm\:flex-row { flex-direction: row !important; }
   .sm\:items-center { align-items: center !important; }
 }
-@media (min-width: 1024px) {
-  .lg\:text-6xl { font-size: 3.75rem !important; line-height: 1 !important; }
-}
+
 .text-3xl { font-size: 1.875rem !important; line-height: 2.25rem !important; }
 
 /* Readability Colors */
-.text-gray-900 { color: #1A1D20 !important; }
-.text-\[\#1A1D20\] { color: #1A1D20 !important; }
-.bg-\[\#FFFFFF\] { background-color: #FFFFFF !important; }
+
+
+
 .bg-\[\#0D1117\] { background-color: #0D1117 !important; }
-.bg-black\/75 { background-color: rgba(0, 0, 0, 0.75) !important; }
-.text-xs { font-size: 0.75rem !important; line-height: 1rem !important; }
-.px-3 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
-.py-1 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
-.rounded-full { border-radius: 9999px !important; }
+
+
+
+
+
 .border { border-width: 1px !important; }
-.border-white\/20 { border-color: rgba(255, 255, 255, 0.2) !important; }
-.bg-gradient-to-t { background-image: linear-gradient(to top, var(--tw-gradient-stops)) !important; }
-.from-black\/80 { --tw-gradient-from: rgba(0,0,0,0.8); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(0,0,0,0)); }
-.via-black\/40 { --tw-gradient-stops: var(--tw-gradient-from), rgba(0,0,0,0.4), var(--tw-gradient-to, rgba(0,0,0,0)); }
-.to-transparent { --tw-gradient-to: transparent; }
+
+
+
+
+
 
 /* Grid Utilities */
 .grid { display: grid !important; }
-.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
-.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-.gap-8 { gap: 2rem !important; }
 
-@media (min-width: 768px) {
-  .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
-}
-.text-\[14vw\] { font-size: 14vw !important; }
-.text-\[12vw\] { font-size: 12vw !important; }
+
+
+
+
+
+
 
 /* ==========================================================================
    MISSING UTILITY LAYER
@@ -668,10 +665,10 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
 .relative { position: relative !important; }
 .z-10 { z-index: 10 !important; }
 .z-20 { z-index: 20 !important; }
-.left-4 { left: 1rem !important; }
-.top-4 { top: 1rem !important; }
-.overflow-hidden { overflow: hidden !important; }
-.h-auto { height: auto !important; }
+
+
+
+
 .block { display: block !important; }
 
 /* ---- Flex --------------------------------------------------------------- */
@@ -679,81 +676,77 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
 .inline-flex { display: inline-flex !important; }
 .flex-wrap { flex-wrap: wrap !important; }
 .items-center { align-items: center !important; }
-.items-start { align-items: flex-start !important; }
-.gap-1 { gap: 0.25rem !important; }
+
+
 
 /* ---- Padding ------------------------------------------------------------ */
-.p-4 { padding: 1rem !important; }
-.p-6 { padding: 1.5rem !important; }
-.p-8 { padding: 2rem !important; }
-.p-10 { padding: 2.5rem !important; }
-.p-12 { padding: 3rem !important; }
-.pl-6 { padding-left: 1.5rem !important; }
+
+
+
+
+
+
 
 /* ---- Margin ------------------------------------------------------------- */
-.mt-1 { margin-top: 0.25rem !important; }
-.mt-4 { margin-top: 1rem !important; }
-.mt-8 { margin-top: 2rem !important; }
-.mb-1 { margin-bottom: 0.25rem !important; }
-.mb-2 { margin-bottom: 0.5rem !important; }
-.mb-3 { margin-bottom: 0.75rem !important; }
-.mb-4 { margin-bottom: 1rem !important; }
-.mb-6 { margin-bottom: 1.5rem !important; }
-.mb-8 { margin-bottom: 2rem !important; }
-.my-4 { margin-top: 1rem !important; margin-bottom: 1rem !important; }
-.my-6 { margin-top: 1.5rem !important; margin-bottom: 1.5rem !important; }
-.my-8 { margin-top: 2rem !important; margin-bottom: 2rem !important; }
-.last\:mb-0:last-child { margin-bottom: 0 !important; }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* ---- Typography --------------------------------------------------------- */
-.text-sm { font-size: 0.875rem !important; line-height: 1.5rem !important; }
-.text-base { font-size: 1rem !important; line-height: 1.6rem !important; }
-.text-lg { font-size: 1.125rem !important; line-height: 1.75rem !important; }
-.text-xl { font-size: 1.25rem !important; line-height: 1.75rem !important; }
-.text-2xl { font-size: 1.5rem !important; line-height: 2rem !important; }
-.font-medium { font-weight: 500 !important; }
+
+
+
+
+
+
 .italic { font-style: italic !important; }
-.leading-relaxed { line-height: 1.7 !important; }
-.leading-none { line-height: 1 !important; }
-.tracking-wider { letter-spacing: 0.05em !important; }
+
+
+
 
 /* ---- Text colours (readability) ----------------------------------------- */
-.text-gray-400 { color: #9ca3af !important; }
-.text-gray-500 { color: #6b7280 !important; }
-.text-gray-600 { color: #4b5563 !important; }
-.text-gray-700 { color: #374151 !important; }
-.text-gray-800 { color: #1f2937 !important; }
-.\!text-white { color: #ffffff !important; }
-.\!text-\[\#1A1D20\] { color: #1A1D20 !important; }
+
+
+
+
+
+
+
 .\!text-\[\#d31018\] { color: #d31018 !important; }
-.\!text-gray-700 { color: #374151 !important; }
-.\!text-gray-800 { color: #1f2937 !important; }
-@media (hover: hover) and (pointer: fine) {
-  .hover\:\!text-\[\#1A1D20\]:hover { color: #1A1D20 !important; }
-}
+
+
+
 
 /* ---- Borders, radius, shadow -------------------------------------------- */
-.border-l-4 { border-left-width: 4px !important; border-left-style: solid !important; }
-.border-\[\#d31018\] { border-color: #d31018 !important; }
-.border-gray-100 { border-color: #f3f4f6 !important; }
-.border-gray-200 { border-color: #e5e7eb !important; }
-.rounded-xl { border-radius: 0.75rem !important; }
-.rounded-2xl { border-radius: 1rem !important; }
-.shadow-xl { box-shadow: 0 20px 45px -22px rgba(8, 10, 16, 0.45) !important; }
-.shadow-2xl { box-shadow: 0 30px 70px -28px rgba(8, 10, 16, 0.55) !important; }
+
+
+
+
+
+
+
+
 
 /* ---- Backgrounds with opacity ------------------------------------------- */
 .bg-black\/70 { background-color: rgba(0, 0, 0, 0.7) !important; }
-.bg-white\/50 { background-color: rgba(255, 255, 255, 0.5) !important; }
-.bg-\[\#FFFFFF\]\/90 { background-color: rgba(255, 255, 255, 0.92) !important; }
+
+
 
 /* ---- Responsive overrides ----------------------------------------------- */
 @media (min-width: 640px) {
-  .sm\:p-8 { padding: 2rem !important; }
-  .sm\:p-10 { padding: 2.5rem !important; }
+
+
   .sm\:text-lg { font-size: 1.125rem !important; line-height: 1.75rem !important; }
   .sm\:text-xl { font-size: 1.25rem !important; line-height: 1.75rem !important; }
 }
-@media (min-width: 1024px) {
-  .lg\:p-12 { padding: 3rem !important; }
-}
+

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { motion, type Variants } from 'framer-motion';
+import { m, type Variants } from 'framer-motion';
 import Reveal, { Stagger } from './ui/Reveal';
 import RevealText from './ui/RevealText';
 import { scrollToId } from '../hooks/useLenis';
@@ -81,7 +81,7 @@ export default function Intro() {
 
         <Stagger className="std__grid" gap={0.15}>
           {WHY.map((b, i) => (
-            <motion.article
+            <m.article
               className={`std__card ${active === i ? 'is-active' : ''}`}
               key={b.title}
               variants={cardItem}
@@ -108,7 +108,7 @@ export default function Intro() {
               >
                 Learn More <ArrowRight size={14} />
               </button>
-            </motion.article>
+            </m.article>
           ))}
         </Stagger>
 

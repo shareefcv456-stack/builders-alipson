@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { Menu, X, ArrowUpRight } from 'lucide-react';
 import Logo from './ui/Logo';
 import { NAV } from '../data/site';
 import { gateOpenScroll } from './StoryScroll';
 import { useUI } from '../context/UIContext';
 import { navigate, usePath, isKnown } from '../router';
+import { onScrollFrame, viewportH } from '../lib/scrollbus';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -48,7 +49,6 @@ export default function Navbar() {
        the element, so it went blank over the gaps between sections and never
        lit up the pinned hero or the footer at all. */
     const PROBE = 160;
-    let raf = 0;
     /* THE UNDERLINE DOES NOT NEED 60 SAMPLES A SECOND. The two cheap questions
        — has the page moved past 40px, past the gate — are plain `scrollY`
        reads and stay per-frame. The scrollspy underneath is eleven
@@ -61,22 +61,23 @@ export default function Navbar() {
     const SPY_MS = 150;
     let spyAt = 0;
     let trail = 0;
+    let lastY = 0;
 
-    const measure = () => {
-      raf = 0;
-      setScrolled(window.scrollY > 40);
+    const measure = (y: number) => {
+      lastY = y;
+      setScrolled(y > 40);
       /* THE SPLIT GATE ONLY EXISTS ON THE HOME HERO. Off it there is nothing to
          hide behind and nothing to wait for, so gating the bar on a scroll
          threshold there would leave /services with no navbar at all until the
          visitor scrolled — the one page where the navbar is the only way out. */
-      setPast(!isHome || window.scrollY >= gateOpenScroll());
+      setPast(!isHome || y >= gateOpenScroll());
 
       const now = performance.now();
       if (now - spyAt < SPY_MS) {
         /* TRAILING EDGE, or the throttle eats the sample that matters. A nav
            click is one programmatic jump: drop its last scroll event and the
            indicator stays on the section you just left. */
-        if (!trail) trail = window.setTimeout(() => { trail = 0; measure(); }, SPY_MS - (now - spyAt));
+        if (!trail) trail = window.setTimeout(() => { trail = 0; measure(lastY); }, SPY_MS - (now - spyAt));
         return;
       }
       spyAt = now;
@@ -86,36 +87,41 @@ export default function Navbar() {
          would only ever confirm what the route already said. */
       if (!isHome) { setActive(NAV.find((n) => n.path === path)?.id ?? ''); return; }
 
-      const atBottom =
-        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
-      if (atBottom) { setActive(NAV[NAV.length - 1].id); return; }
-
+      /* ONE READ PASS, THEN THE ANSWER — and no `scrollHeight`.
+         `document.documentElement.scrollHeight` is the most expensive layout
+         read on this page: it cannot be answered from a cached box, so it
+         forces a full layout of a document that GSAP's pin has just made
+         dirty, and it was being taken several times a second for the whole
+         scroll. The bottom-of-page case it answered is recovered from a rect
+         this loop is ALREADY reading — when the last nav section's own bottom
+         edge is on screen, there is nothing below it left to scroll to, which
+         is what "at the bottom" meant. Same answer, no extra measurement. */
+      const LAST = NAV[NAV.length - 1].id;
       let best = NAV[0].id;
       let bestTop = -Infinity;
+      let atBottom = false;
       for (const { id } of NAV) {
         const el = document.getElementById(id);
         if (!el) continue;
-        const top = el.getBoundingClientRect().top;
-        if (top <= PROBE && top > bestTop) { best = id; bestTop = top; }
+        const r = el.getBoundingClientRect();
+        if (id === LAST && r.bottom <= viewportH() + 2) atBottom = true;
+        if (r.top <= PROBE && r.top > bestTop) { best = id; bestTop = r.top; }
       }
-      setActive(best);
+      setActive(atBottom ? LAST : best);
     };
 
-    /* Measure on the frame AFTER the scroll event, coalesced. GSAP pins this
-       page, and reading rects inside the scroll handler caught the pin-spacer
-       mid-update — on a programmatic jump (a nav click), which fires exactly
-       one scroll event, that left the indicator stuck on the previous section. */
-    const onScroll = () => { if (!raf) raf = requestAnimationFrame(measure); };
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-    // Deep links and reloads can land mid-page, where the gate is long gone.
-    measure();
+    /* ONE SUBSCRIPTION, SHARED WITH EVERY OTHER SCROLL CONSUMER. `scrollbus`
+       reads the position once per animation frame for the whole app and hands
+       the same number to each subscriber, so the navbar no longer takes its own
+       `scrollY` sample (a live-layout read) on top of the floating actions'.
+       Coalescing to the frame AFTER the event still matters for a different
+       reason: GSAP pins this page, and reading rects inside the scroll event
+       itself caught the pin-spacer mid-update. It also fires immediately on
+       subscribe, which covers the deep link that lands mid-page. */
+    const off = onScrollFrame(measure);
     return () => {
-      if (raf) cancelAnimationFrame(raf);
+      off();
       if (trail) clearTimeout(trail);
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
     };
   }, [isHome, path]);
 
@@ -168,7 +174,7 @@ export default function Navbar() {
 
       <AnimatePresence>
         {menuOpen && (
-          <motion.div
+          <m.div
             className="mnav"
             initial={{ clipPath: 'inset(0 0 100% 0)' }}
             animate={{ clipPath: 'inset(0 0 0% 0)' }}
@@ -180,7 +186,7 @@ export default function Navbar() {
             </button>
             <div className="mnav__links">
               {NAV.map((n, i) => (
-                <motion.a
+                <m.a
                   key={n.id}
                   href={n.path}
                   className={`mnav__link ${active === n.id ? 'active' : ''}`}
@@ -191,7 +197,7 @@ export default function Navbar() {
                   transition={{ delay: 0.15 + i * 0.06, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <em>0{i + 1}</em>{n.label}
-                </motion.a>
+                </m.a>
               ))}
             </div>
             <div className="mnav__foot">
@@ -199,7 +205,7 @@ export default function Navbar() {
                 Book Consultation
               </button>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </>

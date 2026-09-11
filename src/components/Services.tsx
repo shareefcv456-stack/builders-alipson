@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { m, useReducedMotion } from 'framer-motion';
 import { ArrowUpRight, ArrowRight } from 'lucide-react';
 import RevealText from './ui/RevealText';
 import Reveal, { Stagger, staggerItem } from './ui/Reveal';
@@ -48,7 +48,7 @@ function Card({ service, sketch, active, onToggle }: {
 }) {
   const Icon = service.icon;
   return (
-    <motion.article
+    <m.article
       className={`svc ${active ? 'is-active' : ''}`}
       variants={staggerItem}
       onClick={onToggle}
@@ -65,7 +65,7 @@ function Card({ service, sketch, active, onToggle }: {
       >
         Explore <ArrowRight size={16} />
       </button>
-    </motion.article>
+    </m.article>
   );
 }
 

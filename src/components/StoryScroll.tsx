@@ -1,9 +1,13 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ArrowUpRight, ChevronDown, Play } from 'lucide-react';
-import Lenis from 'lenis';
+/* TYPE-ONLY. This file never constructs a Lenis — it reads the instance off
+   `window` when one exists. A value import put the whole scroll library in the
+   eager graph of the hero, which is exactly where a phone (where Lenis is never
+   created at all — see useLenis) should not be paying for it. */
+import type Lenis from 'lenis';
 import { LogoMark } from './ui/Logo';
 import { scrollToId } from '../hooks/useLenis';
 import { useUI } from '../context/UIContext';
@@ -14,6 +18,7 @@ import HeroWireframe, { P1_T, P2_T, type WireHandle } from './HeroWireframe';
 import type { ThreeHandle } from './HeroSite';
 import { HERO_FRAMES, HERO_FRAMES_SMALL, MEDIA, mediaSmall } from '../lib/media';
 import { isLite, isPhone } from '../lib/device';
+import { viewportH, viewportW } from '../lib/scrollbus';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -91,7 +96,12 @@ const GATE_END = 0.08;     // doors finished parting
    runway than a wheel notch does, so matching the desktop number would make the
    phone SLOWER in scroll-gestures, not slower in time. Every phase beat is
    expressed as a fraction, so both play the identical timeline. */
-const PIN_RUNWAY = () => window.innerHeight * (window.innerWidth < 760 ? 3.2 : 5.6);
+/* Reads the CACHED viewport, not `window`. This is called from the navbar's
+   scroll handler, i.e. on every scroll frame, and `innerWidth`/`innerHeight`
+   are live-layout reads — asking for them while GSAP's pin has the page dirty
+   forces a synchronous layout. The cache is refreshed on `resize`, which is
+   every event that can actually change the answer. */
+const PIN_RUNWAY = () => viewportH() * (viewportW() < 760 ? 3.2 : 5.6);
 export function gateOpenScroll() {
   if (typeof window === 'undefined') return 0;
   return PIN_RUNWAY() * GATE_END;
@@ -252,7 +262,28 @@ export default function StoryScroll() {
   const [heavy, setHeavy] = useState(() => !isLite());
   useEffect(() => {
     if (heavy) return;
-    const go = () => setHeavy(true);
+    /* THE TRIGGER IS THE FIRST SCROLL; THE WORK IS NOT DONE ON THAT FRAME.
+       Flipping `heavy` synchronously in the scroll handler mounted the lazy
+       3D scene in the middle of the visitor's opening swipe — and that mount
+       is the single longest task the page ever runs: three.js evaluates, the
+       whole scene is constructed, and the shaders compile, all on the main
+       thread while a finger is on the glass. The gesture stalled, which is
+       exactly the "scroll stutter on first touch" this is meant to avoid.
+       `requestIdleCallback` moves it into the gap BETWEEN frames instead. The
+       timeout is the backstop: a visitor who keeps scrolling never yields an
+       idle period, and 1200ms of a 3.2-viewport phone runway is well before
+       the poster has anything left to show. Nothing is skipped and nothing is
+       downgraded — the same scene is built, a beat later, off the gesture. */
+    let idle = 0;
+    const go = () => {
+      if (idle) return;
+      const ric = (window as unknown as {
+        requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+      }).requestIdleCallback;
+      idle = ric
+        ? ric(() => setHeavy(true), { timeout: 1200 })
+        : window.setTimeout(() => setHeavy(true), 200);
+    };
     const opts = { once: true, passive: true } as const;
     window.addEventListener('scroll', go, opts);
     window.addEventListener('touchstart', go, opts);
@@ -735,7 +766,7 @@ export default function StoryScroll() {
             default mode the two overlap mid-crossfade and the copy doubles. */}
         <div className="story__finale-copy">
           <AnimatePresence mode="wait" initial={false}>
-            <motion.div
+            <m.div
               key={phase}
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
@@ -754,7 +785,7 @@ export default function StoryScroll() {
                 {PHASES[phase].title}<em>{PHASES[phase].accent}</em>
               </h1>
               <p className="story__sub">{PHASES[phase].sub}</p>
-            </motion.div>
+            </m.div>
           </AnimatePresence>
           {/* NO LAYOUT UTILITIES ON THIS ROW. They were `flex flex-col
               sm:flex-row sm:items-center gap-4`, and every one of those shims

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { motion, type Variants } from 'framer-motion';
+import { m, type Variants } from 'framer-motion';
 import { isCapture } from '../../lib/capture';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -36,7 +36,7 @@ export default function Reveal({
     show: { opacity: 1, x: 0, y: 0, scale: 1, transition: { duration, delay, ease: EASE } },
   };
   return (
-    <motion.div
+    <m.div
       className={className}
       variants={variants}
       initial={isCapture() ? 'show' : 'hidden'}
@@ -44,7 +44,7 @@ export default function Reveal({
       viewport={{ once: true, amount }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -61,7 +61,7 @@ export function Stagger({
   amount?: number;
 }) {
   return (
-    <motion.div
+    <m.div
       className={className}
       initial={isCapture() ? 'show' : 'hidden'}
       whileInView="show"
@@ -69,7 +69,7 @@ export function Stagger({
       variants={{ show: { transition: { staggerChildren: gap } } }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 

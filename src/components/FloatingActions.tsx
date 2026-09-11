@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { Phone, ArrowUp } from 'lucide-react';
 import { CONTACT } from '../data/site';
+import { onScrollFrame, viewportH } from '../lib/scrollbus';
 
 function WhatsAppIcon({ size = 24 }: { size?: number }) {
   return (
@@ -14,25 +15,19 @@ function WhatsAppIcon({ size = 24 }: { size?: number }) {
 export default function FloatingActions() {
   const [showUp, setShowUp] = useState(false);
 
-  useEffect(() => {
-    /* Coalesced into one rAF per frame, and the state is only written when the
-       answer actually CHANGES. This ran `setShowUp` on every scroll event — a
-       profile of a scroll had it as the highest-cost application function on the
-       page, above everything in the 3D hero. React bailed out of most of the
-       renders, but the handler still ran and still allocated on every event. */
-    let raf = 0;
-    const measure = () => {
-      raf = 0;
-      const next = window.scrollY > window.innerHeight;
-      setShowUp((cur) => (cur === next ? cur : next));
-    };
-    const onScroll = () => { if (!raf) raf = requestAnimationFrame(measure); };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', onScroll);
-    };
-  }, []);
+  /* NO LISTENER OF ITS OWN. This used to run a second `scroll` subscription
+     with a second rAF coalescer alongside the navbar's, both computing the
+     same `window.scrollY` on the same frame, and it read `window.innerHeight`
+     per sample — a live-layout read taken while GSAP's pin has the page dirty.
+     `onScrollFrame` hands over a position that has already been read once for
+     the whole page, and the viewport comes from the resize-backed cache, so
+     this handler now does one comparison and nothing else. The state is still
+     only written when the answer CHANGES, so a scroll past the fold is a
+     single render, not one per frame. */
+  useEffect(() => onScrollFrame((y) => {
+    const next = y > viewportH();
+    setShowUp((cur) => (cur === next ? cur : next));
+  }), []);
 
   const toTop = () => {
     const lenis = (window as unknown as { lenis?: { scrollTo: (n: number, o?: object) => void } }).lenis;
@@ -44,7 +39,7 @@ export default function FloatingActions() {
     <div className="floaters">
       <AnimatePresence>
         {showUp && (
-          <motion.button
+          <m.button
             className="floater floater--up"
             onClick={toTop}
             aria-label="Back to top"
@@ -54,7 +49,7 @@ export default function FloatingActions() {
             exit={{ opacity: 0, scale: 0.5 }}
           >
             <ArrowUp size={20} />
-          </motion.button>
+          </m.button>
         )}
       </AnimatePresence>
       <a className="floater floater--call" href={CONTACT.phoneHref} aria-label="Call now" data-cursor="Call">

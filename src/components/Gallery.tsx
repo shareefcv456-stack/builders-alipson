@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import RevealText from './ui/RevealText';
 import Reveal from './ui/Reveal';
@@ -98,7 +98,7 @@ export default function Gallery() {
       {createPortal(
       <AnimatePresence>
         {active && (
-          <motion.div
+          <m.div
             ref={box}
             tabIndex={-1}
             role="dialog"
@@ -118,7 +118,7 @@ export default function Gallery() {
                 buttons do two things at once. */}
             <button className="lightbox__x" onClick={(e) => { e.stopPropagation(); close(); }} aria-label="Close"><X size={20} /></button>
             <button className="lightbox__nav lightbox__nav--prev" onClick={(e) => { e.stopPropagation(); move(-1); }} aria-label="Previous"><ChevronLeft size={22} /></button>
-            <motion.img
+            <m.img
               key={index}
               src={media(active.image)}
               alt={active.title}
@@ -134,7 +134,7 @@ export default function Gallery() {
               <span>{active.cat}</span>
               <h3>{active.title}</h3>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>,
       document.body)}

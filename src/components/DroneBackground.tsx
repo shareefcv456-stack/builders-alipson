@@ -1,65 +1,27 @@
-import { useEffect, useRef } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { isCapture } from '../lib/capture';
 
-gsap.registerPlugin(ScrollTrigger);
-
 /**
- * Scroll-scrubbed drone plate behind the whole page.
+ * The flat charcoal plate behind every section.
  *
- * OFF BY DEFAULT. `SRC` is empty because no such file ships — pointing a
- * <video> at a missing path cost a 404 on every single page load and, because
- * `autoPlay` overrides `preload="none"`, the browser went and asked for it
- * eagerly. Drop a file in `public/videos/` and set SRC to switch it back on.
+ * IT USED TO BE A SCROLL-SCRUBBED DRONE VIDEO, and the machinery for that was
+ * still here: a `<video>`, a `loadedmetadata` handler and a GSAP ScrollTrigger
+ * tween of `currentTime`, all behind `const SRC = ''`. With no file to point
+ * at, the video element never rendered, so `videoRef.current` was null, so the
+ * effect returned on its first line — on every load, of every page, forever.
+ *
+ * What it cost was not the effect but the IMPORT: `gsap` and `gsap/ScrollTrigger`
+ * at module scope, plus a second `registerPlugin` call, pulled into the eager
+ * graph for a code path that could not run. The plate itself is two divs.
+ *
+ * To bring the drone back, restore this file from git (`git log -- <this path>`)
+ * and drop the clip in `public/videos/` — the scrub was ~20 lines and is better
+ * recovered whole than kept here as a switch that is always off.
  */
-const SRC = '';
-
 export default function DroneBackground() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    video.pause();
-    /* Held so the cleanup can kill THIS trigger and nothing else. The old code
-       called `ScrollTrigger.getAll().forEach(t => t.kill())`, which took the
-       hero's pin down with it — every trigger on the page, not just its own. */
-    let tween: gsap.core.Tween | null = null;
-
-    const onMeta = () => {
-      tween?.scrollTrigger?.kill();
-      tween?.kill();
-      tween = gsap.to(video, {
-        currentTime: video.duration || 1,
-        ease: 'none',
-        scrollTrigger: { trigger: document.documentElement, start: 'top top', end: 'bottom bottom', scrub: 1 },
-      });
-    };
-
-    video.addEventListener('loadedmetadata', onMeta);
-    if (video.readyState >= 1) onMeta();
-
-    return () => {
-      video.removeEventListener('loadedmetadata', onMeta);
-      tween?.scrollTrigger?.kill();
-      tween?.kill();
-    };
-  }, []);
-
   if (isCapture()) return null;
 
   return (
     <div className="fixed inset-0 z-[-1] w-full h-full pointer-events-none bg-[#0D1117]" aria-hidden>
-      {SRC && (
-        <video
-          ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover z-0"
-          src={SRC}
-          autoPlay loop muted playsInline preload="none"
-        />
-      )}
       {/* Flat charcoal veil. This used to carry `backdrop-blur-sm`: a FIXED,
           full-viewport backdrop-filter forces the compositor to re-read
           everything behind it on every frame of every scroll, for the entire

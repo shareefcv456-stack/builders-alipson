@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { STATS, type Stat } from '../data/site';
 import { useCountUp } from '../hooks/useCountUp';
 import { isCapture } from '../lib/capture';
@@ -22,7 +22,7 @@ function Cell({ stat, index }: { stat: Stat; index: number }) {
   const { value, ref } = useCountUp(stat.value);
   const Icon = stat.icon;
   return (
-    <motion.div
+    <m.div
       className="ribbon__cell"
       custom={index}
       variants={item}
@@ -65,7 +65,7 @@ function Cell({ stat, index }: { stat: Stat; index: number }) {
           <div className="ribbon__label">{stat.label}</div>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 

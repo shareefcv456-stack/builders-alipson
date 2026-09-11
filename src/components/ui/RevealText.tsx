@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { motion, type Variants } from 'framer-motion';
+import { m, type Variants } from 'framer-motion';
 import { isCapture } from '../../lib/capture';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -27,7 +27,7 @@ export default function RevealText({
   as?: 'h1' | 'h2' | 'h3';
   delay?: number;
 }) {
-  const Tag = motion[as];
+  const Tag = m[as];
   return (
     <Tag
       className={className}
@@ -37,13 +37,13 @@ export default function RevealText({
     >
       {lines.map((line, i) => (
         <span className="split-line" key={i}>
-          <motion.span
+          <m.span
             style={{ display: 'block' }}
             custom={i + delay * 10}
             variants={lineVariants}
           >
             {line}
-          </motion.span>
+          </m.span>
         </span>
       ))}
     </Tag>
@@ -54,7 +54,7 @@ export default function RevealText({
 export function RevealWords({ text, className }: { text: string; className?: string }) {
   const words = text.split(' ');
   return (
-    <motion.p
+    <m.p
       className={className}
       initial={isCapture() ? 'show' : 'hidden'}
       whileInView="show"
@@ -63,7 +63,7 @@ export function RevealWords({ text, className }: { text: string; className?: str
     >
       {words.map((w, i) => (
         <Fragment key={i}>
-          <motion.span
+          <m.span
             style={{ display: 'inline-block' }}
             variants={{
               hidden: { opacity: 0, y: 12 },
@@ -71,9 +71,9 @@ export function RevealWords({ text, className }: { text: string; className?: str
             }}
           >
             {w}
-          </motion.span>{' '}
+          </m.span>{' '}
         </Fragment>
       ))}
-    </motion.p>
+    </m.p>
   );
 }

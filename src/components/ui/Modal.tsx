@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useScrollLock, useFocusTrap } from '../../hooks/useScrollLock';
 
@@ -47,14 +47,14 @@ export default function Modal({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div
+        <m.div
           className="modal-scrim"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={(e) => e.target === e.currentTarget && onClose()}
         >
-          <motion.div
+          <m.div
             ref={panel}
             /* The panel scrolls itself when the content is taller than 85vh,
                and Lenis has to be told to keep its hands off it: while stopped
@@ -76,8 +76,8 @@ export default function Modal({
               <X size={18} />
             </button>
             {children}
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
     </AnimatePresence>,
     document.body,

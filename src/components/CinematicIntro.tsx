@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import { LogoMark } from './ui/Logo';
 import { isCapture } from '../lib/capture';
 
@@ -78,7 +78,7 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
   const brand = step === SLIDES.length - 1;
 
   return (
-    <motion.div
+    <m.div
       className="intro"
       onClick={next}
       initial={{ opacity: 1 }}
@@ -91,7 +91,7 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
 
       {/* House outline — draws itself once, then a slow camera push-in */}
       <div className="intro__villaWrap" aria-hidden>
-        <motion.svg
+        <m.svg
           className="intro__villa"
           viewBox="0 0 1000 460"
           preserveAspectRatio="xMidYMid meet"
@@ -100,7 +100,7 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
           transition={{ duration: 9, ease: 'linear' }}
         >
           {VILLA.map((d, i) => (
-            <motion.path
+            <m.path
               key={i}
               d={d}
               fill="none"
@@ -111,25 +111,25 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
               transition={{ duration: 2.4, ease: EASE, delay: 0.2 + i * 0.28 }}
             />
           ))}
-          <motion.circle
+          <m.circle
             cx="120" cy="300" r="26" fill="none" stroke="rgba(248,248,246,0.4)" strokeWidth={1.2}
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
             transition={{ duration: 1.6, delay: 1.8, ease: EASE }}
           />
           {/* Crimson ground line — the base everything stands on */}
-          <motion.path
+          <m.path
             d="M60 360 L940 360" fill="none" stroke="var(--accent)" strokeWidth={1.6}
             initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.9 }}
             transition={{ duration: 2.6, delay: 0.4, ease: EASE }}
           />
-        </motion.svg>
+        </m.svg>
       </div>
 
       {/* Copy layer */}
       <div className="intro__stage">
         <AnimatePresence mode="wait">
           {brand ? (
-            <motion.div
+            <m.div
               key="brand"
               className="intro__brand"
               initial={{ opacity: 0, y: 16 }}
@@ -137,35 +137,35 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.8, ease: EASE }}
             >
-              <motion.div
+              <m.div
                 initial={{ scale: 0.75, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.8, ease: EASE }}
               >
                 <LogoMark size={54} />
-              </motion.div>
-              <motion.h1
+              </m.div>
+              <m.h1
                 className="intro__wordmark"
                 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.3, ease: EASE }}
               >
                 ALIPSON BUILDERS
-              </motion.h1>
-              <motion.span
+              </m.h1>
+              <m.span
                 className="intro__rule"
                 initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
                 transition={{ duration: 0.8, delay: 0.55, ease: EASE }}
               />
-              <motion.p
+              <m.p
                 className="intro__tagline"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.75, ease: EASE }}
               >
                 Dream It. Build It. Own It.
-              </motion.p>
-            </motion.div>
+              </m.p>
+            </m.div>
           ) : (
-            <motion.p
+            <m.p
               key={step}
               className="intro__line"
               initial={{ opacity: 0, filter: 'blur(6px)' }}
@@ -174,7 +174,7 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
               transition={{ duration: 0.8, ease: EASE }}
             >
               {slide.title}
-            </motion.p>
+            </m.p>
           )}
         </AnimatePresence>
       </div>
@@ -195,6 +195,6 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
       >
         Skip intro
       </button>
-    </motion.div>
+    </m.div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { MapPin, Phone, Mail, CheckCircle2, ArrowUpRight, RotateCcw } from 'lucide-react';
 import RevealText from './ui/RevealText';
 import Reveal from './ui/Reveal';
@@ -134,14 +134,14 @@ export default function Contact() {
                   {field('email', 'Email address', 'email')}
                   {field('phone', 'Phone number', 'tel')}
                   {field('message', 'Tell us about your project')}
-                  <motion.button
+                  <m.button
                     type="submit"
                     className="btn btn-primary form-submit"
                     disabled={sending}
                     whileTap={{ scale: 0.98 }}
                   >
                     {sending ? 'Sending…' : <>Send enquiry <ArrowUpRight size={16} /></>}
-                  </motion.button>
+                  </m.button>
                 </form>
               </>
             )}

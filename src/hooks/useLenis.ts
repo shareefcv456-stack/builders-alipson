@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import Lenis from 'lenis';
+import type Lenis from 'lenis';
 import { isLite } from '../lib/device';
 import { PATH_FOR_SECTION, navigate, currentPath } from '../router';
 
@@ -28,42 +28,59 @@ export function useLenis() {
        Desktop keeps the smooth wheel exactly as authored. */
     if (reduce || noLenis || isLite()) return;
 
-    /* `lerp`, not `duration` + `easing`. Lenis accepts either, and lerp is the
-       frame-rate-independent one: it eases a fixed FRACTION of the remaining
-       distance each frame, so a 120Hz iPad and a 60Hz phone converge over the
-       same wall-clock time. The duration/easing pair replays a fixed-length
-       curve per scroll event, which is what made fast successive flicks feel
-       like they were queueing. */
-    const lenis = new Lenis({
-      lerp: 0.1,
-      smoothWheel: true,
-      wheelMultiplier: 1,
-      /* TOUCH. `syncTouch` is v1's name for what the brief calls `smoothTouch`
-         — it keeps the page locked to the finger instead of running the wheel
-         smoothing over a touch drag, which is what causes the rubber-banding
-         and the perceived latency on iOS Safari.
-         `syncTouchLerp` is kept light on purpose. Under syncTouch the finger is
-         driving directly, so heavy smoothing there reads as lag rather than as
-         polish — this is the "light dampening" the brief asks for, not the
-         wheel's easing curve applied to a drag. */
-      syncTouch: true,
-      syncTouchLerp: 0.09,
-      touchInertiaExponent: 1.7,
-      touchMultiplier: 1.6,
+    /* DYNAMIC, so the bail-out above is a real saving and not just a skipped
+       constructor. Statically imported, the library was fetched, parsed and
+       kept in the entry graph on every load — including the phone loads that
+       take the branch above and never instantiate it. Behind `import()` the
+       chunk is requested only on the desktop path that uses it, and it is
+       requested AFTER first paint either way.
+       `cancelled` covers the unmount-before-resolve case, which is real in
+       StrictMode: the effect runs, cleans up and runs again before the module
+       has landed, and without it the first run's instance leaks a rAF loop. */
+    let cancelled = false;
+    let lenis: Lenis | undefined;
+    let raf = 0;
+
+    import('lenis').then(({ default: Lenis }) => {
+      if (cancelled) return;
+
+      /* `lerp`, not `duration` + `easing`. Lenis accepts either, and lerp is
+         the frame-rate-independent one: it eases a fixed FRACTION of the
+         remaining distance each frame, so a 120Hz iPad and a 60Hz phone
+         converge over the same wall-clock time. The duration/easing pair
+         replays a fixed-length curve per scroll event, which is what made fast
+         successive flicks feel like they were queueing. */
+      lenis = new Lenis({
+        lerp: 0.1,
+        smoothWheel: true,
+        wheelMultiplier: 1,
+        /* TOUCH. `syncTouch` is v1's name for what the brief calls
+           `smoothTouch` — it keeps the page locked to the finger instead of
+           running the wheel smoothing over a touch drag, which is what causes
+           the rubber-banding and the perceived latency on iOS Safari.
+           `syncTouchLerp` is kept light on purpose. Under syncTouch the finger
+           is driving directly, so heavy smoothing there reads as lag rather
+           than as polish — this is the "light dampening" the brief asks for,
+           not the wheel's easing curve applied to a drag. */
+        syncTouch: true,
+        syncTouchLerp: 0.09,
+        touchInertiaExponent: 1.7,
+        touchMultiplier: 1.6,
+      });
+
+      (window as unknown as { lenis?: Lenis }).lenis = lenis;
+
+      const loop = (time: number) => {
+        lenis!.raf(time);
+        raf = requestAnimationFrame(loop);
+      };
+      raf = requestAnimationFrame(loop);
     });
 
-    (window as unknown as { lenis?: Lenis }).lenis = lenis;
-
-    let raf = 0;
-    const loop = (time: number) => {
-      lenis.raf(time);
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-
     return () => {
-      cancelAnimationFrame(raf);
-      lenis.destroy();
+      cancelled = true;
+      if (raf) cancelAnimationFrame(raf);
+      lenis?.destroy();
       (window as unknown as { lenis?: Lenis }).lenis = undefined;
     };
   }, []);

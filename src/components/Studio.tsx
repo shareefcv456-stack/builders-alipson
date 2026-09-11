@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { motion, useScroll, useTransform, useMotionValueEvent, type MotionValue } from 'framer-motion';
+import { m, useScroll, useTransform, useMotionValueEvent, type MotionValue } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 import Reveal from './ui/Reveal';
 import RevealText from './ui/RevealText';
@@ -39,7 +39,7 @@ function FilmFrame({ i, n, build }: { i: number; n: number; build: MotionValue<n
   const seg = 1 / (n - 1);
   const opacity = useTransform(build, [(i - 1) * seg, i * seg], [0, 1], { clamp: true });
   return (
-    <motion.img
+    <m.img
       className="studio__fr"
       style={{ opacity }}
       src={HERO_FRAMES[i]}
@@ -111,7 +111,7 @@ export default function Studio() {
         {/* ---- LEFT · image composition ------------------------------------ */}
         <div className="studio__visual" ref={visualRef}>
           <Reveal dir="up" className="studio__stack">
-            <motion.div
+            <m.div
               className="studio__frame"
               /* The cast is for the custom properties alone — framer types its
                  own transform keys, but not arbitrary `--*` entries. */
@@ -135,14 +135,14 @@ export default function Studio() {
                 {/* Blueprint wash. Deep navy over the bare site, gone by the
                     time the landmark is standing — the panel literally moves
                     from drawing to architecture. */}
-                <motion.span className="studio__wash" style={{ opacity: wash }} aria-hidden="true" />
+                <m.span className="studio__wash" style={{ opacity: wash }} aria-hidden="true" />
               </div>
               {/* THE SCANNER. A single hairline with two end ticks and a short
                   red glow under it, riding the playhead up the elevation. It is
                   the only moving mark on the panel: the stages themselves are
                   crossfades, so without it nothing tells the reader that what
                   they are looking at is being scrubbed by their own scroll. */}
-              <motion.span className="studio__scan" style={{ top: scanY }} aria-hidden="true" />
+              <m.span className="studio__scan" style={{ top: scanY }} aria-hidden="true" />
 
               {/* 6-stage construction sequence on one shared 9s clock. Every
                   stage is a dash-drawn layer whose window is set in the CSS
@@ -209,7 +209,7 @@ export default function Studio() {
                 Alipson Builders
                 <em>Building a brighter tomorrow</em>
               </span>
-            </motion.div>
+            </m.div>
 
             {/* THE STEPPER IS A SIBLING OF THE FRAME, NOT A CHILD — which is
                 what lets it be an overlay down the right edge on desktop and a
@@ -270,7 +270,7 @@ export default function Studio() {
                 entrance, on the way back up as well as down. */}
             <ul className="studio__highlights">
               {HIGHLIGHTS.map((h, i) => (
-                <motion.li
+                <m.li
                   className="studio__hl"
                   key={h.title}
                   variants={{
@@ -292,7 +292,7 @@ export default function Studio() {
                     <h4>{h.title}</h4>
                     <p>{h.desc}</p>
                   </span>
-                </motion.li>
+                </m.li>
               ))}
             </ul>
 
