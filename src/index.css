@@ -420,6 +420,18 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
 .floaters { position: fixed; right: clamp(1rem, 3vw, 1.75rem); bottom: clamp(1rem, 3vw, 1.75rem); z-index: 900; display: flex; flex-direction: column; gap: 0.85rem;
   transform: translateZ(0); will-change: transform; }
 .floater { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; color: #fff; box-shadow: 0 12px 30px -8px rgba(0,0,0,0.5); transition: transform 0.4s var(--ease-lux); position: relative; }
+/* OUT OF THE READING PATH. `is-away` is set while the visitor is scrolling DOWN
+   past the first screen (see FloatingActions) — transform and opacity only, so
+   the whole move is composited and costs the scroll nothing. `pointer-events:
+   none` matters as much as the visual: a button faded to 0 in the corner still
+   swallows taps meant for the card underneath it. */
+.floaters { transition: transform 0.35s var(--ease-lux), opacity 0.25s ease; }
+.floaters.is-away { transform: translateZ(0) translateY(150%); opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .floaters { transition: opacity 0.2s ease; }
+  .floaters.is-away { transform: translateZ(0); }
+}
+
 /* Mobile: a tighter stack, tucked into the corner and lifted above the content
    cards it used to overlap (the stats ribbon's right-hand column, in
    particular). 40px is smaller than the 44px target size used elsewhere on the

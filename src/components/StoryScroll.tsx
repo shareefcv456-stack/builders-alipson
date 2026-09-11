@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, m } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -18,7 +18,7 @@ import HeroWireframe, { P1_T, P2_T, type WireHandle } from './HeroWireframe';
 import type { ThreeHandle } from './HeroSite';
 import { HERO_FRAMES, HERO_FRAMES_SMALL, MEDIA, mediaSmall } from '../lib/media';
 import { isLite, isPhone } from '../lib/device';
-import { viewportH, viewportW } from '../lib/scrollbus';
+import { onScrollFrame, viewportH, viewportW } from '../lib/scrollbus';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -318,6 +318,19 @@ export default function StoryScroll() {
   const pinned = useRef(pinnedHero()).current;
   const pinnedOut = useRef(pinnedAt('outro')).current;
   const [phase, setPhase] = useState(() => phaseAt(pinnedHero() ?? 0));
+  /* THE COPY FOLLOWS THE PLAYHEAD, NOT THE SCROLLBAR. It used to be computed
+     from `self.progress` inside ScrollTrigger's onUpdate — the RAW scroll
+     position — while the thing on screen is drawn from `cur`, which is eased
+     and trails the scroll by the 1.2s scrub plus the canvas lerp. So on any
+     brisk scroll the headline announced a stage the building had not reached
+     yet: "Structure In Motion" over a set of footings. Reading the same eased
+     value the renderer reads puts the caption back on the frame it captions.
+     Functional updater returning the SAME value makes React bail out, so this
+     is free on every frame that does not cross a phase boundary. */
+  const syncPhase = useCallback((v: number) => {
+    const i = phaseAt(v);
+    setPhase((cur) => (cur === i ? cur : i));
+  }, []);
   const outro = useRef(0);      // 0..1 across act two — stats, gate, car, road
   /* Restarts the playhead loop below, which parks itself once it has caught up
      with the scroll. Held in a ref because the only caller — ScrollTrigger's
@@ -326,8 +339,15 @@ export default function StoryScroll() {
   const stats = useRef<HTMLDivElement>(null);
   /* One-way latch. A ref and a classList write, NOT React state: this is read
      and set from inside ScrollTrigger's onUpdate, and a setState there would
-     re-render the hero mid-scrub for a thing CSS can do on its own. */
+     re-render the hero mid-scrub for a thing CSS can do on its own.
+     Idempotent, so every caller can fire on any number of frames and after the
+     first one this is a boolean read. */
   const revealed = useRef(false);
+  const revealStats = useCallback(() => {
+    if (revealed.current) return;
+    revealed.current = true;
+    stats.current?.classList.add('is-in');
+  }, []);
   const still = pinned === null && (isCapture() || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches));
 
   /**
@@ -370,6 +390,7 @@ export default function StoryScroll() {
       else cur.current += (t - cur.current) * EASE;
       if (Math.abs(t - cur.current) < 0.0002) cur.current = t;
       three.current?.update(cur.current, tail);
+      syncPhase(cur.current);
       if (three.current && cur.current === t && tail === lastTail) { raf = 0; return; }
       lastTail = tail;
       raf = requestAnimationFrame(loop);
@@ -381,7 +402,7 @@ export default function StoryScroll() {
       raf = 0;
       wake.current = () => {};
     };
-  }, [is3D, still, pinned, pinnedOut]);
+  }, [is3D, still, pinned, pinnedOut, syncPhase]);
 
   /**
    * VIDEO SCRUB. Same damped playhead as the other two renderers — `cur` eases
@@ -440,6 +461,35 @@ export default function StoryScroll() {
      `revealStats` below and `.story__stats.is-in` in the stylesheet. The
      hand-off needs no overlay: the camera rises, the road runs to a fogged
      horizon, and the pin releases onto the next section. */
+
+  /* THE STATS BAR STILL HAS TO ARRIVE WHEN NOTHING IS SCRUBBING.
+   *
+   * Under `still` — a visitor who asked for reduced motion, or `?noloader`
+   * capture mode — the whole ScrollTrigger effect below returns early, so the
+   * pin, the scrub and `onUpdate` never exist and nothing was left to add
+   * `is-in`. The stylesheet covered for that by pinning the bar open
+   * (`.story--static .story__stats { opacity: 1 }`), and that is the bug: four
+   * opaque cards, counters already run out, sitting over the hero from the
+   * first painted frame. Exactly the thing the reveal exists to prevent, and
+   * on the devices least able to afford the distraction.
+   *
+   * REDUCED MOTION MEANS NO MOTION, NOT NO SEQUENCE. The bar still starts
+   * hidden and still arrives when the visitor scrolls; it simply fades instead
+   * of sliding up (the `prefers-reduced-motion` rule on `.story__stats` in the
+   * stylesheet already reduces the transition to opacity alone). There is no
+   * pin on this path, so the hero is one viewport tall and 40% of it is the
+   * point where the visitor has plainly started leaving it.
+   *
+   * Capture mode is the exception and latches immediately: `?noloader` exists
+   * to photograph the finished composition, which includes the bar.
+   *
+   * `onScrollFrame` rather than a listener of its own — one scroll
+   * subscription for the whole app, read once per frame. */
+  useEffect(() => {
+    if (!still) return;
+    if (isCapture()) { revealStats(); return; }
+    return onScrollFrame((y) => { if (y > viewportH() * 0.4) revealStats(); });
+  }, [still, revealStats]);
 
   /* Skipping the intro drops the visitor straight onto the hero. CinematicIntro
      is a sibling component, so it signals with a window event rather than a
@@ -594,13 +644,6 @@ export default function StoryScroll() {
 
     const lenis = (window as unknown as { lenis?: Lenis }).lenis;
     const onScroll = () => ScrollTrigger.update();
-    /* Idempotent and one-way: every caller below can fire on any number of
-       frames, and after the first one this is a boolean read. */
-    const revealStats = () => {
-      if (revealed.current) return;
-      revealed.current = true;
-      stats.current?.classList.add('is-in');
-    };
     if (pinned === null) lenis?.on('scroll', onScroll);
 
     const ctx = gsap.context(() => {
@@ -643,10 +686,11 @@ export default function StoryScroll() {
             outro.current = span(BUILD_FRACTION, 1, self.progress);
             wake.current();
             if (outro.current >= STATS_AT) revealStats();
-            // Functional updater returning the SAME value makes React bail out,
-            // so this is free on every frame that does not cross a boundary.
-            const i = phaseAt(build);
-            setPhase((cur) => (cur === i ? cur : i));
+            /* The 3D hero publishes its own phase from the eased playhead in
+               the loop above (`syncPhase`), so this only covers the renderers
+               that have no such loop running — and `?flat`/`?video` are debug
+               modes where the raw progress is close enough. */
+            if (!is3D) syncPhase(build);
           },
         },
       });
@@ -715,7 +759,7 @@ export default function StoryScroll() {
       lenis?.off('scroll', onScroll);
       ctx.revert();
     };
-  }, [still, pinned]);
+  }, [still, pinned, is3D, syncPhase, revealStats]);
 
   return (
     <section id="hero" className={`story ${still ? 'story--static' : ''} ${active !== 'flat' ? 'story--3d' : ''}`} ref={root} aria-label="Alipson Builders — a project from excavation to handover">
@@ -820,9 +864,23 @@ export default function StoryScroll() {
             outgoing beat is gone before the incoming one mounts — with the
             default mode the two overlap mid-crossfade and the copy doubles. */}
         <div className="story__finale-copy">
-          <AnimatePresence mode="wait" initial={false}>
+          {/* THE BEATS CROSS-DISSOLVE; THEY DO NOT TAKE TURNS.
+              This was `mode="wait"`, which holds the incoming beat until the
+              outgoing one has fully left — and for those ~0.5s the container
+              has NO child at all, so it collapses to zero height and the CTAs
+              below snap up and back down. That collapse is the "jumping" in
+              this section, and it fires on every phase boundary.
+              `.story__beats` is a one-cell grid and every beat is placed in
+              that cell (see the stylesheet), so the two overlap instead of
+              queueing: the outgoing fades down as the incoming fades up, the
+              row keeps the height of the taller of the two, and nothing below
+              it moves. Removing `mode` is what lets them coexist; the grid is
+              what stops them stacking into a double-height block. */}
+          <div className="story__beats">
+          <AnimatePresence initial={false}>
             <m.div
               key={phase}
+              className="story__beat"
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
@@ -842,6 +900,7 @@ export default function StoryScroll() {
               <p className="story__sub">{PHASES[phase].sub}</p>
             </m.div>
           </AnimatePresence>
+          </div>
           {/* NO LAYOUT UTILITIES ON THIS ROW. They were `flex flex-col
               sm:flex-row sm:items-center gap-4`, and every one of those shims
               carries `!important` (see index.css) — so `flex-col` was what

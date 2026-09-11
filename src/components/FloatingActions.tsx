@@ -4,6 +4,9 @@ import { Phone, ArrowUp } from 'lucide-react';
 import { CONTACT } from '../data/site';
 import { onScrollFrame, viewportH } from '../lib/scrollbus';
 
+/** Set to false to pin the buttons on screen at all times, as they were. */
+const YIELD_TO_SCROLL = true;
+
 function WhatsAppIcon({ size = 24 }: { size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden>
@@ -14,6 +17,28 @@ function WhatsAppIcon({ size = 24 }: { size?: number }) {
 
 export default function FloatingActions() {
   const [showUp, setShowUp] = useState(false);
+  /* THEY STEP OUT OF THE WAY WHILE YOU ARE READING DOWN THE PAGE.
+   *
+   * This cluster is `position: fixed` in the bottom-right corner, and at 390px
+   * there is no gutter for it to live in — so it sits ON the text. Measured
+   * with Range rects and `elementFromPoint`, the buttons were physically
+   * covering up to 80% of a line across the capabilities, gateway, studio and
+   * founder sections, headings included. No amount of padding fixes that: any
+   * opaque fixed element in that corner covers whatever scrolls under it.
+   *
+   * So they yield to the gesture instead. Scrolling DOWN is reading, and they
+   * slide out; scrolling UP is looking for something to do, and they come
+   * straight back. Both directions are one compositor-only transform, and the
+   * buttons are never more than a short flick away.
+   *
+   * They stay put for the first 60% of a viewport so the cluster is visible on
+   * arrival rather than appearing out of nowhere, and the 6px threshold keeps
+   * sub-pixel scroll jitter from flickering them.
+   *
+   * ONE CONSTANT TURNS IT OFF. If always-on WhatsApp matters more than the
+   * covered text — a fair call to make on a lead-generating site — set
+   * YIELD_TO_SCROLL to false and they behave exactly as they did before. */
+  const [away, setAway] = useState(false);
 
   /* NO LISTENER OF ITS OWN. This used to run a second `scroll` subscription
      with a second rAF coalescer alongside the navbar's, both computing the
@@ -29,6 +54,22 @@ export default function FloatingActions() {
     setShowUp((cur) => (cur === next ? cur : next));
   }), []);
 
+  useEffect(() => {
+    if (!YIELD_TO_SCROLL) return;
+    let last = window.scrollY;
+    /* Same single subscription as everything else — one `scrollY` read per
+       frame for the whole app, and no layout reads in here at all: the
+       viewport comes from the resize-backed cache, so this handler is two
+       comparisons and nothing the browser has to measure. */
+    return onScrollFrame((y) => {
+      const dy = y - last;
+      if (Math.abs(dy) < 6) return;
+      last = y;
+      const next = dy > 0 && y > viewportH() * 0.6;
+      setAway((cur) => (cur === next ? cur : next));
+    });
+  }, []);
+
   const toTop = () => {
     const lenis = (window as unknown as { lenis?: { scrollTo: (n: number, o?: object) => void } }).lenis;
     if (lenis) lenis.scrollTo(0, { duration: 1.4 });
@@ -36,7 +77,7 @@ export default function FloatingActions() {
   };
 
   return (
-    <div className="floaters">
+    <div className={`floaters${away ? ' is-away' : ''}`}>
       <AnimatePresence>
         {showUp && (
           <m.button

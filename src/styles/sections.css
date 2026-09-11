@@ -367,7 +367,15 @@
 .story__stats.is-in .story__cue { opacity: 1; transition: opacity 0.5s ease-out 0.25s; }
 /* Reduced motion and screenshots hold the finished frame, so the bar is simply
    there — it has no entrance to play. */
-.story--static .story__stats { opacity: 1; transform: none; pointer-events: auto; transition: none; }
+/* NOT `opacity: 1` ANY MORE. This rule used to pin the stats bar open for the
+   whole of the static path — reduced motion and `?noloader` capture — which put
+   four opaque cards with their counters already run out over the hero at scroll
+   0, covering the 3D render the section exists to show. The bar's arrival is
+   driven from JS on this path now (see the `still` effect in StoryScroll), so
+   it keeps its hidden start and its `is-in` latch exactly like every other
+   visitor; the reduced-motion rule further down drops the 100% slide and leaves
+   the fade. All that is left here is the hit-testing, which follows `is-in`. */
+.story--static .story__stats.is-in { pointer-events: auto; }
 .story--static .story__cue { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   /* The fade stays, the 100% slide goes. The hidden state keeps its off-stage
@@ -2346,6 +2354,19 @@
 .story__finale-copy { position: absolute; z-index: 30; left: 0; right: 0; bottom: 0; opacity: 0;
   padding: 0 var(--pad-x) clamp(3.5rem, 13vh, 9rem); max-width: 900px; pointer-events: none; }
 .story--static .story__finale-copy { opacity: 1; visibility: visible; }
+
+/* ---- THE PHASE BEATS, STACKED ---------------------------------------------
+   One grid cell, every beat in it. The copy swaps five times across the pin,
+   and while framer is crossfading two of them BOTH are in the DOM — in normal
+   flow that is a stack two headlines tall, which shoves the CTAs down and then
+   pulls them back. Placing every child in row 1 / column 1 overlaps them
+   instead, so the block's height is the taller of the two and the buttons
+   underneath never move.
+   `align-items: start` so a short beat does not stretch to the tall one's
+   height and re-centre its own text while it fades. */
+.story__beats { display: grid; align-items: start; }
+.story__beats > * { grid-area: 1 / 1; }
+
 /* Pill badge, so the brand line keeps a backdrop of its own wherever it lands —
    this is the one part of the block that rides high enough to cross the light
    sky as well as the dark ground.
@@ -3214,6 +3235,14 @@
      utilities in index.css carry it; later cascade position is what wins. */
   .grid { grid-template-columns: 1fr !important; }
 
+  /* ONE COLUMN, AND THE FOOTER IS NOT IN THIS LIST. Every section grid on a
+     phone is single-column: a service card, a capability card or a contact
+     form squeezed into half of 390px is ~169px of content box, which is the
+     "squished cards" this rule must never produce again.
+     THE FOOTER USED TO BE THE LAST SELECTOR HERE and was given its own
+     two-column layout by editing that tail — which silently handed the same
+     two-column rule to all seven siblings above it. It has its own rule below
+     now, so the two can never be confused again. */
   .services__grid,
   .std__grid,
   .gate__features,
@@ -3221,8 +3250,11 @@
   .contact__grid,
   .intro__grid,
   .founder__panel,
-  /* Two-up, matching the ≤560px rule above — this breakpoint used to override
-     it back to a single column, which is what made the phone footer tall. */
+  .footer__top { grid-template-columns: 1fr; }
+
+  /* The footer is the one grid that DOES go two-up on a phone — it is a
+     sitemap and an address, not content cards. Its own rule, deliberately
+     separate from the single-column list above. */
   .footer__top { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 1.25rem;
     padding: 1.75rem 0 1.25rem; }
   .footer__col--brand { grid-column: 1 / -1; }
