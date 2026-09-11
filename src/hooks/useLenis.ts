@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import Lenis from 'lenis';
 import { isLite } from '../lib/device';
+import { PATH_FOR_SECTION, navigate, currentPath } from '../router';
 
 /**
  * Buttery smooth-scroll driven by Lenis, RAF-synced. Exposes the instance on
@@ -77,14 +78,113 @@ const NAV_OFFSET = 100;
  * never created, so `behavior: smooth` would be the one animation left running).
  */
 export function scrollToId(id: string) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const lenis = (window as unknown as { lenis?: Lenis }).lenis;
-  if (lenis) {
-    lenis.scrollTo(el, { offset: -NAV_OFFSET, duration: 1.4 });
+  /* A SECTION THAT IS NOT ON THIS PAGE IS NOT A DEAD LINK ANY MORE — it is a
+     link to that section's own page. Every caller of this routes through here
+     (the services CTA, the hero's "Explore Projects", the card "Explore"
+     buttons), so one guard fixes all of them at once instead of each caller
+     growing its own is-it-here check. On the home page nothing changes: every
+     id resolves, and the smooth scroll below runs exactly as before. */
+  if (!document.getElementById(id)) {
+    const to = PATH_FOR_SECTION[id];
+    if (to && to !== currentPath()) navigate(to);
     return;
   }
+  const lenis = (window as unknown as { lenis?: Lenis }).lenis;
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const y = el.getBoundingClientRect().top + window.scrollY - NAV_OFFSET;
-  window.scrollTo({ top: y, behavior: reduce ? 'auto' : 'smooth' });
+
+  /* IT RE-AIMS WHILE THE PAGE IS STILL GROWING UNDER IT.
+     Everything below the fold is mounted on approach by <Deferred>, whose
+     placeholder is a `min-height` guess and never the real section's height. So
+     a jump from the middle of the page to "Contact" flies past four or five
+     placeholders, each of which swaps in taller (or shorter) content WHILE the
+     scroll is in flight — and the destination that was computed at the start of
+     the animation is metres away from where the section actually ends up. That
+     is the "stops above/below the section" bug, and it is worst for the two
+     links furthest down the page, which have the most placeholders to cross.
+     Nothing can pre-compute this: the heights do not exist until the sections
+     render. So re-measure instead, and re-issue only when the answer MOVED —
+     both Lenis and the native smooth scroller accept a new target mid-flight
+     and retarget smoothly, so a correction reads as one continuous glide, not
+     as a second jump. Once the target stops moving the loop issues nothing.
+
+     It also yields: the first wheel notch or finger down means the visitor has
+     taken over, and fighting them for the next second is worse than landing a
+     few pixels off. */
+  let aimed = -1;
+  let lastAt = -1;
+  let issuedAt = 0;
+  let settled = 0;
+  let live = true;
+  const surrender = () => { live = false; };
+  const opts = { once: true, passive: true } as const;
+  window.addEventListener('wheel', surrender, opts);
+  window.addEventListener('touchstart', surrender, opts);
+
+  /* THE BUDGET IS WALL CLOCK, NOT A COUNT OF TRIES, and that distinction is
+     load-bearing on a phone. Counting tries looks equivalent until the main
+     thread stalls — and on this page it does, for seconds, while the 3D chunk
+     parses and its shaders compile. Every `setTimeout` queued during that stall
+     comes due the instant it ends and fires as ONE burst, so an attempt budget
+     drains to zero in a few milliseconds without the page having moved a pixel,
+     and the loop gives up precisely when the scroll most needs correcting.
+     A deadline cannot be spent by a stall: whatever the main thread was doing,
+     there is still time on the clock when it comes back. */
+  const DEADLINE = performance.now() + 7000;
+
+  const issue = (to: number, from: number) => {
+    issuedAt = performance.now();
+    /* Corrections are short. The opening move is a 1.4s glide across the page;
+       a 40px nudge after the last section landed is not, and easing that over
+       the same 1.4s is what would read as the page drifting on after it had
+       visibly stopped. */
+    const dur = Math.min(1.4, Math.max(0.3, Math.abs(to - from) / 1600));
+    if (lenis) lenis.scrollTo(to, { duration: dur });
+    else window.scrollTo({ top: to, behavior: reduce ? 'auto' : 'smooth' });
+  };
+
+  const aim = () => {
+    const el = live ? document.getElementById(id) : null;
+    if (el) {
+      const at = Math.round(window.scrollY);
+      const y = Math.round(el.getBoundingClientRect().top + at - NAV_OFFSET);
+      /* Sitting on the last scrollable pixel and still being asked for more is
+         as arrived as the page can get — the last section is simply shorter
+         than the viewport. Without this the loop would re-issue a scroll that
+         cannot move for the whole of its budget. */
+      const atMax = at >= document.documentElement.scrollHeight - window.innerHeight - 2;
+      const arrived = Math.abs(at - y) <= 2 || (atMax && y > at);
+      const moving = at !== lastAt;
+      lastAt = at;
+
+      /* RE-ISSUE WHEN THE SCROLL HAS COME TO REST SHORT — not while it is still
+         travelling. That is the whole correction, and it covers both ways this
+         goes wrong: a scroll is CLAMPED to the page height at the moment it is
+         issued, so aiming at the footer across un-mounted sections pins to the
+         current maximum and never retries once the page grows; and a <Deferred>
+         placeholder swapping in a different height moves the target mid-flight.
+         Both end the same way — stopped, somewhere that is not the section.
+         Re-aiming MID-FLIGHT is what must not happen: Lenis restarts its ease
+         from the current position on every call, so with sections still
+         arriving and the target moving on every sample, each re-aim outruns the
+         one before and the scroll never converges — it just crawls and then
+         gets abandoned. The exception is a target that has jumped a long way,
+         where continuing to the old spot is visibly wrong; that is rate-limited
+         so it can never become the per-sample restart it replaced. */
+      const jumped = aimed >= 0 && Math.abs(y - aimed) > 240 && performance.now() - issuedAt > 500;
+      if (aimed < 0 || (!moving && !arrived) || jumped) {
+        settled = 0;
+        aimed = y;
+        issue(y, at);
+      } else if (arrived) settled++;
+      else settled = 0;
+
+      /* Stop on STILLNESS, not on the stopwatch — the deadline is only the
+         backstop. Three quiet samples in a row means the sections have finished
+         arriving and the destination has stopped moving. */
+      if (settled < 3 && performance.now() < DEADLINE) { window.setTimeout(aim, 200); return; }
+    }
+    window.removeEventListener('wheel', surrender);
+    window.removeEventListener('touchstart', surrender);
+  };
+  aim();
 }

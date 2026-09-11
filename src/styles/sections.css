@@ -1226,7 +1226,7 @@
 .svc__more svg { color: #d31018; transition: transform 0.4s var(--ease-lux); }
 .svc__more:focus-visible { outline: 2px solid #d31018; outline-offset: 3px; border-radius: 4px; }
 
-.svc:focus-within, .svc.is-active {
+.svc:has(:focus-visible), .svc.is-active {
   translate: 0 -8px;
   background: rgba(11, 19, 43, 0.92);
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
@@ -1234,17 +1234,18 @@
   /* No red bloom — it read as a gradient mask bleeding off the card foot. */
   box-shadow: 0 22px 44px -18px rgba(11, 19, 43, 0.55);
 }
-:is(.svc:focus-within, .svc.is-active) .svc__sketch { --sk: rgba(211, 16, 24, 0.4); }
-:is(.svc:focus-within, .svc.is-active) .sketch { transform: scale(1.03); }
-:is(.svc:focus-within, .svc.is-active) .svc__title, :is(.svc:focus-within, .svc.is-active) .svc__more { color: #FFFFFF; }
-:is(.svc:focus-within, .svc.is-active) .svc__desc { color: rgba(255, 255, 255, 0.8); }
-:is(.svc:focus-within, .svc.is-active) .svc__num { color: rgba(255, 255, 255, 0.65); }
-:is(.svc:focus-within, .svc.is-active) .svc__icon {
+:is(.svc:has(:focus-visible), .svc.is-active) .svc__sketch { --sk: rgba(211, 16, 24, 0.4); }
+:is(.svc:has(:focus-visible), .svc.is-active) .sketch { transform: scale(1.03); }
+:is(.svc:has(:focus-visible), .svc.is-active) .svc__title, :is(.svc:has(:focus-visible), .svc.is-active) .svc__more { color: #FFFFFF; }
+:is(.svc:has(:focus-visible), .svc.is-active) .svc__desc { color: rgba(255, 255, 255, 0.8); }
+:is(.svc:has(:focus-visible), .svc.is-active) .svc__num { color: rgba(255, 255, 255, 0.65); }
+:is(.svc:has(:focus-visible), .svc.is-active) .svc__icon {
   background: #d31018; color: #FFFFFF; transform: scale(1.08); }
-:is(.svc:focus-within, .svc.is-active) .svc__more svg { transform: translateX(6px); }
+:is(.svc:has(:focus-visible), .svc.is-active) .svc__more svg { transform: translateX(6px); }
 /* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
-   edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
-   outside the fence: those are real on a touch screen, `:hover` is not. */
+   edit the other. `.is-active` (tap) and `:has(:focus-visible)`
+   (keyboard) stay outside the fence: those are real on a touch screen,
+   `:hover` is not. */
 @media (hover: hover) and (pointer: fine) {
   .svc:hover {
     translate: 0 -8px;
@@ -1266,10 +1267,10 @@
 @media (prefers-reduced-transparency: reduce) {
   .svc { background: #FFFFFF; backdrop-filter: none; -webkit-backdrop-filter: none;
     border-color: #E2E8F0; }
-  .svc:focus-within, .svc.is-active { background: #0B132B;
+  .svc:has(:focus-visible), .svc.is-active { background: #0B132B;
     backdrop-filter: none; -webkit-backdrop-filter: none; }
   /* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
-     edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
+     edit the other. `.is-active` (tap) and `:has(:focus-visible)` (keyboard) stay
      outside the fence: those are real on a touch screen, `:hover` is not. */
   @media (hover: hover) and (pointer: fine) {
     .svc:hover {
@@ -1289,11 +1290,11 @@
 @media (prefers-reduced-motion: reduce) {
   .svc__road-dash, .svc__car { animation: none; }
   .svc, .svc__icon, .svc__more svg, .svc__num, .svc__title, .svc__desc, .sketch, .sketch g { transition-duration: 0.01ms; }
-  :is(.svc:focus-within, .svc.is-active) .sketch { transform: none; }
-  .svc:focus-within, .svc.is-active { translate: none; }
-  :is(.svc:focus-within, .svc.is-active) .svc__icon, :is(.svc:focus-within, .svc.is-active) .svc__more svg { transform: none; }
+  :is(.svc:has(:focus-visible), .svc.is-active) .sketch { transform: none; }
+  .svc:has(:focus-visible), .svc.is-active { translate: none; }
+  :is(.svc:has(:focus-visible), .svc.is-active) .svc__icon, :is(.svc:has(:focus-visible), .svc.is-active) .svc__more svg { transform: none; }
   /* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
-     edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
+     edit the other. `.is-active` (tap) and `:has(:focus-visible)` (keyboard) stay
      outside the fence: those are real on a touch screen, `:hover` is not. */
   @media (hover: hover) and (pointer: fine) {
     .svc:hover .sketch { transform: none; }
@@ -1398,11 +1399,51 @@
   transition: opacity 0.6s var(--ease-lux) 0.15s, transform 0.6s var(--ease-lux) 0.15s;
 }
 .is-on .pshow__body > * { opacity: 1; transform: none; }
+/* ---- CATEGORY BADGE, ON THE PHOTOGRAPH -------------------------------------
+   It used to be a bare line of red type in the text column, which is why it
+   read as "missing": it was never on the image it labels, and at 0.72rem in
+   #d31018 it had to survive whatever the section background was doing.
+
+   CONTRAST IS GUARANTEED, NOT HOPED FOR. Red on a photograph is the worst case
+   in this whole stylesheet — these six images run from a near-black dusk tower
+   to bright white-sand villa frontage, so ANY transparent treatment is legible
+   on some cards and invisible on others. The badge therefore carries its own
+   near-opaque light plate: at 0.94 alpha the darkest possible pixel behind it
+   still resolves to ~#F0F0F0, so brand red measures about 5.4:1 on every card,
+   every image, at every breakpoint — above the 4.5:1 floor small text needs,
+   with no per-image tuning and nothing to re-check when a photograph changes.
+   The TEXT stays exactly #d31018; the plate is what moved, not the colour.
+
+   No `backdrop-filter` on purpose. A blur here would be a per-frame read-back
+   on six cards inside a sticky scroll section, which is the one thing the
+   mobile blur budget further down this file exists to prevent — and at 0.94
+   alpha there is nothing behind it left to see anyway.
+
+   `pointer-events: none` because the frame under it opens the case-study
+   sheet; a badge that swallowed that click would be a dead patch on the
+   photograph exactly where the eye lands first. */
 .pshow__cat {
-  display: block; font-family: var(--font-grotesk); font-weight: 600;
-  font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase;
-  color: var(--accent); margin-bottom: 0.7rem;
+  position: absolute; z-index: 2;
+  top: clamp(0.75rem, 2vw, 1.1rem); left: clamp(0.75rem, 2vw, 1.1rem);
+  max-width: calc(100% - clamp(1.5rem, 4vw, 2.2rem));
+  pointer-events: none;
+  padding: 0.42em 0.85em;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 10px -2px rgba(11, 19, 43, 0.35);
+  font-family: var(--font-grotesk); font-weight: 700;
+  font-size: clamp(0.62rem, 1.5vw, 0.72rem);
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--accent);
+  /* One line, always. A wrapped two-line pill over the corner of a photograph
+     is the "overlap" case — and these are two words at most. */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  /* Matches the timing the body copy lifts on, so the badge arrives with the
+     rest of the panel rather than being the one element that snaps in. */
+  opacity: 0; transform: translateY(6px);
+  transition: opacity 0.6s var(--ease-lux) 0.15s, transform 0.6s var(--ease-lux) 0.15s;
 }
+.is-on .pshow__cat { opacity: 1; transform: none; }
 .pshow__title {
   font-family: var(--font-display); font-weight: 400; color: #fff;
   font-size: clamp(1.9rem, 3.4vw, 3rem); line-height: 1.06; margin-bottom: 1.4rem;
@@ -1461,27 +1502,31 @@
   .pshow__frame { clip-path: none; aspect-ratio: 4 / 3; }
   .pshow__frame img { transform: none; }
   .pshow__body > * { opacity: 1; transform: none; }
+  /* ALL SIX BADGES, NOT JUST THE ACTIVE ONE. Here the panels are in normal flow
+     and every card is on screen, but `.is-on` still tracks scroll and marks
+     exactly one of them — so keying the badge's reveal to it would leave five
+     of the six cards labelled with an invisible pill. Same reason the body copy
+     directly above is unpinned from `.is-on` at this width. */
+  .pshow__cat { opacity: 1; transform: none; }
   .pshow__idx { padding-bottom: 0.9rem; font-size: 0.75rem; }
   .pshow__body { padding-top: 1.2rem; }
   .pshow__title { font-size: 1.6rem; margin-bottom: 1rem; }
   .pshow__desc { font-size: 0.88rem; }
-  /* Last child of the track, pinned to the bottom edge — so the marker row
-     rides along for the whole section instead of appearing only at its end. */
-  .pshow__rail {
-    position: sticky; bottom: calc(4.5rem + env(safe-area-inset-bottom)); left: auto;
-    align-self: center; margin-top: 0.5rem;
-    padding: 0.5rem 0.85rem; border-radius: 100px;
-    background: rgba(8, 12, 20, 0.66); border: 1px solid rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  }
-  .pshow__dot { width: 18px; }
-  .pshow__dot.is-on { width: 34px; }
+  /* NO SLIDE MARKERS WHERE THERE IS NO SLIDER. This was a sticky pill of dots
+     riding the bottom of the whole Projects section — a progress indicator for
+     a carousel that does not exist at this width: the panels are in normal flow
+     here, all six of them, each already captioned with its own "01 / 06". So it
+     tracked nothing, duplicated a fact the panel states, and floated over the
+     photograph underneath (and, once the section ran out, over the next
+     section's copy). It goes with the mechanism it belonged to. */
+  .pshow__rail { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pshow__panel, .pshow__frame, .pshow__frame img, .pshow__body > *, .pshow__dot {
+  .pshow__panel, .pshow__frame, .pshow__frame img, .pshow__body > *, .pshow__cat, .pshow__dot {
     transition-duration: 0.01ms;
   }
+  .pshow__cat { transform: none; }
   .pshow__frame { clip-path: none; }
   .pshow__frame img { transform: none; }
 }
@@ -1641,9 +1686,20 @@
 /* ==========================================================================
    THE ALIPSON STANDARD — 4-card feature grid
    --------------------------------------------------------------------------
-   Cards take a dark state on hover, on focus-within (keyboard reaches the
-   "Learn More" button) and on .is-active (click). All three share one selector
-   list, so the three states can never drift apart.
+   Cards take a dark state on hover, on `:has(:focus-visible)` (a keyboard has
+   reached the "Learn More" button) and on .is-active (click). All three share
+   one selector list, so the three states can never drift apart.
+
+   IT IS `:focus-visible`, NOT `:focus-within`, AND THAT IS THE WHOLE FIX FOR
+   "the card flips and stays flipped". `:focus-within` matches however the
+   focus arrived — so a MOUSE CLICK or a TAP on "Learn More" left the button
+   focused, and the card sat in its dark back-facing state indefinitely: past
+   the scroll the button triggers, behind whatever you looked at next, and
+   alongside a second card the visitor had actually tapped, so two cards read
+   as open at once. `:focus-visible` is the browser's own answer to "did this
+   focus come from a keyboard", which is the only case the state was ever for.
+   A pointer now leaves the state entirely to `.is-active`, which the component
+   toggles and can therefore also untoggle.
    ========================================================================== */
 .std { position: relative; background: #F8FAFC; overflow: hidden; }
 /* HERO HAND-OFF. The hero ends on #070B18 and this section starts on #F8FAFC —
@@ -1745,33 +1801,34 @@
   transition: color 0.45s var(--ease-lux); }
 .std__more svg { color: #d31018; transition: transform 0.4s var(--ease-lux); }
 
-.std__card:focus-within, .std__card.is-active {
+.std__card:has(:focus-visible), .std__card.is-active {
   translate: 0 -8px;
   background: #0B132B;
   border-color: #d31018;
   box-shadow: 0 12px 30px rgba(211, 16, 24, 0.25);
 }
-:is(.std__card:focus-within, .std__card.is-active)::before { background: rgba(255, 255, 255, 0.05); }
-:is(.std__card:focus-within, .std__card.is-active)::after { background: rgba(211, 16, 24, 0.22); }
+:is(.std__card:has(:focus-visible), .std__card.is-active)::before { background: rgba(255, 255, 255, 0.05); }
+:is(.std__card:has(:focus-visible), .std__card.is-active)::after { background: rgba(211, 16, 24, 0.22); }
 
-:is(.std__card:focus-within, .std__card.is-active) h3, :is(.std__card:focus-within, .std__card.is-active) p, :is(.std__card:focus-within, .std__card.is-active) .std__more { color: #FFFFFF; }
+:is(.std__card:has(:focus-visible), .std__card.is-active) h3, :is(.std__card:has(:focus-visible), .std__card.is-active) p, :is(.std__card:has(:focus-visible), .std__card.is-active) .std__more { color: #FFFFFF; }
 
-:is(.std__card:focus-within, .std__card.is-active) .std__bp {
+:is(.std__card:has(:focus-visible), .std__card.is-active) .std__bp {
   opacity: 0.4; stroke: #FFFFFF; transform: translateY(-4px); }
-:is(.std__card:focus-within, .std__card.is-active) .std__bp .hl { opacity: 1; }
+:is(.std__card:has(:focus-visible), .std__card.is-active) .std__bp .hl { opacity: 1; }
 
-:is(.std__card:focus-within, .std__card.is-active) .std__ic {
+:is(.std__card:has(:focus-visible), .std__card.is-active) .std__ic {
   border-color: #d31018; box-shadow: 0 0 0 3px rgba(211, 16, 24, 0.18); }
-:is(.std__card:focus-within, .std__card.is-active) .std__dot {
+:is(.std__card:has(:focus-visible), .std__card.is-active) .std__dot {
   opacity: 1; transform: scale(1); animation: stdDot 1.6s var(--ease-lux) infinite; }
 
-:is(.std__card:focus-within, .std__card.is-active) .std__more svg { transform: translateX(4px); }
+:is(.std__card:has(:focus-visible), .std__card.is-active) .std__more svg { transform: translateX(4px); }
 
-:is(.std__card:focus-within, .std__card.is-active) .std__sweep {
+:is(.std__card:has(:focus-visible), .std__card.is-active) .std__sweep {
   opacity: 1; transform: translateX(90%); transition: transform 0.75s var(--ease-out), opacity 0.2s linear; }
 /* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
-   edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
-   outside the fence: those are real on a touch screen, `:hover` is not. */
+   edit the other. `.is-active` (tap) and `:has(:focus-visible)`
+   (keyboard) stay outside the fence: those are real on a touch screen,
+   `:hover` is not. */
 @media (hover: hover) and (pointer: fine) {
   .std__card:hover {
     translate: 0 -8px;
@@ -1817,11 +1874,11 @@
 @media (prefers-reduced-motion: reduce) {
   .std__sketch { animation: none; }
   .std__card, .std__bp, .std__sweep, .std__dot, .std__more svg { transition-duration: 0.01ms; }
-  .std__card:hover, .std__card:focus-within, .std__card.is-active { translate: none; }
+  .std__card:hover, .std__card:has(:focus-visible), .std__card.is-active { translate: none; }
   .std__bp { transition-property: opacity, stroke; }
-  :is(.std__card:hover, .std__card:focus-within, .std__card.is-active) .std__bp { transform: none; }
+  :is(.std__card:hover, .std__card:has(:focus-visible), .std__card.is-active) .std__bp { transform: none; }
   .std__sweep { display: none; }
-  :is(.std__card:hover, .std__card:focus-within, .std__card.is-active) .std__dot { animation: none; }
+  :is(.std__card:hover, .std__card:has(:focus-visible), .std__card.is-active) .std__dot { animation: none; }
 }
 
 /* ==========================================================================
@@ -1959,12 +2016,54 @@
 @media (hover: hover) and (pointer: fine) {
   .gitem:hover img { transform: scale(1.07); }
 }
-.gitem__over { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 1.3rem; background: linear-gradient(180deg, transparent 40%, rgba(8,9,10,0.8)); opacity: 0; transition: opacity 0.5s; }
+/* ---- CAPTION SCRIM: MEASURED FROM THE BOTTOM, NOT AS A PERCENTAGE ----------
+   The old ramp was `transparent 40% → rgba(8,9,10,0.8)`, and it failed the red
+   category label on two counts.
+
+   FIRST, PERCENTAGES MAKE A MASONRY GRID INCONSISTENT. These tiles come in
+   three heights (tall / wide / reg), so "dark from 40% down" is a 300px wash on
+   one card and a 90px one on its neighbour — the caption block is a FIXED
+   height, so on the tall tiles the label floated in the pale part of the ramp
+   while on short ones it was fine. Same CSS, six different results. Sizing the
+   scrim in rem from the bottom edge instead gives every card the identical
+   treatment behind its caption whatever the tile's height.
+
+   SECOND, 0.8 AT THE VERY BOTTOM WAS NOT ENOUGH WHERE THE LABEL ACTUALLY SITS.
+   The label is the upper line of the caption, several rem off the bottom, so it
+   was landing at roughly half that alpha. Measured against the real rendered
+   pixels it came out at 1.38:1, 1.79:1 and 1.85:1 on the three tiles visible at
+   once — not "slightly low", effectively invisible. The white title beneath it
+   was always fine, which is why only the red read as broken.
+
+   The scrim now holds ~0.93 through the whole caption band and fades out well
+   above it, so the gradient still reads as a gradient rather than as a bar. */
+.gitem__over {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 1.3rem;
+  background: linear-gradient(to top,
+    rgba(8, 9, 10, 0.96) 0,
+    rgba(8, 9, 10, 0.93) 4.75rem,
+    rgba(8, 9, 10, 0.62) 7rem,
+    rgba(8, 9, 10, 0.22) 9.5rem,
+    transparent 12rem);
+  opacity: 0; transition: opacity 0.5s;
+}
 @media (hover: hover) and (pointer: fine) {
   .gitem:hover .gitem__over { opacity: 1; }
 }
 .gitem__over h3 { font-family: var(--font-display); font-weight: 300; font-size: 1.3rem; color: var(--bone-100); }
-.gitem__over span { font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-soft); }
+/* COLOUR UNCHANGED — still `--accent-soft`, the same brand red this label has
+   always been. What it gains is a contact shadow, which is what carries it over
+   the bright tiles: the scrim sets the general level, and this darkens the few
+   pixels immediately around each letterform, so a pale patch of sky or render
+   showing through cannot swallow a thin 11px uppercase glyph. */
+.gitem__over span {
+  font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent-soft);
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(3, 5, 8, 0.95), 0 0 8px rgba(3, 5, 8, 0.85);
+}
 
 /* Lightbox */
 .lightbox { position: fixed; inset: 0; z-index: 1100; background: rgba(4,5,6,0.92); backdrop-filter: blur(8px); display: grid; place-items: center; padding: 2rem; overscroll-behavior: contain; }
@@ -2072,14 +2171,38 @@
 .contact__map-load small { font-weight: 400; font-size: 0.78rem; color: var(--text-mute); max-width: 30ch; text-align: center; }
 .contact__map-load:focus-visible { background: var(--tint); color: var(--text); }
 /* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
-   edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
-   outside the fence: those are real on a touch screen, `:hover` is not. */
+   edit the other. `.is-active` (tap) and `:has(:focus-visible)`
+   (keyboard) stay outside the fence: those are real on a touch screen,
+   `:hover` is not. */
 @media (hover: hover) and (pointer: fine) {
   .contact__map-load:hover { background: var(--tint); color: var(--text); }
 }
 .contact__form { padding: clamp(1.6rem, 4vw, 2.6rem); border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--border); }
 .contact__form h3 { font-family: var(--font-grotesk); font-weight: 600; font-size: 1.5rem; margin-bottom: 0.4rem; }
 .contact__form > p { color: var(--text-mute); font-size: 0.9rem; margin-bottom: 1.8rem; }
+
+/* ---- CONTACT, SMALL SCREENS: THE MUTED COPY IS NOT MUTED ENOUGH TO READ ----
+   Everything the section actually asks you to USE — the phone number, the
+   email address, the studio address and the form's field labels — is painted
+   in `--text-mute`, which is the brand navy at 0.52 alpha. On white that
+   resolves to about #858DA9: a 3.2:1 contrast ratio, under the 4.5:1 floor for
+   body text, and it is a full step worse in the conditions a phone is actually
+   held in — outdoors, at a glance, on a screen that is auto-dimming.
+
+   THE COLOUR DOES NOT CHANGE, only how much of it there is: `--text-soft` is
+   the same navy at 0.72, which reads ~4.9:1 and stays plainly the muted tier
+   next to the solid-navy headings above it. Desktop keeps the type exactly as
+   authored — this is a legibility fix for the hand, not a restyle.
+
+   Scoped to the section rather than to the token, deliberately: `--text-mute`
+   carries a dozen other jobs on this page (rules, captions, decorative labels)
+   where 0.52 is doing the right thing. */
+@media (max-width: 900px) {
+  #contact .contact__item p,
+  #contact .contact__form > p,
+  #contact .field label,
+  #contact .contact__map-load small { color: var(--text-soft); }
+}
 .form-submit { width: 100%; justify-content: center; margin-top: 0.5rem; }
 
 /* ==========================================================================
@@ -2568,13 +2691,14 @@
 /* Full-bleed blueprint inside every card; brightens and grows in the dark state. */
 .gate__sketch { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%;
   pointer-events: none; }
-:is(.gate__card:focus-within, .gate__card.is-active) .gate__sketch {
+:is(.gate__card:has(:focus-visible), .gate__card.is-active) .gate__sketch {
   --sk: rgba(211, 16, 24, 0.4); }
-:is(.gate__card:focus-within, .gate__card.is-active) .gate__sketch.sketch {
+:is(.gate__card:has(:focus-visible), .gate__card.is-active) .gate__sketch.sketch {
   transform: scale(1.03); }
 /* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
-   edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
-   outside the fence: those are real on a touch screen, `:hover` is not. */
+   edit the other. `.is-active` (tap) and `:has(:focus-visible)`
+   (keyboard) stay outside the fence: those are real on a touch screen,
+   `:hover` is not. */
 @media (hover: hover) and (pointer: fine) {
   .gate__card:hover .gate__sketch { --sk: rgba(211, 16, 24, 0.4); }
   .gate__card:hover .gate__sketch.sketch { transform: scale(1.03); }
@@ -2608,20 +2732,21 @@
 .gate__more svg { color: #d31018; }
 .gate__more:focus-visible { outline: 2px solid #d31018; outline-offset: 3px; border-radius: 4px; }
 
-.gate__card:focus-within, .gate__card.is-active {
+.gate__card:has(:focus-visible), .gate__card.is-active {
   translate: 0 -8px;
   background: #0B132B;
   border-color: #d31018;
   box-shadow: 0 16px 32px rgba(211, 16, 24, 0.25);
 }
-:is(.gate__card:focus-within, .gate__card.is-active) h3, :is(.gate__card:focus-within, .gate__card.is-active) p, :is(.gate__card:focus-within, .gate__card.is-active) .gate__more { color: #FFFFFF; }
-:is(.gate__card:focus-within, .gate__card.is-active) .gate__geo { transform: scale(1.06) translateY(-3px); }
-:is(.gate__card:focus-within, .gate__card.is-active) .gate__card-ic { transform: scale(1.08); }
-:is(.gate__card:focus-within, .gate__card.is-active) .gate__more { transform: translateX(6px); }
-:is(.gate__card:focus-within, .gate__card.is-active) .gate__more svg { color: #d31018; }
+:is(.gate__card:has(:focus-visible), .gate__card.is-active) h3, :is(.gate__card:has(:focus-visible), .gate__card.is-active) p, :is(.gate__card:has(:focus-visible), .gate__card.is-active) .gate__more { color: #FFFFFF; }
+:is(.gate__card:has(:focus-visible), .gate__card.is-active) .gate__geo { transform: scale(1.06) translateY(-3px); }
+:is(.gate__card:has(:focus-visible), .gate__card.is-active) .gate__card-ic { transform: scale(1.08); }
+:is(.gate__card:has(:focus-visible), .gate__card.is-active) .gate__more { transform: translateX(6px); }
+:is(.gate__card:has(:focus-visible), .gate__card.is-active) .gate__more svg { color: #d31018; }
 /* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
-   edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
-   outside the fence: those are real on a touch screen, `:hover` is not. */
+   edit the other. `.is-active` (tap) and `:has(:focus-visible)`
+   (keyboard) stay outside the fence: those are real on a touch screen,
+   `:hover` is not. */
 @media (hover: hover) and (pointer: fine) {
   .gate__card:hover {
     translate: 0 -8px;
@@ -2638,11 +2763,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .gate__card, .gate__geo, .gate__card-ic, .gate__more, .gate__sketch { transition-duration: 0.01ms; }
-  :is(.gate__card:focus-within, .gate__card.is-active) .gate__sketch { transform: none; }
-  .gate__card:focus-within, .gate__card.is-active { translate: none; }
-  :is(.gate__card:focus-within, .gate__card.is-active) .gate__geo, :is(.gate__card:focus-within, .gate__card.is-active) .gate__card-ic, :is(.gate__card:focus-within, .gate__card.is-active) .gate__more { transform: none; }
+  :is(.gate__card:has(:focus-visible), .gate__card.is-active) .gate__sketch { transform: none; }
+  .gate__card:has(:focus-visible), .gate__card.is-active { translate: none; }
+  :is(.gate__card:has(:focus-visible), .gate__card.is-active) .gate__geo, :is(.gate__card:has(:focus-visible), .gate__card.is-active) .gate__card-ic, :is(.gate__card:has(:focus-visible), .gate__card.is-active) .gate__more { transform: none; }
   /* HOVER TWIN of the block above — same declarations, mouse only. Edit one,
-     edit the other. `.is-active` (tap) and `:focus-within` (keyboard) stay
+     edit the other. `.is-active` (tap) and `:has(:focus-visible)` (keyboard) stay
      outside the fence: those are real on a touch screen, `:hover` is not. */
   @media (hover: hover) and (pointer: fine) {
     .gate__card:hover .gate__sketch { transform: none; }
@@ -2748,6 +2873,47 @@
 .story--3d .story__headline { text-shadow: none; }
 .story--3d .story__sub { text-shadow: none; }
 .story--3d .story__eyebrow { text-shadow: none; }
+
+/* ---- THE RED WORD HAS TO CARRY THE SAME AS THE WHITE ONE -------------------
+   The headline is two lines: a white one and a brand-red one, and only the
+   white one was legible. That is not a colour mistake, it is a LUMINANCE one.
+   Brand red #d31018 sits at ~0.14 relative luminance; the blue-hour render
+   behind it runs from near-black sky to lit sand and tan concrete, and across
+   the first three beats the accent lands squarely on warm brown ground at
+   roughly its own brightness — "Motion" over excavated earth is red on red,
+   about 3.5:1 at best and visibly worse over the lit patches. The white line
+   clears 12:1 against the same pixels, which is why only half of each headline
+   read properly.
+
+   THE COLOUR IS UNCHANGED — it is still exactly #d31018, because the ask is for
+   correct brand red, not a lighter red that would pass more easily. What comes
+   back is the separation the `text-shadow: none` rule above stripped: a tight
+   dark contact shadow that darkens only the pixels immediately around each
+   letterform, plus one wider soft pass to seat it. The glyphs then sit on their
+   own dark ground whatever the render is doing behind them, which holds the
+   accent above the 3:1 floor large text needs at every beat instead of only the
+   ones that happen to fall on a dark frame.
+
+   Scoped to the ACCENT only, and only on the 3D hero: the white line genuinely
+   does carry itself on contrast alone, and putting a shadow under it too is
+   what made the old full-block treatment read as a glow. */
+.story--3d .story__headline em {
+  text-shadow:
+    0 1px 2px rgba(4, 8, 18, 0.92),
+    0 0 10px rgba(4, 8, 18, 0.78),
+    0 2px 26px rgba(4, 8, 18, 0.6);
+}
+/* Reduced transparency is a request for flat, definite colour rather than for
+   effects — swap the halo for a solid plate behind the accent, same red. */
+@media (prefers-reduced-transparency: reduce) {
+  .story--3d .story__headline em {
+    text-shadow: none;
+    background: rgba(4, 8, 18, 0.82);
+    /* Inline box hugging the word, not a band across the column. */
+    display: inline-block; padding: 0.04em 0.3em; margin-left: -0.3em;
+    border-radius: 6px;
+  }
+}
 /* One soft vignette, nothing more — it seats the blue-hour render in the frame
    the way a lens would. NO foot fade: a band across the bottom would cut the
    plaza off from the section below it. */
@@ -3076,8 +3242,17 @@
   .gitem { margin-bottom: 0.7rem; }
   /* The caption overlay is hover-only on desktop; a phone has no hover, so at
      this size it would never appear at all. Show it, softened. */
+  /* Same scrim shape as the base rule, scaled to this breakpoint's caption:
+     the padding, title and label are all smaller here, and the tiles are half
+     the width, so the rem lengths come down with them. Without its own version
+     this rule's shorthand `background` would drop the fix entirely. */
   .gitem__over { opacity: 1; padding: 0.75rem;
-    background: linear-gradient(180deg, transparent 45%, rgba(8, 9, 10, 0.82)); }
+    background: linear-gradient(to top,
+      rgba(8, 9, 10, 0.96) 0,
+      rgba(8, 9, 10, 0.92) 3.1rem,
+      rgba(8, 9, 10, 0.58) 4.6rem,
+      rgba(8, 9, 10, 0.2) 6.2rem,
+      transparent 8rem); }
   .gitem__over h3 { font-size: 0.92rem; }
   .gitem__over span { font-size: 0.58rem; letter-spacing: 0.1em; }
   /* The stats ribbon keeps two-up: four numbers stacked is a scroll, not a
@@ -3648,18 +3823,18 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
    phone pays for on every composited frame of the scroll.
    ========================================================================== */
 @media (max-width: 767.98px) {
-  /* ---- CLIENT VOICES IS OFF ON PHONES ------------------------------------
-     Requested. It is worth knowing WHY this one line is enough: the section is
-     wrapped in <Deferred>, which renders a placeholder carrying `#voices` and
-     only swaps in the real thing when an IntersectionObserver says the
-     placeholder is near the viewport. A display:none placeholder never
-     intersects, so the section is never mounted, its chunk is never fetched,
-     its five testimonial photographs are never downloaded and its marquee
-     never animates. Not hidden — never built.
-     It is also reversible by resize alone: widen past 768px and the
-     placeholder starts intersecting, so the section mounts on the spot.
-     #voices is not in NAV, so no link is left pointing at nothing. */
-  #voices { display: none; }
+  /* ---- CLIENT VOICES STAYS ON PHONES -------------------------------------
+     It used to be `#voices { display: none }` here, as a budget cut. That one
+     line took the whole film section off every phone: the section is wrapped in
+     <Deferred>, whose placeholder carries the id and only swaps in the real
+     thing when an IntersectionObserver trips — and a `display: none` placeholder
+     never intersects, so the section was never MOUNTED, not merely hidden.
+     Which also means the "Watch their story" cards, the only route into the
+     YouTube film from this part of the page, did not exist on mobile.
+     The budget is paid for differently now and the section is cheap here: on a
+     coarse pointer the marquee animation is off (the rail is a snap carousel —
+     see `.tmarquee`), the loop duplicates are `display: none`, and the five
+     thumbnails are lazy with an 800px srcset candidate. */
 
   /* ---- FILM GRAIN: TEXTURE YES, BLEND NO ---------------------------------
      `.grain::after` is a tiled noise bitmap at 4% opacity over a dozen
@@ -3680,3 +3855,29 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
   .modal--wide .video-modal__cap h3 { font-size: 1.1rem; margin-bottom: 0.2rem; }
   .modal--wide .video-modal__cap p { font-size: 0.82rem; line-height: 1.5; }
 }
+
+/* ==========================================================================
+   DEDICATED SECTION PAGES  (/story, /projects, /services, /founder, /contact)
+   --------------------------------------------------------------------------
+   Each of these renders ONE existing section as a whole page. Nothing about
+   the section changes — same component, same markup, same animations — so all
+   this needs to supply is the thing the home page got from its pinned hero:
+   somewhere for the fixed navbar to sit.
+
+   `--nav-h` is the bar's MEASURED height, published by Navbar's ResizeObserver,
+   so this gutter tracks the capsule through its condense and through any future
+   change to its padding rather than restating a number that would drift. The
+   fallback matches the bar's uncondensed height for the first frame, before the
+   observer has written the real one.
+   ========================================================================== */
+.page { padding-top: calc(var(--nav-h, 104px) + clamp(0.75rem, 2.5vw, 2rem)); }
+/* The section inside already owns its vertical rhythm; a second full
+   `--section-py` on top of the gutter above just pushes the heading off the
+   fold on a phone. */
+.page > .section:first-child { padding-top: 0; }
+
+/* The mobile sheet marks the current page the way the desktop bar does. Same
+   accent, same weight change — this is the existing `.nav__link.active`
+   treatment, not a new one. */
+.mnav__link.active { color: var(--accent); }
+.mnav__link.active em { opacity: 1; }

@@ -21,13 +21,17 @@ export const CONTACT = {
   get mapLink() { return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(this.mapQuery)}`; },
 };
 
+/* `path` is where the item NAVIGATES — each nav item is its own page now.
+   `id` is the section that page renders, which is still what the home page's
+   scrollspy matches against as you scroll the long version. Keeping both on one
+   record is what stops the navbar, the footer and the spy disagreeing. */
 export const NAV = [
-  { id: 'hero', label: 'Home' },
-  { id: 'studio', label: 'Story' },
-  { id: 'work', label: 'Projects' },
-  { id: 'services', label: 'Services' },
-  { id: 'founder', label: 'Founder & Legacy' },
-  { id: 'footer', label: 'Contact' },
+  { id: 'hero', label: 'Home', path: '/' },
+  { id: 'studio', label: 'Story', path: '/story' },
+  { id: 'work', label: 'Projects', path: '/projects' },
+  { id: 'services', label: 'Services', path: '/services' },
+  { id: 'founder', label: 'Founder & Legacy', path: '/founder' },
+  { id: 'footer', label: 'Contact', path: '/contact' },
 ];
 
 /* ---- STATS -------------------------------------------------------------- */

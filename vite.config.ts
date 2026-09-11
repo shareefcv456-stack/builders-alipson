@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 // https://vitejs.dev/config/
 /**
@@ -27,8 +29,40 @@ const nonBlockingCss = () => ({
   },
 });
 
+/**
+ * CLIENT ROUTES NEED A FILE AT THEIR URL, or they only work when you arrive by
+ * clicking. Typing /projects, refreshing it, or following a shared link asks the
+ * host for a path that does not exist and gets a 404 — the classic SPA deploy
+ * trap, and it would hit exactly the six URLs this change is about.
+ *
+ * The usual fix is a host rewrite (`_redirects`, `vercel.json`, `try_files`),
+ * but that is a different file per host and this project has no way to know
+ * which one it lands on. So instead: write a copy of the built index.html at
+ * each route. Any static host serves them with no configuration at all, and it
+ * is the SAME approach the site already uses for /privacy and /terms, which are
+ * real files under public/. Each copy boots the app, which reads
+ * `location.pathname` and renders that route.
+ *
+ * Derived from ROUTES in src/router.tsx — keep the two in step; a route added
+ * there and not here still works when clicked and 404s when refreshed.
+ */
+const ROUTE_PAGES = ['story', 'projects', 'services', 'founder', 'contact'];
+
+const staticRoutes = () => ({
+  name: 'static-routes',
+  apply: 'build' as const,
+  closeBundle() {
+    const out = resolve(__dirname, 'dist');
+    const html = readFileSync(resolve(out, 'index.html'), 'utf8');
+    for (const r of ROUTE_PAGES) {
+      mkdirSync(resolve(out, r), { recursive: true });
+      writeFileSync(resolve(out, r, 'index.html'), html);
+    }
+  },
+});
+
 export default defineConfig({
-  plugins: [react(), nonBlockingCss()],
+  plugins: [react(), nonBlockingCss(), staticRoutes()],
   build: {
     rollupOptions: {
       output: {

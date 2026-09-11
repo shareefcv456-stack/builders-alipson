@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Star, Play } from 'lucide-react';
 import RevealText from './ui/RevealText';
 import Reveal from './ui/Reveal';
@@ -44,8 +45,61 @@ function TCard({ t, thumb, dup = false }: { t: Testimonial; thumb: MediaKey; dup
   );
 }
 
+/**
+ * AUTO-ADVANCE, TOUCH ONLY. On a mouse the rail is a CSS marquee and this does
+ * nothing; on a coarse pointer that marquee is off and the rail is a snap
+ * carousel (see `.tmarquee` in sections.css), which without this only ever
+ * moves if a finger moves it — so a phone showed one testimonial and no sign
+ * that four more existed.
+ *
+ * It slides by ONE CARD at a time with `scrollBy`, letting scroll-snap land it,
+ * and wraps back to the start at the end. Three things keep it out of the way:
+ * it pauses while the tab is hidden (an interval firing scrolls in a background
+ * tab is pure waste), it stops for good the moment the visitor touches the rail
+ * — theirs beats ours — and it only ever runs while the rail is on screen.
+ */
+function useAutoSlide(rail: React.RefObject<HTMLDivElement>) {
+  useEffect(() => {
+    const el = rail.current;
+    if (!el) return;
+    if (!window.matchMedia('(hover: none), (pointer: coarse)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let timer = 0;
+    let visible = false;
+    const step = () => {
+      if (document.hidden) return;
+      const card = el.querySelector<HTMLElement>('.tcard:not(.tcard--dup)');
+      if (!card) return;
+      const by = card.offsetWidth + parseFloat(getComputedStyle(el.firstElementChild as Element).gap || '0');
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8;
+      el.scrollTo({ left: atEnd ? 0 : el.scrollLeft + by, behavior: 'smooth' });
+    };
+    const stop = () => { if (timer) { clearInterval(timer); timer = 0; } };
+    const start = () => { if (!timer && visible) timer = window.setInterval(step, 4200); };
+
+    const io = new IntersectionObserver(([e]) => {
+      visible = e.isIntersecting;
+      if (visible) start(); else stop();
+    }, { threshold: 0.35 });
+    io.observe(el);
+
+    // A finger on the rail ends the automation for the rest of the session.
+    const surrender = () => { stop(); visible = false; };
+    el.addEventListener('touchstart', surrender, { passive: true });
+
+    return () => {
+      stop();
+      io.disconnect();
+      el.removeEventListener('touchstart', surrender);
+    };
+  }, [rail]);
+}
+
 export default function Testimonials() {
   const loop = [...TESTIMONIALS, ...TESTIMONIALS];
+  const rail = useRef<HTMLDivElement>(null);
+  useAutoSlide(rail);
   return (
     <section id="voices" className="section">
       <div className="container">
@@ -64,7 +118,7 @@ export default function Testimonials() {
           are tagged here and hidden there. Tagging beats an `:nth-child`
           selector: this stays correct when TESTIMONIALS changes length. */}
       <div className="tmarquee">
-        <div className="marquee" style={{ paddingBlock: '0.5rem' }}>
+        <div className="marquee" ref={rail} style={{ paddingBlock: '0.5rem' }}>
           <div className="marquee__track">
             {loop.map((t, i) => (
               <TCard key={i} t={t} thumb={THUMBS[i % THUMBS.length]} dup={i >= TESTIMONIALS.length} />

@@ -1,7 +1,7 @@
 import { Facebook, Instagram, Youtube, Phone, Mail, MapPin } from 'lucide-react';
 import Logo from './ui/Logo';
 import { NAV, CONTACT } from '../data/site';
-import { scrollToId } from '../hooks/useLenis';
+import { navigate } from '../router';
 
 /* No map here. The Google embed lives once, in <Contact>. A second copy was a
    second ~1MB maps bundle on the heaviest part of the scroll for no new
@@ -24,7 +24,17 @@ export default function Footer() {
           <ul>
             {NAV.map((n) => (
               <li key={n.id}>
-                <a href={`#${n.id}`} onClick={(e) => { e.preventDefault(); scrollToId(n.id); }}>{n.label}</a>
+                {/* Same destinations as the navbar, off the same NAV record —
+                    these used to scroll to an anchor, which on a dedicated page
+                    pointed at a section that is not in the document. */}
+                <a
+                  href={n.path}
+                  onClick={(e) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                    e.preventDefault();
+                    navigate(n.path);
+                  }}
+                >{n.label}</a>
               </li>
             ))}
           </ul>

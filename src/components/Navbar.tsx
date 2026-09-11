@@ -3,9 +3,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, X, ArrowUpRight } from 'lucide-react';
 import Logo from './ui/Logo';
 import { NAV } from '../data/site';
-import { scrollToId } from '../hooks/useLenis';
 import { gateOpenScroll } from './StoryScroll';
 import { useUI } from '../context/UIContext';
+import { navigate, usePath, isKnown } from '../router';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -17,6 +17,13 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { openQuote } = useUI();
   const bar = useRef<HTMLElement>(null);
+  /* Every nav item is a page now, so the lit item is normally just "which URL
+     is this". The home page is the exception and keeps its scrollspy: it is
+     still one long scroll containing all of these sections, and the indicator
+     tracking your position down it is existing behaviour worth keeping. */
+  const rawPath = usePath();
+  const path = isKnown(rawPath) ? rawPath : '/';
+  const isHome = path === '/';
 
   /* PUBLISH THE BAR'S REAL HEIGHT as `--nav-h`, so the page can offset anchor
      targets by what the navbar ACTUALLY measures rather than by a number typed
@@ -58,7 +65,11 @@ export default function Navbar() {
     const measure = () => {
       raf = 0;
       setScrolled(window.scrollY > 40);
-      setPast(window.scrollY >= gateOpenScroll());
+      /* THE SPLIT GATE ONLY EXISTS ON THE HOME HERO. Off it there is nothing to
+         hide behind and nothing to wait for, so gating the bar on a scroll
+         threshold there would leave /services with no navbar at all until the
+         visitor scrolled — the one page where the navbar is the only way out. */
+      setPast(!isHome || window.scrollY >= gateOpenScroll());
 
       const now = performance.now();
       if (now - spyAt < SPY_MS) {
@@ -69,6 +80,11 @@ export default function Navbar() {
         return;
       }
       spyAt = now;
+
+      /* Off the home page the answer is the URL, not the scroll position —
+         and a dedicated page contains exactly one nav section, so probing rects
+         would only ever confirm what the route already said. */
+      if (!isHome) { setActive(NAV.find((n) => n.path === path)?.id ?? ''); return; }
 
       const atBottom =
         window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
@@ -101,22 +117,27 @@ export default function Navbar() {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
     };
-  }, []);
+  }, [isHome, path]);
 
-  /* Single-page smooth scroll — no route change, so the pinned scroll-driven
-     hero is never torn down and re-mounted. The URL is deliberately left clean
-     (no #hash written) so a later refresh lands on the hero, not mid-page. */
-  const go = (id: string) => {
+  /* THE HREF IS THE REAL ROUTE, and the click handler only takes over the
+     plain-left-click case. That is what keeps middle-click, ctrl/cmd-click and
+     "open in new tab" working: those are the browser's to handle, and calling
+     preventDefault on them unconditionally is how a SPA quietly breaks every
+     one of them. Same reason the anchors are <a href> and not <button>: hover
+     shows the destination, and the link is copyable. */
+  const go = (e: React.MouseEvent, to: string, id: string) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
     setMenuOpen(false);
-    setActive(id);          // light the target immediately, don't wait for scroll
-    scrollToId(id);
+    setActive(id);          // light the target immediately, don't wait for the route
+    navigate(to);
   };
 
   return (
     <>
       <header ref={bar} className={`nav ${scrolled ? 'scrolled' : ''} ${past ? 'is-in' : ''}`} aria-hidden={!past}>
         <div className="nav__inner">
-          <a href="#hero" onClick={(e) => { e.preventDefault(); go('hero'); }} data-cursor="Home">
+          <a href="/" onClick={(e) => go(e, '/', 'hero')} data-cursor="Home">
             <Logo compact={scrolled} />
           </a>
 
@@ -124,9 +145,10 @@ export default function Navbar() {
             {NAV.map((n) => (
               <a
                 key={n.id}
-                href={`#${n.id}`}
+                href={n.path}
                 className={`nav__link ${active === n.id ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); go(n.id); }}
+                aria-current={path === n.path ? 'page' : undefined}
+                onClick={(e) => go(e, n.path, n.id)}
               >
                 {n.label}
               </a>
@@ -160,9 +182,10 @@ export default function Navbar() {
               {NAV.map((n, i) => (
                 <motion.a
                   key={n.id}
-                  href={`#${n.id}`}
-                  className="mnav__link"
-                  onClick={(e) => { e.preventDefault(); go(n.id); }}
+                  href={n.path}
+                  className={`mnav__link ${active === n.id ? 'active' : ''}`}
+                  aria-current={path === n.path ? 'page' : undefined}
+                  onClick={(e) => go(e, n.path, n.id)}
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 + i * 0.06, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}

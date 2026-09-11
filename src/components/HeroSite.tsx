@@ -13,6 +13,7 @@ import { exitCurve, exitU } from '../lib/exit';
 import { carGeometry, extrudeProfile } from '../lib/vehicle';
 import { EMPTY_GEO, loadModel, type PlantSlot } from '../lib/models';
 import { isLowPower, isPhone } from '../lib/device';
+import { mediaSmall } from '../lib/media';
 
 /**
  * ALIPSON — SCROLL-DRIVEN CONSTRUCTION.
@@ -700,11 +701,28 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
        measures what the device actually does with it and corrects from there. */
     const lite = isLowPower();
 
-    const renderer = new THREE.WebGLRenderer({
-      // On desktop everything goes through the composer's own MSAA target, so
-      // the context flag would apply to a framebuffer nothing renders to.
-      antialias: lite, alpha: false, powerPreference: 'high-performance',
-    });
+    /* NO CONTEXT → NO HERO, NOT NO PAGE. `new WebGLRenderer` THROWS when the
+       browser refuses a context (WebGL disabled, a GPU blocklist, too many live
+       contexts on a low-memory phone). Thrown from inside an effect with no
+       error boundary above it, React unmounts the whole tree — so a device
+       without WebGL got a blank white document instead of a site. Bail here and
+       the stage keeps the poster that Suspense already painted. */
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        // On desktop everything goes through the composer's own MSAA target, so
+        // the context flag would apply to a framebuffer nothing renders to.
+        antialias: lite, alpha: false, powerPreference: 'high-performance',
+      });
+    } catch (err) {
+      console.warn('[HeroSite] no WebGL context — holding the poster', err);
+      const poster = document.createElement('img');
+      poster.className = 'story__poster';
+      poster.src = mediaSmall('heroPoster');
+      poster.alt = '';
+      el.appendChild(poster);
+      return () => { poster.remove(); };
+    }
     /* three calls getShaderInfoLog after every program link, and those are
        SYNCHRONOUS GPU round-trips that stall the main thread. Off in prod,
        kept in dev where a silently-black shader would cost more than it saves. */
@@ -1805,7 +1823,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
        not a decal floating on the render. There are exactly three marks on the
        whole property — these two and the gate pier.
        ====================================================================== */
-    const brand = brandTexture(1024, 256);
+    const brand = brandTexture(lite ? 512 : 1024, lite ? 128 : 256);
     /* WHITE BRANDING ON A RED BOARD.
        The artwork is NOT redrawn. `brandTexture` returns a greyscale mask
        built from the supplied PNG's own alpha channel, so filling that mask
@@ -4155,9 +4173,20 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
     }
 
     /* ---- size, visibility, teardown ---------------------------------------- */
+    let sizedW = 0, sizedH = 0;
     const resize = () => {
       const w = el.clientWidth, h = el.clientHeight;
       if (!w || !h) return;
+      /* NOTHING CHANGED → NOTHING TO DO. The observer below watches an element
+         GSAP pins, so it fires on every pin re-layout, and on a phone the URL
+         bar collapsing fires `window.resize` for the whole first flick. Each
+         one of those used to run the three `setSize` calls underneath, and
+         those REALLOCATE the renderer's drawing buffer, the composer's two
+         ping-pong targets and the AO pass's own targets — a full GPU
+         re-allocation, mid-scroll, for a box that is the same size it was. The
+         ambient canvases already bail this way for the same reason. */
+      if (w === sizedW && h === sizedH) return;
+      sizedW = w; sizedH = h;
       /* Re-evaluated on every resize, not just at mount — a phone rotating to
          landscape crosses the breakpoint, and the two key sets are different
          COMPOSITIONS, not a scale factor.

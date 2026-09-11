@@ -131,9 +131,16 @@ export default function Projects() {
                     {...imgProps(p.image, '(max-width: 900px) 100vw, 720px')}
                     alt={`${p.title} — ${p.category} in ${p.location}`}
                   />
+                  {/* THE CATEGORY BELONGS TO THE PHOTOGRAPH, so it lives inside
+                      the frame rather than in the text column beside it. It was
+                      bare red type on the section background — never actually
+                      on the image it was labelling. As a child of the frame it
+                      gets the frame's own positioning context, which is what
+                      lets it sit over the picture without a z-index race
+                      against the panel's siblings. */}
+                  <span className="pshow__cat">{p.category}</span>
                 </div>
                 <div className="pshow__body">
-                  <span className="pshow__cat">{p.category}</span>
                   <h3 className="pshow__title">{p.title}</h3>
                   <dl className="pshow__specs">
                     <div><dt><MapPin size={12} /> Location</dt><dd>{p.location}</dd></div>
