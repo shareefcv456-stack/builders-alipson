@@ -2423,9 +2423,29 @@
    GSAP writes transforms on the block, either of which can create a context
    the buttons then sit inside. `pointer-events: auto` is what re-enables them
    inside a block that is deliberately `none`. */
+/* HIDDEN UNTIL THE BUILD IS DONE, AND HIDDEN AGAIN ON THE WAY BACK UP.
+   `is-in` is latched from StoryScroll off the same scroll progress the stats
+   bar reads, so the two can never be on screen together — and because it is a
+   class with a transition rather than a scrubbed tween, the reverse is a real
+   fade-and-settle rather than a scrub running backwards.
+   `opacity` + `transform` only: both composited, nothing here triggers layout.
+   `pointer-events: none` in the hidden state is doing real work, not just
+   matching the spec — the split gate covers this block for the whole opening,
+   and without it the invisible pills take taps straight through the doors.
+   `auto` on the shown state is also what re-enables them inside
+   `.story__finale-copy`, which is deliberately `none`. */
 .story__cta { position: relative; z-index: 2;
   margin-top: 2rem; display: flex; flex-wrap: wrap; align-items: flex-start;
-  gap: 1rem; pointer-events: auto; }
+  gap: 1rem;
+  opacity: 0; transform: translateY(22px); pointer-events: none;
+  transition: opacity 0.5s var(--ease-lux), transform 0.5s var(--ease-lux); }
+.story__cta.is-in { opacity: 1; transform: none; pointer-events: auto; }
+/* Reduced motion and screenshots hold the finished frame, so the buttons are
+   simply there — matching how `.story--static` treats the copy and the bar. */
+.story--static .story__cta { opacity: 1; transform: none; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) {
+  .story__cta { transition: opacity 0.3s ease-out; }
+}
 /* The copy block is absolutely positioned and its height changes with each
    phase's line count; anchoring the CTAs to the block's own flow (rather than
    the viewport) is what stops them jumping as the text swaps. */

@@ -177,9 +177,26 @@ const BUILD_FRACTION = 0.70;
  *  The brief for this hero is that the construction plays CLEAN. So nothing is
  *  offered until there is a finished landmark to offer it about. */
 const CTA_AT = BUILD_FRACTION;
-/** Short, and deliberately shorter than the headline's entrance: the copy
- *  RESOLVES, the buttons simply arrive. */
-const CTA_FADE = 0.06;
+/** …AND WHEN THEY LEAVE, which is just before the four figures rise.
+ *
+ *  THE STAGE HOLDS ONE BLOCK AT ITS FOOT AT A TIME. That was always the rule
+ *  here — the copy cleared at COPY_OUT and the stats arrived long after — and
+ *  letting the buttons outlive the headline quietly broke it. On a tall phone
+ *  you cannot tell: at 390x844 the bar's top edge lands 39px below the pills.
+ *  On a short one the two collide outright — measured at 375x667 the bar rises
+ *  44px INTO "Explore Projects", and the stylesheet already carries a note that
+ *  at 320x568 the same overlap runs to 190px.
+ *
+ *  Padding the copy clear of the bar was the obvious fix and is the wrong one:
+ *  at this breakpoint the block is anchored to the TOP with no vertical
+ *  padding, so there is nothing to pad against, and shoving it upward costs
+ *  more room than the navbar leaves.
+ *
+ *  So the buttons hand over instead. They own the frame from the moment the
+ *  landmark tops out until the figures come up for the closing beat, which is
+ *  ~18% of the pin — on a phone, well over half a screen of scrolling to reach
+ *  them in — and nothing is ever stacked on anything. */
+const CTA_OUT = 0.88;
 
 /** WHEN THE FOUR FIGURES ARRIVE, as a fraction of ACT TWO (not of the trigger).
  *  They used to ride the scroll: up at o 0.02, ducked out of the car's way at
@@ -339,16 +356,50 @@ export default function StoryScroll() {
      onUpdate — is created in a different effect. */
   const wake = useRef<() => void>(() => {});
   const stats = useRef<HTMLDivElement>(null);
-  /* One-way latch. A ref and a classList write, NOT React state: this is read
-     and set from inside ScrollTrigger's onUpdate, and a setState there would
-     re-render the hero mid-scrub for a thing CSS can do on its own.
-     Idempotent, so every caller can fire on any number of frames and after the
-     first one this is a boolean read. */
-  const revealed = useRef(false);
-  const revealStats = useCallback(() => {
-    if (revealed.current) return;
-    revealed.current = true;
-    stats.current?.classList.add('is-in');
+  const cta = useRef<HTMLDivElement>(null);
+  /* TWO-WAY, AND THAT IS THE WHOLE FIX. This used to be a one-way latch — once
+     `revealed` went true the class was never removed — on the theory that
+     letting the bar drop again would flicker. What it actually did was leave
+     four opaque cards parked over the excavation and the rebar for the rest of
+     the session: scroll down to the end once, come back to the top, and the
+     figures are sitting on the foundation phase with `pointer-events: auto`,
+     taking taps meant for the hero behind them.
+     So it is a SETTER now, not a latch, and the scroll position is the only
+     thing that decides. The guard stays: this is called from ScrollTrigger's
+     onUpdate, i.e. on every scroll frame, and without the early return it
+     would touch classList sixty times a second to write the value already
+     there. With it, the DOM is touched twice per crossing and not at all in
+     between.
+     A ref and a classList write, NOT React state: a setState here would
+     re-render the hero mid-scrub for something CSS can do on its own — and the
+     CSS transition on `.story__stats` is what makes the reverse a smooth fade
+     and slide back down rather than a snap. `pointer-events: none` comes back
+     with it, because it lives on the base rule that `is-in` overrides. */
+  const shown = useRef(false);
+  const setStatsIn = useCallback((on: boolean) => {
+    if (shown.current === on) return;
+    shown.current = on;
+    stats.current?.classList.toggle('is-in', on);
+  }, []);
+
+  /* THE BUTTONS RUN ON THE SAME CLOCK AS THE BAR, and that is the point.
+     They used to be a `fromTo` on the scrubbed timeline while the bar keyed off
+     ScrollTrigger's RAW progress — two clocks about 1.2s apart, so the bar
+     could be up while the pills were still fading, and at 375x667 that is a
+     44px collision with the figures rising straight through "Explore
+     Projects". Binding the bar to the timeline instead was tried and is worse:
+     a scrubbed timeline is not guaranteed to render all the way to 1 —
+     measured stranding at 0.956 with the scroll well past the trigger — so the
+     bar simply never arrived.
+     One clock, two latches, and CSS carries the motion. Same mechanism
+     `.story__stats` has always used, and the transition on `.story__cta` is
+     what makes this the "fade in with a slight slide up" the brief asks for,
+     in BOTH directions. */
+  const ctaShown = useRef(false);
+  const setCtaIn = useCallback((on: boolean) => {
+    if (ctaShown.current === on) return;
+    ctaShown.current = on;
+    cta.current?.classList.toggle('is-in', on);
   }, []);
   const still = pinned === null && (isCapture() || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches));
 
@@ -460,7 +511,7 @@ export default function StoryScroll() {
      the only thing this effect drove, and it wrote a transform and an opacity
      on every animation frame of the entire pin to do it. One class, latched
      from the scroll handler that already runs, replaces the lot — see
-     `revealStats` below and `.story__stats.is-in` in the stylesheet. The
+     `setStatsIn` below and `.story__stats.is-in` in the stylesheet. The
      hand-off needs no overlay: the camera rises, the road runs to a fogged
      horizon, and the pin releases onto the next section. */
 
@@ -489,9 +540,11 @@ export default function StoryScroll() {
    * subscription for the whole app, read once per frame. */
   useEffect(() => {
     if (!still) return;
-    if (isCapture()) { revealStats(); return; }
-    return onScrollFrame((y) => { if (y > viewportH() * 0.4) revealStats(); });
-  }, [still, revealStats]);
+    if (isCapture()) { setStatsIn(true); return; }
+    /* Two-way here too: scroll back up to the hero on a reduced-motion device
+       and the bar leaves again, same as it does under the scrub. */
+    return onScrollFrame((y) => setStatsIn(y > viewportH() * 0.4));
+  }, [still, setStatsIn]);
 
   /* Skipping the intro drops the visitor straight onto the hero. CinematicIntro
      is a sibling component, so it signals with a window event rather than a
@@ -681,13 +734,28 @@ export default function StoryScroll() {
              does fire at progress 1, but a scroll that overshoots the trigger
              entirely is the one case where "the end was reached" is easier to
              ask ScrollTrigger than to infer from the last sample we saw. */
-          onLeave: revealStats,
+          /* The four edges of the trigger, so a flick that skips past onUpdate
+             entirely still lands on the right state. `onLeave` is the scroll
+             that overshoots the end in one frame; `onLeaveBack` is the one that
+             flies back above the start, which is exactly the journey that used
+             to strand the bar on screen. `onRefresh` re-syncs after a layout
+             change — a lazily-mounted section below resizing the page, an
+             orientation change — because a refresh recomputes progress without
+             necessarily firing onUpdate. */
+          onLeave: () => { setCtaIn(false); setStatsIn(true); },
+          onLeaveBack: () => { setCtaIn(false); setStatsIn(false); },
           onUpdate: (self) => {
             const build = clamp01(self.progress / BUILD_FRACTION);
             target.current = build;
             outro.current = span(BUILD_FRACTION, 1, self.progress);
             wake.current();
-            if (outro.current >= STATS_AT) revealStats();
+            /* BOTH BLOCKS, ONE EXPRESSION, ONE CLOCK — the bidirectional
+               sync, and the guarantee that they never share the foot of the
+               stage. The buttons own it from the moment the landmark tops out
+               until CTA_OUT; the bar takes over after that. Scrolling up runs
+               the same comparisons backwards and both classes come off. */
+            setCtaIn(self.progress >= CTA_AT && self.progress < CTA_OUT);
+            setStatsIn(outro.current >= STATS_AT);
             /* The 3D hero publishes its own phase from the eased playhead in
                the loop above (`syncPhase`), so this only covers the renderers
                that have no such loop running — and `?flat`/`?video` are debug
@@ -719,26 +787,6 @@ export default function StoryScroll() {
           { autoAlpha: 0 },
           { autoAlpha: 1, ease: 'power1.out', duration: PHASE_1_END * SPAN },
           GATE_END * SPAN * 0.5)
-        /* THE CTAs ARE THEIR OWN BEAT, AND THEY OUTLIVE THE COPY.
-           They still inherit the wrapper's fade-IN, so they cannot appear
-           before the block does; what they no longer inherit is its fade-OUT,
-           because that now targets `.story__beats` above. So the sequence is:
-           nothing over the construction, both pills arrive as the landmark
-           tops out, and they stay for the rest of the pin while the headline
-           leaves for the gate-and-car shot.
-           `immediateRender` is explicit rather than relied upon: the timeline
-           is scrubbed from progress 0, and the `from` state has to be on the
-           element at creation or the buttons flash visible on the first frame
-           before the scrub reaches this tween's start.
-           `y` and `autoAlpha`, both compositor-friendly, and autoAlpha rather
-           than opacity so the pills are out of the hit-testing and the a11y
-           tree while they are invisible — otherwise they take taps through the
-           gate that is covering them, which is the `pointer-events: none`
-           half of the requirement. */
-        .fromTo('.story__cta',
-          { autoAlpha: 0, y: 22 },
-          { autoAlpha: 1, y: 0, ease: 'power2.out', duration: CTA_FADE * SPAN, immediateRender: true },
-          CTA_AT * SPAN)
         /* …and the TEXT clears out before the handoff — `.story__beats`, not
            the whole block. That distinction is what lets the CTAs outlive the
            headline: they are children of `.story__finale-copy`, and opacity
@@ -760,7 +808,7 @@ export default function StoryScroll() {
          frame it belongs in. */
       if (pinned !== null) {
         tl.progress(pinned);
-        if ((pinnedOut ?? 0) >= STATS_AT) revealStats();
+        setStatsIn((pinnedOut ?? 0) >= STATS_AT);
       }
     }, root);
 
@@ -772,7 +820,7 @@ export default function StoryScroll() {
       lenis?.off('scroll', onScroll);
       ctx.revert();
     };
-  }, [still, pinned, is3D, syncPhase, revealStats]);
+  }, [still, pinned, is3D, syncPhase, setStatsIn, setCtaIn]);
 
   return (
     <section id="hero" className={`story ${still ? 'story--static' : ''} ${active !== 'flat' ? 'story--3d' : ''}`} ref={root} aria-label="Alipson Builders — a project from excavation to handover">
@@ -923,7 +971,7 @@ export default function StoryScroll() {
               buttons side by side on small screens, and `flex-wrap` is the
               escape hatch that drops them back to two lines below ~340px
               rather than pushing the page into horizontal scroll. */}
-          <div className="story__cta">
+          <div className="story__cta" ref={cta}>
             <button className="btn btn-primary" onClick={() => scrollToId('work')}>
               Explore Projects <ArrowUpRight size={16} />
             </button>
