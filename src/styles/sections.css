@@ -3255,8 +3255,18 @@
   /* The footer is the one grid that DOES go two-up on a phone — it is a
      sitemap and an address, not content cards. Its own rule, deliberately
      separate from the single-column list above. */
-  .footer__top { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 1.25rem;
-    padding: 1.75rem 0 1.25rem; }
+  /* `padding-block`, NEVER the `padding` shorthand. This element carries
+     `.container` as well, and the container is what supplies the horizontal
+     gutter — a shorthand here resets `padding-inline` to 0 and glues Quick
+     Links to the left edge of the screen and Visit & Contact to the right,
+     which is exactly what it did. The vertical rhythm is all this rule ever
+     wanted to set, so it sets only that.
+     The gutter itself goes up from the container's 1rem to 1.25rem on a phone:
+     two columns of small type need more breathing room at the screen edge than
+     one full-width column did, and 20px is the comfortable minimum. */
+  .footer__top { grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem 1.5rem; padding-block: 1.75rem 1.25rem;
+    padding-inline: 1.25rem; }
   .footer__col--brand { grid-column: 1 / -1; }
   /* Type comes down for the half-width columns — everything else about the
      phone footer's rhythm (the lockup size, the heading and list spacing) is
@@ -3288,7 +3298,12 @@
   .footer__bottom { padding-top: 1.25rem;
     padding-bottom: max(3.75rem, calc(env(safe-area-inset-bottom) + 3.4rem));
     font-size: 0.78rem; }
-  .footer__bottom-inner { flex-direction: column; align-items: flex-start; gap: 0.55rem; }
+  /* The copyright and the two legal links line up with the columns above them.
+     This row is also a `.container`, so it was already on the container's 1rem
+     — but 1rem beside the 1.25rem above it reads as a misalignment, not as a
+     margin. Same value, one edge. */
+  .footer__bottom-inner { flex-direction: column; align-items: flex-start;
+    gap: 0.55rem; padding-inline: 1.25rem; }
   .footer__bottom-inner > div { gap: 1.2rem !important; }
   /* Two-up, not one. Six full-bleed photo tiles in a single column was 2250px
      of scroll — nearly three phone screens for one section — and a gallery is

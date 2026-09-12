@@ -122,24 +122,6 @@ const BUILD_END = 0.9;
 const COPY_OUT = 0.72;
 /** …and how long it takes to go. Short: it is leaving, not being animated. */
 const COPY_FADE = 0.08;
-/** WHEN THE TWO CTAs ARRIVE, as a fraction of the whole trigger.
- *
- *  They used to ride in with the headline at GATE_END * 0.5 — roughly the first
- *  4% of the pin — which put "Explore Projects" and "Watch Story" on screen
- *  while the doors were still parting and the site was a red survey grid over
- *  bare ground. Two solid pills over the opening frame of a film is the one
- *  thing that stops it reading as a film; and offering the exit before the
- *  visitor has seen anything worth exiting for is backwards.
- *
- *  0.40 is the end of PHASE 2: the gate is long open, the excavation and the
- *  footings are done and the columns are standing, so there is a BUILDING on
- *  screen to have an opinion about. It is also comfortably before COPY_OUT
- *  (0.72), which leaves the buttons a third of the runway to be tapped in —
- *  the longest single window any element in the hero gets. */
-const CTA_AT = 0.40;
-/** Short, and deliberately shorter than the headline's entrance: the copy
- *  RESOLVES, the buttons simply arrive. */
-const CTA_FADE = 0.06;
 /** Phase 1 and 2 edges (0.20 / 0.40). Derived from the drawing's own phase
  *  boundaries rather than restated, so the two files cannot drift out of sync. */
 const PHASE_1_END = GATE_END + P1_T * (PHASE_3_END - GATE_END);
@@ -178,6 +160,26 @@ const EASE = 0.12;
  * shut and reverses the car for free.
  */
 const BUILD_FRACTION = 0.70;
+
+/** WHEN THE TWO CTAs ARRIVE — the exact moment the construction finishes.
+ *
+ *  BUILD_FRACTION, not a number of its own: the construction act runs 0 to
+ *  BUILD_FRACTION of the trigger, so this IS "when the building is done", and
+ *  it cannot drift if that boundary ever moves.
+ *
+ *  They have been walked back twice. Originally they rode in with the headline
+ *  at GATE_END * 0.5 — the first 4% of the pin — which put two solid pills over
+ *  a red survey grid on bare ground. Then 0.40, the end of PHASE 2, which was
+ *  better but still had them sitting over the frame for the whole of the facade
+ *  and the topping-out: the visitor was reading buttons while the building they
+ *  are about is still going up.
+ *
+ *  The brief for this hero is that the construction plays CLEAN. So nothing is
+ *  offered until there is a finished landmark to offer it about. */
+const CTA_AT = BUILD_FRACTION;
+/** Short, and deliberately shorter than the headline's entrance: the copy
+ *  RESOLVES, the buttons simply arrive. */
+const CTA_FADE = 0.06;
 
 /** WHEN THE FOUR FIGURES ARRIVE, as a fraction of ACT TWO (not of the trigger).
  *  They used to ride the scroll: up at o 0.02, ducked out of the car's way at
@@ -717,25 +719,36 @@ export default function StoryScroll() {
           { autoAlpha: 0 },
           { autoAlpha: 1, ease: 'power1.out', duration: PHASE_1_END * SPAN },
           GATE_END * SPAN * 0.5)
-        /* THE CTAs ARE THEIR OWN BEAT. They are children of `.story__finale-copy`,
-           so they inherit its fade and its clear-out for free — this tween only
-           holds them back until the build has something to show (see CTA_AT).
-           `immediateRender` is explicit rather than relied upon: the timeline is
-           scrubbed from progress 0, and the `from` state has to be on the
+        /* THE CTAs ARE THEIR OWN BEAT, AND THEY OUTLIVE THE COPY.
+           They still inherit the wrapper's fade-IN, so they cannot appear
+           before the block does; what they no longer inherit is its fade-OUT,
+           because that now targets `.story__beats` above. So the sequence is:
+           nothing over the construction, both pills arrive as the landmark
+           tops out, and they stay for the rest of the pin while the headline
+           leaves for the gate-and-car shot.
+           `immediateRender` is explicit rather than relied upon: the timeline
+           is scrubbed from progress 0, and the `from` state has to be on the
            element at creation or the buttons flash visible on the first frame
            before the scrub reaches this tween's start.
            `y` and `autoAlpha`, both compositor-friendly, and autoAlpha rather
            than opacity so the pills are out of the hit-testing and the a11y
            tree while they are invisible — otherwise they take taps through the
-           gate that is covering them. */
+           gate that is covering them, which is the `pointer-events: none`
+           half of the requirement. */
         .fromTo('.story__cta',
           { autoAlpha: 0, y: 22 },
           { autoAlpha: 1, y: 0, ease: 'power2.out', duration: CTA_FADE * SPAN, immediateRender: true },
           CTA_AT * SPAN)
-        // …and clear out before the handoff. autoAlpha (not opacity) so it also
-        // goes visibility:hidden — at opacity 0 alone the CTAs stay clickable and
-        // stay in the a11y tree, hovering invisibly over the stats section.
-        .to('.story__finale-copy',
+        /* …and the TEXT clears out before the handoff — `.story__beats`, not
+           the whole block. That distinction is what lets the CTAs outlive the
+           headline: they are children of `.story__finale-copy`, and opacity
+           multiplies down the tree, so fading the wrapper took the buttons with
+           it no matter what their own tween said. Fading only the beats leaves
+           the wrapper at full opacity carrying nothing but the two pills.
+           autoAlpha (not opacity) so the outgoing copy also goes
+           visibility:hidden — at opacity 0 alone it stays in the a11y tree,
+           read out over a section it is no longer part of. */
+        .to('.story__beats',
           { autoAlpha: 0, y: -26, ease: 'power1.out', duration: COPY_FADE * SPAN },
           COPY_OUT * SPAN)
         .to('.story__copy-scrim',
