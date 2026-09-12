@@ -1553,6 +1553,17 @@
 .ba {
   position: relative; margin-top: 0; border-radius: var(--radius-lg);
   overflow: hidden; aspect-ratio: 1577 / 997; user-select: none;
+  /* THE GESTURE FENCE, and the single most important line for touch.
+     `auto` let the compositor decide a horizontal drag across this frame might
+     be the start of a scroll and claim it before the renderer saw a move — the
+     divider then never followed the finger. `pan-y` gives the browser the one
+     axis it still needs (a finger that lands here can still scroll the page
+     vertically) and reserves the horizontal axis for this control, so a sideways
+     drag can never be taken away mid-gesture.
+     `ew-resize` is the resting affordance, unchanged; `grabbing` below is only
+     while a drag is actually in flight. */
+  touch-action: pan-y; cursor: ew-resize;
+  -webkit-user-select: none; -webkit-touch-callout: none;
   /* Cinematic seat: a tight contact shadow under the frame plus a wide, soft
      one that separates it from the section without fogging it. */
   box-shadow:
@@ -1644,21 +1655,47 @@
     0 10px 30px rgba(0, 0, 0, 0.5),
     0 0 0 4px var(--accent-soft);
 }
+/* ---- HELD ----------------------------------------------------------------
+   Touch has no hover, so without this a finger on the grip gets no
+   acknowledgement at all — the control looks inert at the exact moment it is
+   being used. `.is-dragging` is set from the component on pointerdown and
+   cleared on pointerup/pointercancel, so it covers mouse, touch and pen alike.
+   Both properties are compositor-friendly (transform and box-shadow on a
+   40-48px disc), and the transform is written on ONE element, the grip, so the
+   divider itself never changes size. */
+.ba.is-dragging { cursor: grabbing; }
+.ba.is-dragging .ba__grip {
+  transform: translate(-50%, -50%) scale(1.05);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    0 0 0 6px rgba(211, 16, 24, 0.22);
+}
+.ba.is-dragging .ba__handle {
+  box-shadow: 0 0 16px 2px rgba(211, 16, 24, 0.85), 0 0 64px 9px rgba(211, 16, 24, 0.36);
+}
+/* The press should read as instant. The resting 0.35s ease is right for the
+   slow hover lift and far too slow for an acknowledgement of a tap. */
+.ba.is-dragging .ba__grip, .ba.is-dragging .ba__handle {
+  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) { .ba__handle, .ba__grip { transition: none; } }
 @media (max-width: 560px) { .ba__grip { width: 42px; height: 42px; } }
 
-/* The whole frame IS the control. Full-bleed, invisible, on top: this is what
-   gives mouse drag, touch drag, pen, click-to-jump and the arrow keys at once.
-   `ew-resize` all the way across is the affordance. */
+/* KEYBOARD AND SCREEN READER ONLY, NOT THE POINTER. This input is still what
+   announces the control and what Arrow/Home/End drive — but it no longer
+   receives the gesture: `pointer-events: none` hands that to the frame's own
+   pointer handlers (see BeforeAfter.tsx), which is what removed the 20px gap
+   between the visible grip and the range's real thumb on touch.
+   It stays focusable, and the component focuses it on pointerdown so the arrow
+   keys work immediately after a drag. The thumb sizing is gone with the rest:
+   nothing is dragging it any more. */
 .ba__range {
   position: absolute; inset: 0; z-index: 5; width: 100%; height: 100%;
-  opacity: 0; cursor: ew-resize; margin: 0;
-  /* Required for the thumb sizing below to apply at all — without it the UA
-     keeps its own ~16px thumb and the grab target no longer matches the grip. */
+  opacity: 0; margin: 0; pointer-events: none;
   appearance: none; -webkit-appearance: none;
 }
-.ba__range::-webkit-slider-thumb { -webkit-appearance: none; width: 56px; height: 100%; cursor: ew-resize; }
-.ba__range::-moz-range-thumb { width: 56px; height: 100%; border: 0; cursor: ew-resize; }
 
 /* ==========================================================================
    WHY US — BENTO
