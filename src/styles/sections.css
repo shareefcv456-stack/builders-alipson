@@ -2075,6 +2075,15 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .gitem:hover .gitem__over { opacity: 1; }
+  /* ONE LIT CARD AT A TIME. Enter and leave used the same 0.5s fade (and a 1s
+     zoom), so gliding from one tile to the next showed the old caption still
+     half-lit beside the new one. Leaving is now quick and entering waits a
+     beat, so the outgoing state has cleared before the incoming one shows.
+     The resting rules carry the LEAVE timing; `:hover` carries the ENTER. */
+  .gitem__over { transition: opacity 0.16s ease-out; }
+  .gitem img { transition: transform 0.35s var(--ease-lux); }
+  .gitem:hover .gitem__over { transition: opacity 0.42s var(--ease-lux) 0.1s; }
+  .gitem:hover img { transition: transform 1s var(--ease-lux) 0.1s; }
 }
 .gitem__over h3 { font-family: var(--font-display); font-weight: 300; font-size: 1.3rem; color: var(--bone-100); }
 /* COLOUR UNCHANGED — still `--accent-soft`, the same brand red this label has
@@ -2121,7 +2130,32 @@
   width: min(90vw, 34rem); padding-inline: 5rem; text-align: center; }
 .lightbox__cap h3 { font-family: var(--font-display); font-weight: 300; color: var(--bone-100);
   margin: 0; line-height: 1.25; }
-.lightbox__cap span { font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-soft); }
+/* `#ff5a52` is the site's on-dark red (see `.section--noir`): the 700-weight
+   brand red is too dim for an 11px uppercase label on the near-black scrim. The
+   contact shadow keeps it crisp wherever a bright image edge sits nearby. */
+.lightbox__cap span { font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: #ff5a52;
+  font-weight: 600; text-shadow: 0 1px 2px rgba(3, 5, 8, 0.9), 0 0 10px rgba(3, 5, 8, 0.8); }
+.lightbox__cap h3 { text-shadow: 0 1px 3px rgba(3, 5, 8, 0.8); }
+/* DESKTOP: IMAGE AND CAPTION ARE ONE CENTRED COLUMN, IN FLOW.
+   The caption used to be pinned to the viewport's bottom edge while the image
+   took up to 86vh of the centre, so from 1024 to 1920 the title sat ON the
+   photograph's lower edge. In flow it can only ever sit below it. The image is
+   capped by what is left after the X row on top, the arrow gutters either side
+   and the caption underneath, so nothing overlaps at any desktop size.
+   Mobile (≤640px) keeps its own rules below untouched. */
+@media (min-width: 641px) {
+  .lightbox { display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: clamp(0.9rem, 1.6vh, 1.4rem);
+    padding: calc(1.6rem + 52px + 0.75rem) calc(1.6rem + 52px + 1.25rem) clamp(1.5rem, 3vh, 2.5rem); }
+  .lightbox img { flex: 0 1 auto; min-height: 0; width: auto; height: auto;
+    max-width: min(1100px, 100%);
+    max-height: calc(100dvh - (1.6rem + 52px + 0.75rem) - clamp(1.5rem, 3vh, 2.5rem) - 5.5rem); }
+  .lightbox__cap { position: static; transform: none; flex-shrink: 0;
+    width: min(100%, 44rem); padding-inline: 0; gap: 0.45rem; }
+  .lightbox__cap span { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.16em; }
+  .lightbox__cap h3 { font-size: clamp(1.3rem, 1.5vw, 1.75rem); letter-spacing: -0.01em;
+    overflow-wrap: anywhere; }
+}
 @media (max-width: 640px) {
   /* Arrows come in, the caption sits under them rather than beside them, and
      the image gets the height back. Swiping is the primary gesture here. */
