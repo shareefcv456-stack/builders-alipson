@@ -3032,7 +3032,9 @@
   .contact__form,
   .faq__item, .testimonial__card, .process__step {
     backdrop-filter: none; -webkit-backdrop-filter: none;
-    background: rgba(18, 20, 26, 0.92);
+    /* The section's own elevated token, not a hard-coded charcoal: Contact is a
+       WHITE section, and a dark fill here put its navy heading on navy. */
+    background: var(--bg-elev);
   }
 }
 
@@ -3935,7 +3937,8 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
   .btn-watch { background-color: rgba(255, 255, 255, 0.88); }
   /* 0.55 → 0.86. The blur was doing half the work of separating slate links
      from whatever the capsule was passing over; the fill does all of it now. */
-  .nav__inner { background: rgba(255, 255, 255, 0.86); }
+  /* 0.95, not 0.86: over the Contact map the labels still read through. */
+  .nav__inner { background: rgba(255, 255, 255, 0.95); }
   /* 0.66 was the contrast FLOOR, chosen against the darkest part of the render
      showing through 16px of blur. With the render sharp behind it, small
      uppercase labels need the fill to do that job: 0.88, same as the
@@ -3978,6 +3981,17 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
      blend contributes a few levels of luminance nobody can see on a phone
      screen. The texture stays, the per-frame blend goes. */
   .grain::after { mix-blend-mode: normal; opacity: 0.03; }
+
+  /* ---- FEWER GPU LAYERS -------------------------------------------------
+     A layer census at 390px found 40-50 composited layers live down the
+     page, and "Layerize" was the largest single main-thread cost of the
+     scroll. These hints promote things that do not move on a phone: the six
+     studio stroke groups are paused and scrubbed (stroke-dashoffset is a
+     paint either way — `.studio__sheet` stays promoted, which is what keeps
+     that paint off the card), and the cards' `translate` hint only serves the
+     hover lift. Each one also dragged overlapping siblings into layers of
+     their own. No visual change. */
+  .studio__st, .svc, .gate__card, .std__card { will-change: auto; }
 
   /* ---- THE FILM, FULL WIDTH ----------------------------------------------
      The video modal is the one panel whose content IS the width: a 16:9
