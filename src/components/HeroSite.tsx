@@ -4217,8 +4217,25 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
     let visible = true, raf = 0, last = 0, playhead = 0, tailv = 0;
     let shadowAt = -1;
     let shadowTail = -1;
+    let drawn = 0, moved = 0;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
+      /* FRAME BUDGET BY WHAT IS HAPPENING.
+         - Intro showing: 4fps. It covers this canvas for ~9s on desktop, and
+           full-rate AO + MSAA behind an opaque overlay was GPU stolen from the
+           intro's own animation. Not zero: the first frames still compile the
+           shaders and upload textures while nobody is looking, so that hitch
+           does not land on the moment the hero is revealed.
+         - Nothing driving it (no scroll, no gate focus, no touch orbit for
+           250ms): ~30fps. The crane slew and dust drift are slow ambient motion
+           and read the same; the GPU and battery get half their time back.
+         - Scrolling: every frame, as authored.
+         The 29ms, not 33: rAF timestamps jitter, and a 60Hz frame that lands
+         at 33.2ms would otherwise be skipped and halve the rate again. */
+      const gap = document.documentElement.hasAttribute('data-intro') ? 250
+        : !focusOn && now - moved > 250 ? 29 : 0;
+      if (now - drawn < gap) return;
+      drawn = now;
       const dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
       last = now;
       update(playhead, dt, tailv);
@@ -4248,7 +4265,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
 
     const releaseFocus = () => { focusOn = false; };
     api.current = {
-      update: (t, tl = 0) => { playhead = clamp01(t); tailv = tl; },
+      update: (t, tl = 0) => { playhead = clamp01(t); tailv = tl; moved = performance.now(); },
       focusGate: () => { focusOn = true; },
     };
 
@@ -4294,6 +4311,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         claimed = true;
       }
       yaw = Math.max(-YAW_MAX, Math.min(YAW_MAX, yaw + dx * 0.003));
+      moved = performance.now();   // a finger orbiting is input: full frame rate
       tx = x; ty = y;
     };
     const onTouchEnd = () => { dragging = false; };

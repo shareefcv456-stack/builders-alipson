@@ -60,22 +60,29 @@ export default function Navbar() {
        the element, so it went blank over the gaps between sections and never
        lit up the pinned hero or the footer at all. */
     const PROBE = 160;
-    /* THE UNDERLINE DOES NOT NEED 60 SAMPLES A SECOND. The two cheap questions
-       — has the page moved past 40px, past the gate — are plain `scrollY`
-       reads and stay per-frame. The scrollspy underneath is eleven
-       `getBoundingClientRect()` calls, and on a phone that is eleven forced
-       layouts on the frame budget of every scroll frame, to move an indicator
-       that a visitor cannot perceive changing faster than a few times a second.
-       150ms it is; the highlight still lands before the section does.
-       `document.getElementById` stays inside the loop on purpose: sections
-       mount lazily (see Deferred), so a cached node list would go stale. */
-    const SPY_MS = 150;
-    let spyAt = 0;
-    let trail = 0;
-    let lastY = 0;
+    /* NO LAYOUT READS ON THE SCROLL PATH. This used to take eleven
+       `getBoundingClientRect()` calls every 150ms while scrolling — each one a
+       forced layout on a page GSAP's pin had just dirtied. A section's position
+       in the DOCUMENT does not change as you scroll; it changes when the page
+       does — a <Deferred> section mounting, a resize, a ScrollTrigger refresh
+       resizing the pin-spacer — and every one of those resizes <body>. So the
+       offsets are measured once per body resize, and scrolling is arithmetic.
+       The hero is pinned, so its measured top can be off if the page resizes
+       mid-pin — harmless: it is NAV[0], which is also the fallback answer. */
+    const LAST = NAV[NAV.length - 1].id;
+    let spots: { id: string; top: number; bottom: number }[] = [];
+    const locate = () => {
+      const y = window.scrollY;
+      spots = [];
+      for (const { id } of NAV) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        spots.push({ id, top: r.top + y, bottom: r.bottom + y });
+      }
+    };
 
     const measure = (y: number) => {
-      lastY = y;
       setScrolled(y > 40);
       /* THE SPLIT GATE ONLY EXISTS ON THE HOME HERO. Off it there is nothing to
          hide behind and nothing to wait for, so gating the bar on a scroll
@@ -83,43 +90,31 @@ export default function Navbar() {
          visitor scrolled — the one page where the navbar is the only way out. */
       setPast(!isHome || y >= gateOpenScroll());
 
-      const now = performance.now();
-      if (now - spyAt < SPY_MS) {
-        /* TRAILING EDGE, or the throttle eats the sample that matters. A nav
-           click is one programmatic jump: drop its last scroll event and the
-           indicator stays on the section you just left. */
-        if (!trail) trail = window.setTimeout(() => { trail = 0; measure(lastY); }, SPY_MS - (now - spyAt));
-        return;
-      }
-      spyAt = now;
-
       /* Off the home page the answer is the URL, not the scroll position —
-         and a dedicated page contains exactly one nav section, so probing rects
-         would only ever confirm what the route already said. */
+         and a dedicated page contains exactly one nav section, so probing
+         offsets would only ever confirm what the route already said. */
       if (!isHome) { setActive(NAV.find((n) => n.path === path)?.id ?? ''); return; }
 
-      /* ONE READ PASS, THEN THE ANSWER — and no `scrollHeight`.
-         `document.documentElement.scrollHeight` is the most expensive layout
-         read on this page: it cannot be answered from a cached box, so it
-         forces a full layout of a document that GSAP's pin has just made
-         dirty, and it was being taken several times a second for the whole
-         scroll. The bottom-of-page case it answered is recovered from a rect
-         this loop is ALREADY reading — when the last nav section's own bottom
-         edge is on screen, there is nothing below it left to scroll to, which
-         is what "at the bottom" meant. Same answer, no extra measurement. */
-      const LAST = NAV[NAV.length - 1].id;
+      /* No `scrollHeight` either: "at the bottom" is when the last nav
+         section's own bottom edge is on screen — nothing below it to scroll. */
       let best = NAV[0].id;
       let bestTop = -Infinity;
       let atBottom = false;
-      for (const { id } of NAV) {
-        const el = document.getElementById(id);
-        if (!el) continue;
-        const r = el.getBoundingClientRect();
-        if (id === LAST && r.bottom <= viewportH() + 2) atBottom = true;
-        if (r.top <= PROBE && r.top > bestTop) { best = id; bestTop = r.top; }
+      for (const s of spots) {
+        const top = s.top - y;
+        if (s.id === LAST && s.bottom - y <= viewportH() + 2) atBottom = true;
+        if (top <= PROBE && top > bestTop) { best = s.id; bestTop = top; }
       }
       setActive(atBottom ? LAST : best);
     };
+
+    /* Fires once on observe (the initial measurement), then on every change
+       to the page's size. Home only — elsewhere `measure` never reads spots. */
+    let ro: ResizeObserver | undefined;
+    if (isHome) {
+      ro = new ResizeObserver(() => { locate(); measure(window.scrollY); });
+      ro.observe(document.body);
+    }
 
     /* ONE SUBSCRIPTION, SHARED WITH EVERY OTHER SCROLL CONSUMER. `scrollbus`
        reads the position once per animation frame for the whole app and hands
@@ -132,7 +127,7 @@ export default function Navbar() {
     const off = onScrollFrame(measure);
     return () => {
       off();
-      if (trail) clearTimeout(trail);
+      ro?.disconnect();
     };
   }, [isHome, path]);
 

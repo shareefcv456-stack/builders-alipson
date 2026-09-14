@@ -263,7 +263,7 @@ main > [id], footer[id], section[id] {
    page these are a faint watermark, not a backdrop — hence the low opacity and
    the WHITE scrim (a charcoal veil here would grey out every clean section). */
 .ambient-bg { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; display: block; pointer-events: none;
-  opacity: 0.16; will-change: transform; transform: translateZ(0); }
+  opacity: 0.16; }
 .ambient-mask { position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background: rgba(255, 255, 255, 0.62); }
 .section > .container { position: relative; z-index: 1; }
@@ -304,9 +304,12 @@ h3 { font-size: clamp(1.15rem, 1.8vw, 1.35rem); }
 .section-head .title { margin-top: 0.9rem; }
 .section-head > *:last-child { margin-bottom: 0; }
 
+/* No `mix-blend-mode`: an overlay blend forces each of the eight grain sections
+   into its own blended compositing pass for the whole scroll, re-blended on
+   every repaint of the canvases and film under it. At 3-4% nobody can see it. */
 .grain::after {
   content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  opacity: 0.04; mix-blend-mode: overlay;
+  opacity: 0.03;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 

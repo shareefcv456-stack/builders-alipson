@@ -697,10 +697,7 @@ export default function StoryScroll() {
   useLayoutEffect(() => {
     if (still || !root.current) return;
 
-    const lenis = (window as unknown as { lenis?: Lenis }).lenis;
-    const onScroll = () => ScrollTrigger.update();
-    if (pinned === null) lenis?.on('scroll', onScroll);
-
+    /* Lenis → ScrollTrigger sync lives in useLenis, where the instance exists. */
     const ctx = gsap.context(() => {
       const tl = gsap.timeline(pinned !== null ? { paused: true } : {
         scrollTrigger: {
@@ -720,11 +717,13 @@ export default function StoryScroll() {
              it fixes the element, and at high velocity that lands a frame late.
              anticipatePin pins fractionally early to absorb exactly that. */
           anticipatePin: 1,
-          /* The dampener. 1.2 = the playhead spends ~1.2s catching up to the
+          /* The dampener. 0.6 = the playhead spends ~0.6s catching up to the
              scroll position, so a flick of the wheel and a slow drag both render
              as the same continuous take. The canvas lerp then smooths what's
-             left. */
-          scrub: 1.2,
+             left. It was 1.2 — stacked on Lenis's lerp and the canvas EASE that
+             is three dampers in series, and the building trailed the wheel by
+             well over a second, which reads as lag, not polish. */
+          scrub: 0.6,
           /* Blow past the end fast and the scrubbed timeline is forced to its
              final state instead of easing there over the next 1.2s — without
              this, a hard flick leaves a half-built building and a half-faded
@@ -817,7 +816,6 @@ export default function StoryScroll() {
     const t = window.setTimeout(() => ScrollTrigger.refresh(), 350);
     return () => {
       window.clearTimeout(t);
-      lenis?.off('scroll', onScroll);
       ctx.revert();
     };
   }, [still, pinned, is3D, syncPhase, setStatsIn, setCtaIn]);

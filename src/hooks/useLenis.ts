@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import type Lenis from 'lenis';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { isLite } from '../lib/device';
 import { PATH_FOR_SECTION, navigate, currentPath } from '../router';
 
@@ -39,7 +41,7 @@ export function useLenis() {
        has landed, and without it the first run's instance leaks a rAF loop. */
     let cancelled = false;
     let lenis: Lenis | undefined;
-    let raf = 0;
+    let tick: ((t: number) => void) | undefined;
 
     import('lenis').then(({ default: Lenis }) => {
       if (cancelled) return;
@@ -70,16 +72,22 @@ export function useLenis() {
 
       (window as unknown as { lenis?: Lenis }).lenis = lenis;
 
-      const loop = (time: number) => {
-        lenis!.raf(time);
-        raf = requestAnimationFrame(loop);
-      };
-      raf = requestAnimationFrame(loop);
+      /* ONE CLOCK. Lenis used to run its own rAF loop beside GSAP's ticker, and
+         ScrollTrigger only heard about a Lenis move through the native scroll
+         event it caused — a frame late, which is the pin jitter and the
+         stepping scrub. StoryScroll tried to subscribe, but its layout effect
+         runs before this dynamic import lands, so `window.lenis` was always
+         undefined there. Driving Lenis from the ticker and pushing every scroll
+         straight into ScrollTrigger puts both on the same frame. */
+      lenis.on('scroll', ScrollTrigger.update);
+      tick = (t: number) => lenis!.raf(t * 1000);
+      gsap.ticker.add(tick);
+      gsap.ticker.lagSmoothing(0);
     });
 
     return () => {
       cancelled = true;
-      if (raf) cancelAnimationFrame(raf);
+      if (tick) gsap.ticker.remove(tick);
       lenis?.destroy();
       (window as unknown as { lenis?: Lenis }).lenis = undefined;
     };

@@ -67,6 +67,12 @@ export default function BeforeAfter({
   year?: string;
 }) {
   const [split, setSplit] = useState(50);
+  /* DURING A DRAG THE SPLIT BYPASSES REACT. A setState per pointermove was a
+     re-render per move; the value is one CSS property, so it is written straight
+     onto the frame and handed back to state once, on release, for the range
+     input's announced value. React's style diff compares props, not the DOM,
+     so the renders in between (dragging on/off) never overwrite it. */
+  const live = useRef(50);
   const [dragging, setDragging] = useState(false);
   const frame = useRef<HTMLDivElement>(null);
   const range = useRef<HTMLInputElement>(null);
@@ -81,7 +87,8 @@ export default function BeforeAfter({
     const b = box.current;
     if (!b || b.width === 0) return;
     const pct = ((clientX - b.left) / b.width) * 100;
-    setSplit(pct < MIN ? MIN : pct > MAX ? MAX : pct);
+    live.current = pct < MIN ? MIN : pct > MAX ? MAX : pct;
+    frame.current?.style.setProperty('--split', `${live.current}%`);
   }, []);
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -112,6 +119,7 @@ export default function BeforeAfter({
   const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging) return;
     setDragging(false);
+    setSplit(live.current);
     box.current = null;
     const el = frame.current;
     if (el?.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
@@ -167,7 +175,7 @@ export default function BeforeAfter({
           max={MAX}
           value={Math.round(split)}
           aria-label="Drag to compare before and after"
-          onChange={(e) => setSplit(Number(e.target.value))}
+          onChange={(e) => { live.current = Number(e.target.value); setSplit(live.current); }}
         />
       </div>
     </figure>

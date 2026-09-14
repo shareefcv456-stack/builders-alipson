@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { isLite } from '../lib/device';
 
 /**
  * Subtle, scroll/ambient construction backgrounds for the body sections.
@@ -23,19 +22,19 @@ export default function AmbientCanvas({ variant, className }: { variant: Variant
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    /* DPR 1 ON A PHONE, 2 EVERYWHERE ELSE. This is a full-viewport canvas of
-       gradients and a few hundred fillRects, repainted continuously — at dpr 2
-       on a 412x900 phone that is 4x the fragments for line-work drawn at 5%
-       opacity behind body copy. Nobody can see the difference; the GPU can.
-       `lite` covers Save-Data and low-end desktops too, which is the point. */
-    const dpr = Math.min(window.devicePixelRatio || 1, isLite() ? 1 : 2);
+    /* DPR 1 EVERYWHERE. The canvas is the size of its SECTION, not the
+       viewport — Projects alone is ~1440x4500 CSS px — cleared and repainted
+       continuously. At dpr 2 that is 4x the fragments for line-work drawn at
+       16% opacity under a 62% white mask. Nobody can see the difference; the
+       GPU can. */
+    const dpr = 1;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    /* HALF RATE ON A PHONE. SPEED is already 0.6 — this is a calm ambient
+    /* HALF RATE EVERYWHERE. SPEED is already 0.6 — this is a calm ambient
        watermark, not motion anyone tracks — so 30fps looks identical and hands
        every other frame back to the scroll. Time is read from the clock, not
        accumulated per frame, so the animation runs at the same WALL SPEED at
        either rate; only the sampling changes. */
-    const minFrameMs = isLite() ? 1000 / 30 : 0;
+    const minFrameMs = 1000 / 30;
     let W = 0, H = 0, raf = 0, visible = true, lastDraw = 0;
 
     const resize = () => {

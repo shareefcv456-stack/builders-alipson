@@ -168,9 +168,11 @@ export default function CinematicIntro({ onDone }: { onDone: () => void }) {
             <m.p
               key={step}
               className="intro__line"
-              initial={{ opacity: 0, filter: 'blur(6px)' }}
-              animate={{ opacity: 1, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, filter: 'blur(6px)' }}
+              /* Opacity only — an animated `filter: blur` repaints the text on
+                 the main thread every frame; opacity stays on the compositor. */
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.8, ease: EASE }}
             >
               {slide.title}

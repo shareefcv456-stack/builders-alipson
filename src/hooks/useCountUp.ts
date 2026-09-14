@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
- * Counts from 0 → `end` once the element scrolls into view.
- * Returns the current display value and a ref to attach to the target.
+ * Counts from 0 → `end` once the element scrolls into view, writing the number
+ * straight into the ref'd element. Not state: a setState per frame was ~480
+ * React renders across the four stat cards, inside the pinned hero, while GSAP
+ * and WebGL were fighting for the same frames. Render the element with `0`.
  */
 export function useCountUp(end: number, duration = 2000) {
-  const [value, setValue] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
   const started = useRef(false);
 
@@ -15,7 +16,7 @@ export function useCountUp(end: number, duration = 2000) {
 
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) {
-      setValue(end);
+      el.textContent = end.toLocaleString();
       return;
     }
 
@@ -28,7 +29,7 @@ export function useCountUp(end: number, duration = 2000) {
             const tick = (now: number) => {
               const p = Math.min((now - start) / duration, 1);
               const eased = 1 - Math.pow(1 - p, 3);
-              setValue(Math.round(eased * end));
+              el.textContent = Math.round(eased * end).toLocaleString();
               if (p < 1) requestAnimationFrame(tick);
             };
             requestAnimationFrame(tick);
@@ -41,5 +42,5 @@ export function useCountUp(end: number, duration = 2000) {
     return () => observer.disconnect();
   }, [end, duration]);
 
-  return { value, ref };
+  return ref;
 }

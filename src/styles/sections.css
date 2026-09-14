@@ -452,9 +452,12 @@
   position: relative; z-index: 1; height: 100%;
   border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.66);
-  backdrop-filter: blur(16px) saturate(135%);
-  -webkit-backdrop-filter: blur(16px) saturate(135%);
+  /* 8px, not 16: the WebGL scene behind repaints every frame, so this blur is
+     re-run every frame; the kernel cost grows with the radius. Fill nudged up
+     to keep the same separation. */
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(8px) saturate(135%);
+  -webkit-backdrop-filter: blur(8px) saturate(135%);
   /* Softer and wider: a tight dark shadow under a translucent card reads as a
      sticker sitting on the scene rather than a pane held in front of it. */
   box-shadow: 0 8px 26px rgba(6, 12, 26, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.5);
@@ -626,7 +629,9 @@
    PAUSED animation freezes it that far into its own timeline, which is what
    turns these keyframes into a scrub without a single keyframe changing. */
 .studio__frame { --build-clock: 9s; --build-delay: 0s; }
-.studio__frame .studio__st {
+/* The glow is on the same clock, so it scrubs with the strokes — it used to be
+   left out, and ran its drop-shadow filter forever, on screen or not. */
+.studio__frame :is(.studio__st, .studio__plan) {
   animation-play-state: paused;
   animation-delay: var(--build-delay);
 }
@@ -634,7 +639,7 @@
    last stage tops out, so it is the complete building rather than a frame from
    the middle of the build. */
 @media (prefers-reduced-motion: reduce) {
-  .studio__frame .studio__st { animation-delay: -3.4s; }
+  .studio__frame :is(.studio__st, .studio__plan) { animation-delay: -3.4s; }
 }
 
 @keyframes studioS1 {  /* plot + axes + dims      0 → 0.35s */
@@ -668,7 +673,7 @@
   100%      { stroke-dashoffset: 0; opacity: 0; }
 }
 
-.studio__plan { will-change: filter; animation: studioGlow var(--build-clock) linear infinite; }
+.studio__plan { animation: studioGlow var(--build-clock) linear infinite; }
 /* The glow lands with the sweep and then holds — it is what makes the finished
    plan read as "complete" for the ~6s it sits there, rather than just static. */
 @keyframes studioGlow {
@@ -811,7 +816,10 @@
    and no animation of its own — its position IS the scroll position, running
    from the foundation at 0 to the parapet at 1. Everything else on the panel
    is a crossfade, which reads as state; this is what reads as PROGRESS. */
-.studio__scan { position: absolute; z-index: 5; left: 0; right: var(--rail);
+/* Frame-sized carrier, moved by `translateY` from Studio.tsx — the percentage is
+   of this box's height, i.e. the frame's, so the line rides it without layout. */
+.studio__scanwrap { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.studio__scan { position: absolute; top: 0; left: 0; right: var(--rail);
   height: 5px; margin-top: -2px; pointer-events: none;
   background: linear-gradient(90deg,
     #d31018 0 7px, transparent 7px calc(100% - 7px), #d31018 calc(100% - 7px)); }
@@ -1165,17 +1173,16 @@
 .svc { position: relative; overflow: hidden; isolation: isolate; cursor: pointer;
   display: flex; flex-direction: column;
   padding: 1.6rem 1.6rem 1.5rem; border-radius: 20px;
-  /* Semi-transparent so the road track and CAD sketch read through. */
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  /* Semi-transparent so the road track reads through. NO backdrop blur: the
+     road dash and the car animate behind all four cards, so the blur re-ran
+     every frame the section was on screen — for a fill already 85% opaque. */
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 0 12px 32px -18px rgba(11, 19, 43, 0.22);
   /* `translate`, not `transform` — framer-motion owns the inline transform for
      the stagger reveal. */
   transition: translate 0.4s var(--ease-lux), background-color 0.4s var(--ease-lux),
-              border-color 0.4s var(--ease-lux), box-shadow 0.4s var(--ease-lux),
-              backdrop-filter 0.4s var(--ease-lux);
-  will-change: translate; }
+              border-color 0.4s var(--ease-lux), box-shadow 0.4s var(--ease-lux); }
 
 /* CAD backdrop, behind the card's own content. `isolation: isolate` on `.svc`
    is what keeps this z-index: -1 inside the card instead of escaping behind the
@@ -1216,7 +1223,6 @@
 .svc:has(:focus-visible), .svc.is-active {
   translate: 0 -8px;
   background: rgba(11, 19, 43, 0.92);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   border-color: rgba(211, 16, 24, 0.6);
   /* No red bloom — it read as a gradient mask bleeding off the card foot. */
   box-shadow: 0 22px 44px -18px rgba(11, 19, 43, 0.55);
@@ -1237,7 +1243,6 @@
   .svc:hover {
     translate: 0 -8px;
     background: rgba(11, 19, 43, 0.92);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     border-color: rgba(211, 16, 24, 0.6);
     /* No red bloom — it read as a gradient mask bleeding off the card foot. */
     box-shadow: 0 22px 44px -18px rgba(11, 19, 43, 0.55);
@@ -1600,20 +1605,29 @@
   .ba__after-lbl { right: 0.7rem; }
 }
 
+/* A FRAME-WIDE CARRIER MOVED BY TRANSFORM. It was a 2px bar placed with
+   `left: var(--split)` — a layout, and a repaint of its 44px glow, on every drag
+   frame. A percentage translate is relative to the element's own width, which
+   here is the frame's, so translateX(--split) lands the carrier's left edge
+   exactly where `left` did; the line and grip sit on that edge. The glow is
+   painted once and the compositor slides it. */
 .ba__handle {
-  position: absolute; top: 0; bottom: 0; z-index: 4; width: 2px;
+  position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  transform: translateX(var(--split, 50%));
+}
+.ba__handle::before {
+  content: ''; position: absolute; top: 0; bottom: 0; left: -1px; width: 2px;
   background: linear-gradient(180deg,
     rgba(247, 242, 232, 0.35) 0%, rgba(247, 242, 232, 0.95) 18%,
     rgba(247, 242, 232, 0.95) 82%, rgba(247, 242, 232, 0.35) 100%);
-  left: var(--split, 50%); transform: translateX(-50%);
   box-shadow: 0 0 12px 1px rgba(211, 16, 24, 0.6), 0 0 44px 5px rgba(211, 16, 24, 0.22);
   transition: box-shadow 0.35s var(--ease-lux);
 }
 @media (hover: hover) and (pointer: fine) {
-  .ba:hover .ba__handle { box-shadow: 0 0 16px 2px rgba(211, 16, 24, 0.8), 0 0 64px 9px rgba(211, 16, 24, 0.34); }
+  .ba:hover .ba__handle::before { box-shadow: 0 0 16px 2px rgba(211, 16, 24, 0.8), 0 0 64px 9px rgba(211, 16, 24, 0.34); }
 }
 .ba__grip {
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  position: absolute; top: 50%; left: 0; transform: translate(-50%, -50%);
   width: 48px; height: 48px; border-radius: 50%;
   /* Glass button, not a flat disc: a top-lit gradient over bone with a bright
      inner edge, which is what reads as a physical control worth grabbing. */
@@ -1663,16 +1677,16 @@
     0 10px 30px rgba(0, 0, 0, 0.5),
     0 0 0 6px rgba(211, 16, 24, 0.22);
 }
-.ba.is-dragging .ba__handle {
+.ba.is-dragging .ba__handle::before {
   box-shadow: 0 0 16px 2px rgba(211, 16, 24, 0.85), 0 0 64px 9px rgba(211, 16, 24, 0.36);
 }
 /* The press should read as instant. The resting 0.35s ease is right for the
    slow hover lift and far too slow for an acknowledgement of a tap. */
-.ba.is-dragging .ba__grip, .ba.is-dragging .ba__handle {
+.ba.is-dragging .ba__grip, .ba.is-dragging .ba__handle::before {
   transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
 }
 
-@media (prefers-reduced-motion: reduce) { .ba__handle, .ba__grip { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .ba__handle::before, .ba__grip { transition: none; } }
 @media (max-width: 560px) { .ba__grip { width: 42px; height: 42px; } }
 
 /* KEYBOARD AND SCREEN READER ONLY, NOT THE POINTER. This input is still what
@@ -1769,8 +1783,7 @@
      element's inline transform for the scroll reveal and would overwrite a
      transform-based hover outright. Both are compositor-driven. */
   transition: translate 0.45s var(--ease-lux), background-color 0.45s var(--ease-lux),
-              border-color 0.45s var(--ease-lux), box-shadow 0.45s var(--ease-lux);
-  will-change: translate; }
+              border-color 0.45s var(--ease-lux), box-shadow 0.45s var(--ease-lux); }
 
 /* Navy curved corner flourish — two stacked quarter-ellipses read as a wave
    crest rather than a filled corner. */
@@ -2706,8 +2719,7 @@
    other half of the crop. */
 .gate__visual { position: relative; width: 100%; border-radius: 20px; overflow: hidden;
   box-shadow: var(--shadow-xl); }
-.gate__visual img { display: block; width: 100%; height: auto; border-radius: inherit;
-  will-change: transform; }
+.gate__visual img { display: block; width: 100%; height: auto; border-radius: inherit; }
 /* TWO scrims, because there is now text at both ends of the image. The bottom
    one carries `.gate__caption` and was already here; the top one carries the
    section heading that moved inside the frame. Both fade to transparent in the
@@ -2778,7 +2790,7 @@
      the stagger reveal and would overwrite a transform-based hover. */
   transition: translate 0.35s var(--ease-lux), border-color 0.35s var(--ease-lux),
               box-shadow 0.35s var(--ease-lux), background-color 0.35s var(--ease-lux);
-  will-change: translate; cursor: pointer; }
+  cursor: pointer; }
 
 /* Full-bleed blueprint inside every card; brightens and grows in the dark state. */
 .gate__sketch { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%;
@@ -3963,7 +3975,10 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
      the studio spec rows and panel, the FAQ rows, and the hero eyebrow + Watch
      pill over the WebGL stage. Same trade — fill up, blur off. */
   .svc, .studio__hl, .faq__item, .story__eyebrow, .btn-watch,
-  html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details) {
+  html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details),
+  /* #contact is not `.section--noir`, so the line above never reached it —
+     phones ran a 16px blur behind a card painted solid white. */
+  #contact .contact__form {
     backdrop-filter: none; -webkit-backdrop-filter: none;
   }
   .svc { background: rgba(255, 255, 255, 0.93); }
@@ -4022,14 +4037,6 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
      see `.tmarquee`), the loop duplicates are `display: none`, and the five
      thumbnails are lazy with an 800px srcset candidate. */
 
-  /* ---- FILM GRAIN: TEXTURE YES, BLEND NO ---------------------------------
-     `.grain::after` is a tiled noise bitmap at 4% opacity over a dozen
-     sections. The bitmap is cheap and cached; `mix-blend-mode: overlay` is
-     not — it forces every one of those sections into its own compositing
-     pass, blended against what is underneath, for the whole scroll. At 4% the
-     blend contributes a few levels of luminance nobody can see on a phone
-     screen. The texture stays, the per-frame blend goes. */
-  .grain::after { mix-blend-mode: normal; opacity: 0.03; }
 
   /* ---- FEWER GPU LAYERS -------------------------------------------------
      A layer census at 390px found 40-50 composited layers live down the

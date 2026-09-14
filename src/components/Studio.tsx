@@ -170,7 +170,13 @@ export default function Studio() {
                   the only moving mark on the panel: the stages themselves are
                   crossfades, so without it nothing tells the reader that what
                   they are looking at is being scrubbed by their own scroll. */}
-              <m.span className="studio__scan" style={{ top: scanY }} aria-hidden="true" />
+              {/* Moved by TRANSFORM on a frame-sized wrapper, not by `top` —
+                  a percentage translate is relative to the wrapper's own height,
+                  which is the frame's, so 96% → 4% lands exactly where `top`
+                  did, without a layout per scroll frame. */}
+              <m.div className="studio__scanwrap" style={{ y: scanY }} aria-hidden="true">
+                <span className="studio__scan" />
+              </m.div>
 
               {/* 6-stage construction sequence on one shared 9s clock. Every
                   stage is a dash-drawn layer whose window is set in the CSS

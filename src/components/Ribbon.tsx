@@ -19,7 +19,7 @@ const item = {
 };
 
 function Cell({ stat, index }: { stat: Stat; index: number }) {
-  const { value, ref } = useCountUp(stat.value);
+  const ref = useCountUp(stat.value);
   const Icon = stat.icon;
   return (
     <m.div
@@ -59,7 +59,7 @@ function Cell({ stat, index }: { stat: Stat; index: number }) {
             {/* Count-up runs off this span's own IntersectionObserver, so it
                 starts when the card is on screen — not when the pinned hero
                 mounts, which is long before anyone can see it. */}
-            <span ref={ref}>{value.toLocaleString()}</span>
+            <span ref={ref}>0</span>
             <em>{stat.suffix}</em>
           </div>
           <div className="ribbon__label">{stat.label}</div>

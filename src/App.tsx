@@ -112,6 +112,9 @@ export default function App() {
 
   useEffect(() => {
     document.body.style.overflow = loaded ? '' : 'hidden';
+    /* HeroSite throttles its render loop while this is set — the intro covers
+       the canvas, so full-rate WebGL behind it is GPU spent on nothing. */
+    document.documentElement.toggleAttribute('data-intro', !loaded);
   }, [loaded]);
 
   /* Once the intro clears: an explicit #hash deep-links to that section, and
