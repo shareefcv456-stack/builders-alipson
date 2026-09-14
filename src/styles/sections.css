@@ -3971,8 +3971,25 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
   .btn-watch { background-color: rgba(255, 255, 255, 0.88); }
   /* 0.55 → 0.86. The blur was doing half the work of separating slate links
      from whatever the capsule was passing over; the fill does all of it now. */
-  /* 0.95, not 0.86: over the Contact map the labels still read through. */
-  .nav__inner { background: rgba(255, 255, 255, 0.95); }
+  /* SOLID on phones. Even at 0.95 the Contact map's labels ghosted through the
+     capsule. `.nav .nav__inner` so it also beats the later-specificity
+     `[data-perf='low'] .nav__inner` fill. */
+  .nav .nav__inner { background: #FFFFFF; }
+
+  /* ---- CONTACT FORM CARD: ONE SOLID SURFACE, ONE READABLE TEXT PAIR -------
+     The card's fill depended on transparency settings (a 3% glass over white,
+     or a dark fallback under reduced transparency) while its heading stayed
+     navy — so on some phones it was navy text on a navy card. On phones the
+     card is now opaque brand navy in EVERY mode, and the heading/description
+     are opaque light colours set against that same fill: no alpha, no blend,
+     nothing an accessibility setting can swap out from under them. `#contact`
+     outranks the reduced-transparency and theme rules. Inputs keep their own
+     tokens and the red submit button is untouched. */
+  #contact .contact__form { background: #0B132B; }
+  #contact .contact__form h3 { color: #FFFFFF; }
+  #contact .contact__form > p { color: #CBD5E1; }
+  #contact .contact__form .success-note { color: #FFFFFF; }
+  #contact .contact__form .form-resend { color: #F8FAFC; border-color: #CBD5E1; }
   /* 0.66 was the contrast FLOOR, chosen against the darkest part of the render
      showing through 16px of blur. With the render sharp behind it, small
      uppercase labels need the fill to do that job: 0.88, same as the
