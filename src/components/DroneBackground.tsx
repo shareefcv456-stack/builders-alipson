@@ -21,13 +21,9 @@ export default function DroneBackground() {
   if (isCapture()) return null;
 
   return (
-    <div className="fixed inset-0 z-[-1] w-full h-full pointer-events-none bg-[#0D1117]" aria-hidden>
-      {/* Flat charcoal veil. This used to carry `backdrop-blur-sm`: a FIXED,
-          full-viewport backdrop-filter forces the compositor to re-read
-          everything behind it on every frame of every scroll, for the entire
-          length of the page — and at z-[-1], behind opaque sections, it had
-          nothing visible to blur in the first place. */}
-      <div className="absolute inset-0 z-0 bg-black/70" />
-    </div>
+    /* ONE LAYER. This was a #0D1117 plate with a second full-viewport div of
+       black at 70% on top — two fixed full-screen surfaces composited on every
+       frame to produce one flat colour. #040507 IS that colour, pre-mixed. */
+    <div className="fixed inset-0 z-[-1] w-full h-full pointer-events-none bg-[#040507]" aria-hidden />
   );
 }

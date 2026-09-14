@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { isLite } from '../lib/device';
+import { isLite, isTouch } from '../lib/device';
 import { PATH_FOR_SECTION, navigate, currentPath } from '../router';
 
 /**
@@ -28,7 +28,11 @@ export function useLenis() {
        which reads the native scroll position either way, and momentum on a
        touch screen is the platform's job and better than ours.
        Desktop keeps the smooth wheel exactly as authored. */
-    if (reduce || noLenis || isLite()) return;
+    /* `isTouch` too — a TABLET is not `isLite` (768px+), and it was getting
+       Lenis with `syncTouch`, i.e. the exact scroll-jacking described above on
+       an iPad. A device with no real cursor has no wheel to smooth, so it gets
+       nothing but the platform's own momentum. */
+    if (reduce || noLenis || isLite() || isTouch()) return;
 
     /* DYNAMIC, so the bail-out above is a real saving and not just a skipped
        constructor. Statically imported, the library was fetched, parsed and
@@ -56,18 +60,10 @@ export function useLenis() {
         lerp: 0.1,
         smoothWheel: true,
         wheelMultiplier: 1,
-        /* TOUCH. `syncTouch` is v1's name for what the brief calls
-           `smoothTouch` — it keeps the page locked to the finger instead of
-           running the wheel smoothing over a touch drag, which is what causes
-           the rubber-banding and the perceived latency on iOS Safari.
-           `syncTouchLerp` is kept light on purpose. Under syncTouch the finger
-           is driving directly, so heavy smoothing there reads as lag rather
-           than as polish — this is the "light dampening" the brief asks for,
-           not the wheel's easing curve applied to a drag. */
-        syncTouch: true,
-        syncTouchLerp: 0.09,
-        touchInertiaExponent: 1.7,
-        touchMultiplier: 1.6,
+        /* TOUCH IS NEVER OURS. A hybrid (touch laptop) can still reach here;
+           leaving `syncTouch` off means a finger scrolls natively, with the
+           platform's momentum, and Lenis only follows the resulting position. */
+        syncTouch: false,
       });
 
       (window as unknown as { lenis?: Lenis }).lenis = lenis;

@@ -587,11 +587,11 @@
 
 /* Stage layers. Every one runs on the SAME 8s clock; only the keyframe
    percentages differ, which is what keeps the sequence from drifting. */
-/* `will-change` names what actually animates. `transform` is listed too because
-   it is the hint that keeps the layer promoted for the whole loop — naming only
-   the dash properties lets the compositor drop and re-create the layer. */
-.studio__st { stroke-dasharray: var(--dash);
-  will-change: transform, stroke-dashoffset, opacity; }
+/* NO `will-change`. These strokes are paused and scrubbed by scroll, and
+   `stroke-dashoffset` is a repaint whatever layer it lives on — the hint only
+   kept six extra layers in GPU memory. `.studio__sheet` stays promoted, which
+   is what keeps that repaint off the rest of the card. */
+.studio__st { stroke-dasharray: var(--dash); }
 .studio__st { stroke-dashoffset: var(--dash); }
 .studio__st--1 { --dash: 2600; stroke: rgba(255,255,255,0.55); stroke-width: 1;   animation: studioS1 var(--build-clock) linear infinite; }
 .studio__st--2 { --dash: 2000; stroke: #FFFFFF;                stroke-width: 1.6; animation: studioS2 var(--build-clock) linear infinite; }
@@ -1162,7 +1162,8 @@
 .svc__road.is-paused .svc__road-dash { animation-play-state: paused; }
 
 /* Car is an svg child driven by <animateMotion>; it inherits the viewBox. */
-.svc__car { filter: drop-shadow(0 6px 12px rgba(11, 19, 43, 0.35)); }
+/* No `filter: drop-shadow` on the car: it moves every frame, so the filter was
+   re-rendered every frame. Its shadow is a painted ellipse in Services.tsx. */
 
 /* ---- cards --------------------------------------------------------------- */
 .services__grid { position: relative; z-index: 10;
@@ -1822,6 +1823,11 @@
 .std__dot { position: absolute; top: 2px; right: 2px; width: 7px; height: 7px; border-radius: 50%;
   background: #d31018; opacity: 0; transform: scale(0.4);
   transition: opacity 0.35s var(--ease-lux), transform 0.35s var(--ease-lux); }
+/* The pulse ring. It was an animated `box-shadow` spread — a repaint every
+   frame, forever, while a card was active. A ring that SCALES and FADES is the
+   same picture on the compositor. 3x = the old 7px spread around a 7px dot. */
+.std__dot::after { content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: rgba(211, 16, 24, 0.55); opacity: 0; }
 
 /* ---- card typography ----------------------------------------------------- */
 .std__card h3 { font-family: var(--font-grotesk); font-weight: 700; font-size: 1rem;
@@ -1856,7 +1862,9 @@
 :is(.std__card:has(:focus-visible), .std__card.is-active) .std__ic {
   border-color: #d31018; box-shadow: 0 0 0 3px rgba(211, 16, 24, 0.18); }
 :is(.std__card:has(:focus-visible), .std__card.is-active) .std__dot {
-  opacity: 1; transform: scale(1); animation: stdDot 1.6s var(--ease-lux) infinite; }
+  opacity: 1; transform: scale(1); }
+:is(.std__card:has(:focus-visible), .std__card.is-active) .std__dot::after {
+  animation: stdDot 1.6s var(--ease-lux) infinite; }
 
 :is(.std__card:has(:focus-visible), .std__card.is-active) .std__more svg { transform: translateX(4px); }
 
@@ -1881,9 +1889,8 @@
   .std__card:hover .std__ic {
     border-color: #d31018; box-shadow: 0 0 0 3px rgba(211, 16, 24, 0.18);
   }
-  .std__card:hover .std__dot {
-    opacity: 1; transform: scale(1); animation: stdDot 1.6s var(--ease-lux) infinite;
-  }
+  .std__card:hover .std__dot { opacity: 1; transform: scale(1); }
+  .std__card:hover .std__dot::after { animation: stdDot 1.6s var(--ease-lux) infinite; }
   .std__card:hover .std__more svg { transform: translateX(4px); }
   .std__card:hover .std__sweep {
     opacity: 1; transform: translateX(90%); transition: transform 0.75s var(--ease-out), opacity 0.2s linear;
@@ -1891,8 +1898,8 @@
 }
 
 @keyframes stdDot {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(211, 16, 24, 0.55); }
-  70%      { box-shadow: 0 0 0 7px rgba(211, 16, 24, 0); }
+  0%        { transform: scale(1); opacity: 1; }
+  70%, 100% { transform: scale(3); opacity: 0; }
 }
 
 /* Keyboard users get the same visible ring the mouse never needs. */
@@ -1915,7 +1922,7 @@
   .std__bp { transition-property: opacity, stroke; }
   :is(.std__card:hover, .std__card:has(:focus-visible), .std__card.is-active) .std__bp { transform: none; }
   .std__sweep { display: none; }
-  :is(.std__card:hover, .std__card:has(:focus-visible), .std__card.is-active) .std__dot { animation: none; }
+  :is(.std__card:hover, .std__card:has(:focus-visible), .std__card.is-active) .std__dot::after { animation: none; }
 }
 
 /* ==========================================================================
@@ -4037,17 +4044,6 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
      see `.tmarquee`), the loop duplicates are `display: none`, and the five
      thumbnails are lazy with an 800px srcset candidate. */
 
-
-  /* ---- FEWER GPU LAYERS -------------------------------------------------
-     A layer census at 390px found 40-50 composited layers live down the
-     page, and "Layerize" was the largest single main-thread cost of the
-     scroll. These hints promote things that do not move on a phone: the six
-     studio stroke groups are paused and scrubbed (stroke-dashoffset is a
-     paint either way — `.studio__sheet` stays promoted, which is what keeps
-     that paint off the card), and the cards' `translate` hint only serves the
-     hover lift. Each one also dragged overlapping siblings into layers of
-     their own. No visual change. */
-  .studio__st, .svc, .gate__card, .std__card { will-change: auto; }
 
   /* ---- THE FILM, FULL WIDTH ----------------------------------------------
      The video modal is the one panel whose content IS the width: a 16:9

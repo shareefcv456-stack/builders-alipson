@@ -747,7 +747,11 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
        must be untouched, which a `lite` gate would not have guaranteed
        (Save-Data and low-end desktops are lite too). */
     let phoneView = isPhone();
-    const DPR_CAP = Math.min(window.devicePixelRatio || 1, lite ? 1.5 : 1.75);
+    /* PHONES GET HALF THE PIXELS. Fill rate is the phone's bottleneck on this
+       scene, and 1.25² / 1.75² ≈ 0.51 — half the fragments of desktop for a
+       sharpness difference that a 6-inch screen at arm's length does not show.
+       Geometry, traffic and textures are already halved by `lite`. */
+    const DPR_CAP = Math.min(window.devicePixelRatio || 1, phoneView ? 1.25 : lite ? 1.5 : 1.75);
     renderer.setPixelRatio(DPR_CAP);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;

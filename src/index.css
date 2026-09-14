@@ -55,11 +55,12 @@
   /* Fonts — modern editorial sans (no decorative faces) */
   /* Body copy. `body` reads --font-sans, NOT --font-grotesk — changing only
      the grotesk token leaves every paragraph on the old face. */
-  --font-sans:    'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  /* Syne for display: high-contrast geometric, reads as architectural.
-     Plus Jakarta Sans for body: neutral, wide language coverage. */
-  --font-display: 'Syne', 'Manrope', system-ui, sans-serif;
-  --font-grotesk: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  /* ONE FAMILY for all three roles — Plus Jakarta Sans, loaded once as a
+     variable font (index.html). The three tokens stay so every rule keeps its
+     role; they simply resolve to the same face now. */
+  --font-sans:    'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-grotesk: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 
   /* Motion */
   --ease-lux:  cubic-bezier(0.16, 1, 0.3, 1);

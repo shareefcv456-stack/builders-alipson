@@ -55,8 +55,13 @@
          hero: the 3D hero paints a WebGL canvas and the headline, so the
          preload only stole bandwidth and connection priority from the JS and
          fonts that the first paint actually waits on. -->
-    <!-- Preload critical Google Fonts (subset: only weights actually used) -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" />
+    <!-- ONE FAMILY, ONE FILE. Plus Jakarta Sans is a variable font, so the
+         `400..800` range is served as a single woff2 per subset covering every
+         weight the site uses — instead of three families (Syne, Plus Jakarta
+         Sans, Inter) and twelve static weight files. 300 is not loaded on
+         purpose: the old display face (Syne) had no 300 either, so those rules
+         always rendered at 400 and still do. -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..800&display=swap" />
     
     <!-- NON-BLOCKING. `media="print"` means this sheet does not apply to the
          screen, so the browser fetches it without holding the first paint; the
@@ -66,8 +71,8 @@
          and every face is already `display=swap`, so the fallback text was
          going to paint first regardless. The <noscript> copy keeps the fonts
          for a scripting-disabled visitor, who will never run the onload. -->
-    <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" /></noscript>
+    <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..800&display=swap" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..800&display=swap" /></noscript>
 
     <script type="application/ld+json">
     {
@@ -125,7 +130,7 @@
           filter: drop-shadow(0 0 6px rgba(211,16,24,0.55)); }
         #boot svg { display: block; position: relative; z-index: 1; }
         #boot b { position: relative; z-index: 1; margin-top: 0.6rem;
-          font-family: 'Syne', system-ui, sans-serif; font-weight: 500;
+          font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 500;
           letter-spacing: 0.14em; font-size: clamp(1.3rem, 3.6vw, 2.3rem); color: #fff; }
         #boot i { position: relative; z-index: 1; font-style: normal;
           font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 600;

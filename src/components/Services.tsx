@@ -39,6 +39,8 @@ function RoadTrack() {
         {!still && (
           <g className="svc__car">
             <g transform="translate(-26 -13) scale(1.2)">
+              {/* Ground shadow — painted, not a drop-shadow filter re-run per frame. */}
+              <ellipse cx="22" cy="22" rx="22" ry="4" fill="#0B132B" opacity=".2" />
               <rect x="1" y="5" width="42" height="12" rx="6" fill="#FFFFFF" />
               <rect x="12" y="1.5" width="19" height="8" rx="3.5" fill="#FFFFFF" />
               <rect x="14" y="3" width="15" height="5" rx="2" fill="#0B132B" opacity=".35" />
