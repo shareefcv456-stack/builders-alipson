@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, m } from 'framer-motion';
 import { Menu, X, ArrowUpRight } from 'lucide-react';
 import Logo from './ui/Logo';
-import { NAV, CONTACT } from '../data/site';
+import { NAV } from '../data/site';
 import { gateOpenScroll } from './StoryScroll';
 import { useUI } from '../context/UIContext';
 import { navigate, usePath, isKnown } from '../router';
@@ -223,13 +223,6 @@ export default function Navbar() {
               <button className="btn btn-primary mnav__cta" onClick={() => { setMenuOpen(false); openQuote(); }}>
                 Book Consultation <ArrowUpRight size={16} />
               </button>
-              {/* The two things somebody opening a builder's menu on a phone is
-                  most likely to want next. Plain links, so a tap dials or mails
-                  rather than routing — and both close the drawer on the way. */}
-              <div className="mnav__reach">
-                <a href={CONTACT.phoneHref} onClick={() => setMenuOpen(false)}>{CONTACT.phone}</a>
-                <a href={`mailto:${CONTACT.email}`} onClick={() => setMenuOpen(false)}>{CONTACT.email}</a>
-              </div>
             </div>
           </m.div>
         )}

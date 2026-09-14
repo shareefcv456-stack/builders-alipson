@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { m, useReducedMotion } from 'framer-motion';
 import { ArrowUpRight, ArrowRight } from 'lucide-react';
 import RevealText from './ui/RevealText';
@@ -16,8 +16,23 @@ const ROAD = 'M-40 400 C 200 400, 380 590, 700 590 S 1150 430, 1560 230';
 
 function RoadTrack() {
   const still = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
+  /* PAUSED OFF SCREEN. The dash is a `stroke-dashoffset` animation and the car
+     is SMIL — both are main-thread repaints, and both kept ticking every frame
+     for the rest of the page once Services had scrolled away. */
+  useEffect(() => {
+    const el = ref.current;
+    const svg = el?.querySelector('svg');
+    if (!el || !svg) return;
+    const io = new IntersectionObserver(([e]) => {
+      el.classList.toggle('is-paused', !e.isIntersecting);
+      if (e.isIntersecting) svg.unpauseAnimations(); else svg.pauseAnimations();
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   return (
-    <div className="svc__road" aria-hidden="true">
+    <div className="svc__road" aria-hidden="true" ref={ref}>
       <svg viewBox="0 0 1440 700" preserveAspectRatio="xMidYMid slice">
         <path className="svc__road-bed" d={ROAD} />
         <path className="svc__road-dash" d={ROAD} />

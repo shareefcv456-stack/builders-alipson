@@ -224,12 +224,6 @@
 .mnav__foot { margin-top: 1.6rem; display: flex; flex-direction: column;
   gap: 0.9rem; flex-shrink: 0; }
 .mnav__cta { width: 100%; justify-content: center; min-height: 52px; }
-.mnav__reach { display: flex; flex-direction: column; gap: 0.4rem;
-  padding-top: 0.95rem; border-top: 1px solid rgba(248,248,246,0.12); }
-.mnav__reach a { color: rgba(248,248,246,0.66); font-size: 0.88rem;
-  font-family: var(--font-grotesk); letter-spacing: 0.01em; min-height: 30px;
-  display: flex; align-items: center; }
-.mnav__foot a { color: rgba(248,248,246,0.72); font-size: 0.95rem; }
 
 /* ==========================================================================
    HERO — WHAT IS LEFT OF IT
@@ -1156,6 +1150,8 @@
   stroke-linecap: round; stroke-dasharray: 16 20;
   animation: svcDash 3.5s linear infinite; }
 @keyframes svcDash { to { stroke-dashoffset: -36; } }
+/* Set by RoadTrack's observer while the section is off screen. */
+.svc__road.is-paused .svc__road-dash { animation-play-state: paused; }
 
 /* Car is an svg child driven by <animateMotion>; it inherits the viewBox. */
 .svc__car { filter: drop-shadow(0 6px 12px rgba(11, 19, 43, 0.35)); }
@@ -1186,16 +1182,12 @@
    section, so the two work as a pair — do not remove one without the other. */
 .svc__sketch { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%;
   pointer-events: none; }
-/* The copy sits on its own layer above the sketch. `z-index: -1` alone already
-   put the sketch behind, but the strokes still ran straight through the
-   descender space of the body text and made it fussy to read at phone size;
-   the fill below is a local scrim, so the line-work fades out behind words and
-   stays visible everywhere else. */
+/* The copy sits on its own layer above the sketch. NO SCRIM behind the
+   description: it used to carry its own translucent white fill, which read as
+   a second grey box nested inside the card — worst on the navy active state.
+   The card is the one surface; text sits directly on it. */
 .svc__title, .svc__rule, .svc__desc, .svc__more, .svc__icon, .svc__num {
   position: relative; z-index: 1; }
-.svc__desc { border-radius: 6px;
-  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.55); }
 
 .svc__num { position: absolute; top: 1.5rem; right: 1.6rem;
   font-family: var(--font-grotesk); font-weight: 600; font-size: 0.85rem;
@@ -3930,9 +3922,17 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
    ========================================================================== */
 @media (max-width: 767.98px) {
   .nav__inner, .floater, .floater--up, .btn-ghost, .glass,
-  .ribbon__cell-edge, .pshow__rail {
+  .ribbon__cell-edge, .pshow__rail,
+  /* Still reporting a live blur while scrolling at 390px: the service cards,
+     the studio spec rows and panel, the FAQ rows, and the hero eyebrow + Watch
+     pill over the WebGL stage. Same trade — fill up, blur off. */
+  .svc, .studio__hl, .faq__item, .story__eyebrow, .btn-watch,
+  html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details) {
     backdrop-filter: none; -webkit-backdrop-filter: none;
   }
+  .svc { background: rgba(255, 255, 255, 0.93); }
+  .story__eyebrow { background: rgba(11, 19, 43, 0.85); }
+  .btn-watch { background-color: rgba(255, 255, 255, 0.88); }
   /* 0.55 → 0.86. The blur was doing half the work of separating slate links
      from whatever the capsule was passing over; the fill does all of it now. */
   .nav__inner { background: rgba(255, 255, 255, 0.86); }
