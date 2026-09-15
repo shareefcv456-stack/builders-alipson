@@ -94,6 +94,10 @@ export const HERO_FRAMES = FRAME_NAMES.map((n) => img(`construction/${n}.webp`))
    canvas is at most 430 CSS px wide on a phone, so the master frames were nine
    full-size downloads for pixels no phone can resolve. */
 export const HERO_FRAMES_SMALL = FRAME_NAMES.map((n) => img(`construction/${n}-800.webp`));
+/* 1200px middle size. The Studio film renders 358 CSS px wide on a 3x phone and
+   475 on a 2x tablet — 1,000-1,100 device px — and above 800w the only other
+   candidate was the ~400 KB master. */
+export const HERO_FRAMES_MID = FRAME_NAMES.map((n) => img(`construction/${n}-1200.webp`));
 
 export const media = (key: MediaKey) => MEDIA[key];
 
@@ -132,6 +136,12 @@ const DIMS: Record<MediaKey, [number, number]> = {
  *  will only ever be painted at phone width. */
 export const mediaSmall = (key: MediaKey) => MEDIA[key].replace(/\.webp$/, '-800.webp');
 
+/* Slots that also ship a `-1200` companion: the ~1600px construction masters.
+   Before/After renders 1,134 px wide on a 1440 desktop and ~1,070 device px on
+   a 3x phone, so without a middle size both fetched the full master. */
+const MID = new Set<MediaKey>(['team', 'workforce', 'stageStructure', 'stageDelivered']);
+const mediaMid = (key: MediaKey) => MEDIA[key].replace(/\.webp$/, '-1200.webp');
+
 /**
  * Spread onto an `<img>`: `<img {...imgProps('villa')} alt="…" />`.
  *
@@ -144,7 +154,7 @@ export const imgProps = (key: MediaKey, sizes = '(max-width: 800px) 100vw, 600px
   const [width, height] = DIMS[key];
   return {
     src,
-    srcSet: `${mediaSmall(key)} 800w, ${src} ${width}w`,
+    srcSet: `${mediaSmall(key)} 800w, ${MID.has(key) ? `${mediaMid(key)} 1200w, ` : ''}${src} ${width}w`,
     sizes,
     width,
     height,

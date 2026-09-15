@@ -4,6 +4,7 @@ import App from './App.tsx'
 import './index.css'
 // Lazy load sections CSS to avoid blocking critical path
 import './styles/sections.css'
+import { watchFrameBudget } from './lib/frameBudget'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -17,3 +18,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 requestAnimationFrame(() =>
   requestAnimationFrame(() => document.getElementById('boot')?.remove())
 )
+
+watchFrameBudget()

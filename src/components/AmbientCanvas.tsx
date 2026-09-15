@@ -172,18 +172,39 @@ export default function AmbientCanvas({ variant, className }: { variant: Variant
     const start = () => { if (!raf) raf = requestAnimationFrame(loop); };
     const stop = () => { if (raf) { cancelAnimationFrame(raf); raf = 0; } };
 
-    resize();
-    window.addEventListener('resize', resize, { passive: true });
+    /* NOTHING IS ALLOCATED UNTIL THE SECTION IS ABOUT TO BE SEEN. The backing
+       store is section-sized (Projects is ~1440x4500) and used to be allocated,
+       and the loop started, the moment the section MOUNTED — a viewport early,
+       in the same frames the section's photos decode. That is the hitch measured
+       entering #work. Now it is sized and started in an idle slot once the canvas
+       is within 300px, and never at all where the stylesheet hides it (phones). */
+    let ready = false, pendingInit = false;
+    const init = () => {
+      pendingInit = false;
+      if (ready || !visible) return;
+      ready = true;
+      resize();
+      window.addEventListener('resize', resize, { passive: true });
+      if (reduce) frame(1.5); else start();
+    };
+    const ric = (window as unknown as {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+    }).requestIdleCallback;
     const io = new IntersectionObserver(([e]) => {
       visible = e.isIntersecting;
+      if (!ready) {
+        if (visible && !pendingInit) {
+          pendingInit = true;
+          if (ric) ric(init, { timeout: 400 }); else window.setTimeout(init, 60);
+        }
+        return;
+      }
       if (reduce) return;
       if (visible) start(); else stop();
-    }, { threshold: 0 });
+    }, { threshold: 0, rootMargin: '300px 0px' });
     io.observe(canvas);
 
-    if (reduce) frame(1.5); else start();
-
-    return () => { stop(); window.removeEventListener('resize', resize); io.disconnect(); };
+    return () => { ready = true; stop(); window.removeEventListener('resize', resize); io.disconnect(); };
   }, [variant]);
 
   return (

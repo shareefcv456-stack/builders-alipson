@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { m, useScroll, useTransform, useMotionValueEvent, type MotionValue } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 import Reveal from './ui/Reveal';
@@ -6,7 +6,7 @@ import RevealText from './ui/RevealText';
 import Magnetic from './ui/Magnetic';
 import AmbientCanvas from './AmbientCanvas';
 import { HIGHLIGHTS } from '../data/site';
-import { HERO_FRAMES, HERO_FRAMES_SMALL } from '../lib/media';
+import { HERO_FRAMES, HERO_FRAMES_MID, HERO_FRAMES_SMALL } from '../lib/media';
 import { scrollToId } from '../hooks/useLenis';
 
 /* THE PANEL CARRIES ONE DRAWING, NOT TWO. A second piece of architectural
@@ -62,7 +62,9 @@ const FILM_END = 0.96;
    stack is always fully opaque and mid-dissolve never shows the navy card
    through two half-transparent photographs. Frame 0 sits at 1 throughout —
    it is the ground the rest are painted over. */
-function FilmFrame({ i, n, build }: { i: number; n: number; build: MotionValue<number> }) {
+function FilmFrame({ i, n, build, load, onReady }: {
+  i: number; n: number; build: MotionValue<number>; load: boolean; onReady: (i: number) => void;
+}) {
   /* The segment is a fraction of PHASE 2, not of the whole playhead. */
   const seg = (FILM_END - SPLIT) / (n - 1);
   const opacity = useTransform(
@@ -72,9 +74,22 @@ function FilmFrame({ i, n, build }: { i: number; n: number; build: MotionValue<n
     <m.img
       className="studio__fr"
       style={{ opacity }}
-      src={HERO_FRAMES[i]}
-      srcSet={`${HERO_FRAMES_SMALL[i]} 800w, ${HERO_FRAMES[i]} 1608w`}
-      sizes="(max-width: 900px) 100vw, 46vw"
+      /* Measured rendered widths: 358 px at 390, 475 px at 768, 321 px at 1440.
+         The old `100vw, 46vw` asked a desktop for twice the pixels it shows. */
+      sizes="(max-width: 560px) calc(100vw - 32px), (max-width: 900px) 62vw, min(23vw, 360px)"
+      /* ONE FRAME AT A TIME. The five frames are stacked in one box, so
+         `loading="lazy"` released all five together and they downloaded and
+         decoded in the same few frames as the section arrived. Each frame now
+         gets its source only after the one below it has decoded. Frames 2-5
+         stay at opacity 0 until the second half of the build, which is well
+         after this chain has finished. */
+      {...(load ? {
+        src: HERO_FRAMES[i],
+        srcSet: `${HERO_FRAMES_SMALL[i]} 800w, ${HERO_FRAMES_MID[i]} 1200w, ${HERO_FRAMES[i]} 1608w`,
+      } : {})}
+      onLoad={(e) => { void e.currentTarget.decode().catch(() => {}).then(() => onReady(i)); }}
+      /* A frame that fails must not strand the ones after it. */
+      onError={() => onReady(i)}
       width={1608}
       height={978}
       alt=""
@@ -127,6 +142,10 @@ export default function Studio() {
   /* Which act is lit. State, not a motion value, because it is text the DOM has
      to re-render — and it only changes four times across the whole section. */
   const [act, setAct] = useState(0);
+  const [framesLoaded, setFramesLoaded] = useState(1);
+  const onFrameReady = useCallback((i: number) => {
+    setFramesLoaded((n) => (n === i + 1 ? Math.min(HERO_FRAMES.length, n + 1) : n));
+  }, []);
   useMotionValueEvent(build, 'change', (v) => {
     setAct(Math.min(STAGES.length - 1, Math.floor(v * STAGES.length)));
   });
@@ -158,7 +177,7 @@ export default function Studio() {
                 aria-label="One Alipson project photographed from foundation through frame and structure to the finished, illuminated building"
               >
                 {HERO_FRAMES.map((src, i) => (
-                  <FilmFrame key={src} i={i} n={HERO_FRAMES.length} build={build} />
+                  <FilmFrame key={src} i={i} n={HERO_FRAMES.length} build={build} load={i < framesLoaded} onReady={onFrameReady} />
                 ))}
                 {/* Blueprint wash. Deep navy over the bare site, gone by the
                     time the landmark is standing — the panel literally moves

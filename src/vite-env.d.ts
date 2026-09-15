@@ -20,3 +20,6 @@ declare module 'n8ao' {
     setSize(w: number, h: number): void;
   }
 }
+
+/** `.glb` files present in public/models at build time (vite.config.ts). */
+declare const __HERO_MODELS__: string[];

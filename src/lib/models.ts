@@ -100,6 +100,10 @@ const getLoader = () => {
 /** Is there actually a file at this path? A HEAD is a few hundred bytes and a
  *  404, where fetching the loader to find out is 38 KB of parser. */
 async function present(url: string): Promise<boolean> {
+  /* A production build already knows what it shipped, so an absent model costs
+     no request at all. `typeof` keeps this safe under plain Node (the checks),
+     where the build-time constant does not exist. */
+  if (!DEV && typeof __HERO_MODELS__ !== 'undefined' && !__HERO_MODELS__.includes(url.split('/').pop() ?? '')) return false;
   try {
     const r = await fetch(url, { method: 'HEAD' });
     // A host that rewrites unknown paths to index.html answers 200 with HTML.

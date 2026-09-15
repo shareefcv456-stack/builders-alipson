@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from 'react';
 import * as THREE from 'three';
 import { N8AOPass } from 'n8ao';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -22,8 +22,8 @@ import { mediaSmall } from '../lib/media';
  * WebGL scene and a single continuous camera; every stage below is the SAME
  * geometry growing. Nothing is ever swapped for anything else.
  *
- * The five site photographs in `public/images/` are the ART DIRECTION for the
- * stages — they are never drawn. Each was read for footprint, bay rhythm,
+ * Five site photographs (foundation-1…5.png) were the ART DIRECTION for the
+ * stages — never drawn, and no longer shipped in `public/`. Each was read for footprint, bay rhythm,
  * storey count, materials, light direction and time of day, and that reading is
  * what the geometry below reconstructs:
  *
@@ -58,6 +58,18 @@ export type ThreeHandle = {
   /** Ease the camera onto the finished entrance. Released on the next input. */
   focusGate: () => void;
 };
+
+/* ---- staged build -----------------------------------------------------------
+   The scene below is ~3,300 lines of synchronous construction. As ONE task it
+   was the longest thing the page ever ran — ~0.5 s on desktop at load, ~0.6 s on
+   a throttled phone, landing on the visitor's first swipe. Nothing about the
+   scene changes: the same code runs in the same order, it just hands the main
+   thread back between stages so input, the pin and the gate keep their frames. */
+const yieldToMain = () => new Promise<void>((resolve) => {
+  const s = (globalThis as { scheduler?: { yield?: () => Promise<void> } }).scheduler;
+  if (s?.yield) void s.yield().then(resolve);
+  else setTimeout(resolve, 0);
+});
 
 /* ---- maths ---------------------------------------------------------------- */
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -671,13 +683,26 @@ function lorryCab(): { body: THREE.Shape; glass: THREE.Shape } {
 const fromBase = <T extends THREE.BufferGeometry>(g: T, h: number): T => { g.translate(0, h / 2, 0); return g; };
 const fromEnd = <T extends THREE.BufferGeometry>(g: T, l: number): T => { g.translate(l / 2, 0, 0); return g; };
 
-const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSite({ className }, ref) {
+const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactNode }>(function HeroSite({ className, fallback }, ref) {
   const host = useRef<HTMLDivElement>(null);
   const api = useRef<ThreeHandle | null>(null);
+  /* The build is staged (see yieldToMain), so the scene exists a few frames after
+     mount rather than inside it. `fallback` — the poster or the loader — stays up
+     until the first frame has actually been drawn, and the playhead StoryScroll
+     pushes meanwhile is held here and handed over once the scene can take it. */
+  const [ready, setReady] = useState(false);
+  const pending = useRef<[number, number]>([0, 0]);
+  const pendingFocus = useRef(false);
 
   useEffect(() => {
     const el = host.current;
     if (!el) return;
+    let dead = false;
+    let teardown: (() => void) | null = null;
+    /* ASYNC ON PURPOSE — every `if (await stage()) return;` below is a yield
+       point between build stages. The body keeps its original indentation so
+       the diff stays the size of the change, not the size of the file. */
+    void (async () => {
 
     /* TWO DIFFERENT QUESTIONS, and this file used to answer both with one
        locally-redefined `innerWidth < 768`:
@@ -721,12 +746,27 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       poster.src = mediaSmall('heroPoster');
       poster.alt = '';
       el.appendChild(poster);
-      return () => { poster.remove(); };
+      teardown = () => { poster.remove(); };
+      return;
     }
     /* three calls getShaderInfoLog after every program link, and those are
        SYNCHRONOUS GPU round-trips that stall the main thread. Off in prod,
        kept in dev where a silently-black shader would cost more than it saves. */
     if (!import.meta.env.DEV) renderer.debug.checkShaderErrors = false;
+    /* Between stages: yield, and if the component unmounted meanwhile, release
+       the context and stop. Nothing half-built is ever attached to the page. */
+    const stage = async () => {
+      await yieldToMain();
+      if (!dead) return false;
+      renderer.dispose();
+      renderer.forceContextLoss();
+      return true;
+    };
+    /* A model that resolves mid-build must not reach into a stage that has not
+       run yet, so model callbacks wait for the whole scene. */
+    let markBuilt: () => void = () => {};
+    const built = new Promise<void>((resolve) => { markBuilt = resolve; });
+    const afterBuild = <T,>(p: Promise<T>) => p.then(async (v) => { await built; return v; });
     /* 1.75, not 2. Measured from outside the app, this scene draws ~66 GL calls
        and ~12k triangles a frame — geometry is free. EVERY frame of cost is
        fragment work, and dpr 2 with 4x MSAA on a 1440x860 stage is ~20 M shaded
@@ -757,9 +797,12 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
     renderer.shadowMap.enabled = !lite;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    /* PCFShadowMap: three r18x deprecated the soft variant and was already
+       substituting this one (with a console warning), so the render is unchanged. */
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.shadowMap.autoUpdate = false;
-    el.appendChild(renderer.domElement);
+    /* The canvas is attached after its first frame is drawn (see `loop`), so a
+       half-built scene is never on screen over the poster. */
 
     const scene = new THREE.Scene();
     /* Atmospheric perspective — the three city layers, the hoarding and the
@@ -775,9 +818,14 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
     const world = new THREE.Group();
     scene.add(world);
 
+    if (await stage()) return;
     const pmrem = new THREE.PMREMGenerator(renderer);
-    const envRT = pmrem.fromScene(duskEnvironment(), 0.035);
+    const envScene = duskEnvironment();
+    if (await stage()) return;
+    const envRT = pmrem.fromScene(envScene, 0.035);
     scene.environment = envRT.texture;
+
+    if (await stage()) return;
 
     /* ---- SKY DOME + THE LIGHTING STORY ---------------------------------------
        late afternoon → golden hour → blue hour → night, driven by one 0..2
@@ -880,6 +928,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
     uplight[1].position.set(3.4, 0.3, BD / 2 + 0.9);
     uplight.forEach((l) => world.add(l));
 
+    if (await stage()) return;
+
     /* ---- materials ---------------------------------------------------------
        NO ALBEDO MAP on the structural concrete. Box UVs run 0..1 per face
        whatever the face measures, so one shared albedo tiles at a different
@@ -909,6 +959,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       roughness: 1, metalness: 0.02, envMapIntensity: 0.55,
     });
 
+    if (await stage()) return;
     const dirt = dirtMaps(lite ? 128 : 256);
     Object.values(dirt).forEach((t) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.22, 0.22); });
 
@@ -934,6 +985,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
        as glass instead is a clearcoat mirror over a near-black tint, a strong
        environment reflection, and an emissive map that IS the fitted-out floor
        behind it, so there is real depth to read. */
+    if (await stage()) return;
     const interiorTex = interiorTexture(lite ? 128 : 256);
     const glassMat = new THREE.MeshPhysicalMaterial({
       /* 0x121b28, not the near-black 0x0b111b this was. A tinted pane still
@@ -1034,6 +1086,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       else dummy.scale.set(s0(x), s0(y), s0(z));
     };
 
+    if (await stage()) return;
+
     /* ======================================================================
        GROUND + EXCAVATION  (foundation-1)
        The plot is one plane with a rectangular hole in it. The pit hangs in a
@@ -1089,6 +1143,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
     }
     tick.push((t) => { pit.scale.y = s0(ease(span(P.dig[0], P.dig[1], t)) * PIT); });
 
+    if (await stage()) return;
+
     /* ======================================================================
        THE DRAWING  (0 → 0.07)
        Setting-out lines that DRAW themselves along the column grid — thin
@@ -1135,6 +1191,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         lineIM.instanceMatrix.needsUpdate = true;
       });
     }
+
+    if (await stage()) return;
 
     /* ======================================================================
        FOUNDATION  (foundation-1)
@@ -1197,6 +1255,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         matIM.instanceMatrix.needsUpdate = true;
       });
     }
+
+    if (await stage()) return;
 
     /* ======================================================================
        FRAME  (foundation-2 → foundation-3)
@@ -1276,6 +1336,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       });
     }
 
+    if (await stage()) return;
+
     /* ======================================================================
        CREWS  (foundation-2 → -3)
        ENTOURAGE IS SCALE. A 1.75 m figure standing on a slab is the cheapest
@@ -1323,7 +1385,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
          instanced meshes that painted those onto the procedural figure collapse
          rather than being drawn inside it. Same trick as the vehicle wheels:
          swap the geometry, leave every placement loop untouched. */
-      void loadModel('worker').then((w) => {
+      void afterBuild(loadModel('worker')).then((w) => {
         if (!w) return;
         bodyIM.geometry.dispose();
         bodyIM.geometry = w.body;
@@ -1405,6 +1467,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         hatIM.instanceMatrix.needsUpdate = true;
       });
     }
+
+    if (await stage()) return;
 
     /* ======================================================================
        SCAFFOLDING  (foundation-3) — perimeter standards, ledgers and boards, up
@@ -1493,6 +1557,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       });
     }
 
+    if (await stage()) return;
+
     /* ======================================================================
        TOWER CRANE  (foundation-2 → -4). Climbs with the frame, slews slowly,
        hoists a load, and is dismantled before the handover shot. Steel and
@@ -1573,6 +1639,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         load.position.set(reach, -drop, 0);
       });
     }
+
+    if (await stage()) return;
 
     /* ======================================================================
        FACADE  (foundation-4 → foundation-5)
@@ -1818,6 +1886,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         mulIM.instanceMatrix.needsUpdate = true;
       });
     }
+
+    if (await stage()) return;
 
     /* ======================================================================
        ENTRANCE + SIGNAGE  (foundation-5)
@@ -2065,6 +2135,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       });
     }
 
+    if (await stage()) return;
+
     /* ======================================================================
        LIVE SITE  (foundation-1 → -3): hoarding, floods, plant, materials.
        The hoarding is deliberately LOW (4 m) and runs on THREE sides only — the
@@ -2130,6 +2202,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         sp.scale.setScalar(1.4);
         site.add(pole, head, sp);
       });
+
+      if (await stage()) return;
 
       /* ---- PLANT ------------------------------------------------------------
          Real machines, built from extruded side profiles like the cars: a
@@ -2321,6 +2395,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       dig.scale.setScalar(1.13);
       site.add(dig);
 
+      if (await stage()) return;
+
       /* MIXER TRUCK — 8.5 m forward-control chassis on six wheels. */
       const mixer = new THREE.Group();
       mixer.position.set(-HX + 2.8, 0, -2.4);
@@ -2386,7 +2462,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
          `site.visible` is driven by the timeline, so anything added to it
          appears and clears with the works for free. */
       const plantSwap = (slot: PlantSlot, proc: THREE.Group | null, x: number, z: number, ry: number) =>
-        void loadModel(slot).then((m) => {
+        void afterBuild(loadModel(slot)).then((m) => {
           if (!m) return;
           const at = (mesh: THREE.Object3D) => { mesh.position.set(x, 0, z); mesh.rotation.y = ry; };
           const body = new THREE.Mesh(m.body, m.materials.length === 1 ? m.materials[0] : m.materials);
@@ -2405,6 +2481,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
          along the hoarding clear of the digger, the mixer and the rebar stacks;
          move it if a model turns out to want more room. */
       plantSwap('lorry', null, -HX + 3.2, PD / 2 + 1.4, 1.15);
+
+      if (await stage()) return;
 
       /* ---- DUMP TRUCK -----------------------------------------------------
          Backed in toward the excavation on the east side of the plot, which is
@@ -2555,6 +2633,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       });
     }
 
+    if (await stage()) return;
+
     /* ======================================================================
        THE COMPLETED PROPERTY  (foundation-5)
        Forecourt, driveway, parking, cars, boundary, gate, planting, street.
@@ -2617,6 +2697,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       dropoff.receiveShadow = !lite;
       done.add(drive, apron, dropoff);
 
+      if (await stage()) return;
+
       /* PARKING. Eight bays along the boundary plus four visitor bays at the
          drop-off, marked out properly — a car park without bay lines reads as
          cars dumped on tarmac. */
@@ -2629,6 +2711,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       for (let i = 0; i < 4; i++) slots.push({ x: -1.8 - i * BAY_W, z: BD / 2 + 4.7, rot: Math.PI / 2 });
       const markIM = mkIM(new THREE.PlaneGeometry(BAY_D, 0.05).rotateX(-Math.PI / 2), markMat, slots.length + 2, false, done);
       markIM.renderOrder = 1;
+
+      if (await stage()) return;
 
       /* THE CAR PARK. Three body types (see carGeometry) rather than one shape
          repeated, each with its own paint from a real-world spread of car
@@ -2769,6 +2853,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
          steps and the doors are clear behind it. `PATH` starts here too. */
       parkedAt.push({ x: 3.2, z: BD / 2 + 3.5, rot: Math.PI });
 
+      if (await stage()) return;
+
       // Boundary: a LOW wall with a slim railing over it — 1.6 m all in.
       const wallMat = new THREE.MeshStandardMaterial({ map: stoneTex.map, roughnessMap: stoneTex.rough, roughness: 1, transparent: true, opacity: 0 });
       dispose.push(wallMat);
@@ -2891,6 +2977,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       guard.traverse((o) => { o.castShadow = !lite; });
       done.add(gate, guard);
 
+      if (await stage()) return;
+
       /* PLANTING. Varied heights, three canopy lobes per tree at different
          scales and rotations, three green tones — the single-sphere trees all at
          one size were the most game-like thing in the scene. */
@@ -2958,7 +3046,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
          thing that changes is that the instance scale goes uniform, because a
          whole tree cannot be stretched on Y the way a bare trunk could. */
       let treeGLB = false;
-      void loadModel('tree').then((tm) => {
+      void afterBuild(loadModel('tree')).then((tm) => {
         if (!tm) return;
         trunkIM.geometry.dispose();
         trunkIM.geometry = tm.body;
@@ -2993,6 +3081,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         done.add(pl, hd);
       });
       const bollardIM = mkIM(fromBase(new THREE.CylinderGeometry(0.045, 0.05, 0.32, 8), 0.32), darkMat, 8, false, done);
+
+      if (await stage()) return;
 
       /* Street: a real carriageway with markings and a wet sheen, so the
          property sits ON something rather than floating on a ground plane. */
@@ -3091,6 +3181,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         [-16.3, BZ + 1.2], [-9.2, BZ + 1.2], [9.6, BZ + 1.2], [16.7, BZ + 1.2],
         [-13.2, ROAD_Z + 4.4], [-5.7, ROAD_Z + 4.4], [5.3, ROAD_Z + 4.4], [12.8, ROAD_Z + 4.4],
       ];
+
+      if (await stage()) return;
 
       /* ROAD TRAFFIC — three lanes and one overtaker, and it CANNOT go wrong.
          The positions are pure functions of the clock and the guarantee that no
@@ -3210,6 +3302,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         if (im.instanceColor) im.instanceColor.needsUpdate = true;
       });
 
+      if (await stage()) return;
+
       /* ---- GLB UPGRADE, IN PLACE ------------------------------------------
          The procedural fleet above is the FALLBACK. If real models are present
          under /models/ they replace it here — and the only thing that changes
@@ -3225,7 +3319,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
          Fire-and-forget: the hero is already on screen and interactive before
          this resolves, and a rejected promise cannot reach here — loadModel
          resolves null for the (currently normal) case of no file at all. */
-      void Promise.all([loadModel('sedan'), loadModel('suv'), loadModel('van')])
+      void afterBuild(Promise.all([loadModel('sedan'), loadModel('suv'), loadModel('van')]))
         .then(([sedan, suv, vanM]) => {
           if (!sedan || !suv || !vanM) return;
           const swap = (im: THREE.InstancedMesh, geo: THREE.BufferGeometry, mats: THREE.Material[]) => {
@@ -3260,6 +3354,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
              old fleet's shadows until the next scroll. */
           renderer.shadowMap.needsUpdate = true;
         });
+
+      if (await stage()) return;
 
       /* PEOPLE on the footway. Same trick as the site crews: a figure at true
          height is the cheapest scale reference there is, and an empty pavement
@@ -3308,7 +3404,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
          not fetch it twice. It keeps its hi-vis here, which is wrong for a
          passer-by but right for the only model this project defines a slot for;
          give pedestrians their own slot if that ever grates. */
-      void loadModel('worker').then((w) => {
+      void afterBuild(loadModel('worker')).then((w) => {
         if (!w) return;
         walkerIM.geometry.dispose();
         walkerIM.geometry = w.body.clone();
@@ -3610,6 +3706,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       });
     }
 
+    if (await stage()) return;
+
     /* ======================================================================
        ACT TWO — THE GATE, THE HERO CAR, THE ROAD.
        One continuous shot with no cut in it. The stats settle over the finished
@@ -3707,6 +3805,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         void dt;
       });
     }
+
+    if (await stage()) return;
 
     /* ======================================================================
        CITY — THREE DEPTH LAYERS.
@@ -3939,6 +4039,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       tick.push((t) => { cityMat.emissiveIntensity = mix(0.12, 1.3, ease(span(0.3, 0.82, t))); });
     }
 
+    if (await stage()) return;
+
     /* ======================================================================
        AIR — dust over the working site. Desktop only; the first thing a phone
        should not be drawing.
@@ -3979,6 +4081,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         p.needsUpdate = true;
       });
     }
+
+    if (await stage()) return;
 
     /* ---- the lighting story ------------------------------------------------
        Physically ordered, deliberately: late afternoon → golden hour → blue
@@ -4137,6 +4241,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       driveCamera(t, dt, tail);
     };
 
+    if (await stage()) return;
+
     /* ---- post ---------------------------------------------------------------
        AMBIENT OCCLUSION is the single biggest step from "3D model" to
        "architectural render": contact shading under slabs, inside the glazing
@@ -4175,6 +4281,8 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       composer.addPass(n8ao);
       composer.addPass(new OutputPass());
     }
+
+    if (await stage()) return;
 
     /* ---- size, visibility, teardown ---------------------------------------- */
     let sizedW = 0, sizedH = 0;
@@ -4222,6 +4330,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
     let shadowAt = -1;
     let shadowTail = -1;
     let drawn = 0, moved = 0;
+    let shown = false;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
       /* FRAME BUDGET BY WHAT IS HAPPENING.
@@ -4254,8 +4363,94 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
         shadowTail = tailv;
       }
       if (composer) composer.render(); else renderer.render(scene, camera);
+      if (!shown) { shown = true; el.appendChild(renderer.domElement); setReady(true); }
     };
     update(0);
+    /* Programs compile in parallel off the main thread where the driver offers
+       KHR_parallel_shader_compile, instead of inside the first render — which
+       was one of the longest single tasks in the build. Without the extension
+       this compiles here, which is no worse than compiling in the frame. */
+    /* COMPILED AGAINST THE COMPOSER'S TARGET, because that is where the scene is
+       drawn. A render target switches off tone mapping and the sRGB output
+       transform, and both are part of every program's cache key — compiled
+       against the canvas, each program was built here AND again inside the first
+       frame (measured: ~190 ms of uniform setup in that frame on desktop). */
+    if (composer) renderer.setRenderTarget(composer.readBuffer);
+    /* PREPARED IN SLICES. `compileAsync` does all its program setup — shader
+       source assembly and the compile dispatch for every material — in one
+       synchronous call before it starts waiting, and on a throttled phone that
+       call alone was a ~200 ms task. Preparing the scene a part at a time, with a
+       yield every ~30 ms, spreads that out; the final `compileAsync` then finds
+       every program cached and only waits for the GPU to finish linking. */
+    const parts = [...world.children, ...scene.children.filter((o) => o !== world)];
+    let sliceAt = performance.now();
+    const prepare = async () => {
+      for (const part of parts) {
+        try { renderer.compile(part, camera, scene); } catch { /* compiled with the whole scene below */ }
+        if (performance.now() - sliceAt > 30) {
+          renderer.setRenderTarget(null);
+          if (await stage()) return true;
+          if (composer) renderer.setRenderTarget(composer.readBuffer);
+          sliceAt = performance.now();
+        }
+      }
+      return false;
+    };
+    /* EVERY LIGHTING STATE THE STORY PASSES THROUGH. A program is keyed on the
+       lights it is drawn with, and `compile` only counts lights that are visible
+       at the moment it runs. Whole groups — the crane, the site plant, the
+       entrance, the gate and the car — switch `visible` as the build runs, taking
+       their lamps out of the light list or putting them back, and a few materials
+       flip `transparent`. Every switch invalidated the lit programs at that
+       scroll position and they recompiled mid-scroll: 0.2-0.6 s frozen frames
+       through the hero on every device (profiled: getProgramParameter inside
+       render). So the playhead is stepped through both acts here, and each
+       distinct state is compiled before anyone can scroll to it. `update` is a
+       pure function of the playhead, and `update(0)` puts the opening frame back. */
+    const signature = () => {
+      let dir = 0, point = 0, spot = 0, hemi = 0, shadow = 0;
+      scene.traverseVisible((o) => {
+        const l = o as THREE.Light;
+        if (!l.isLight) return;
+        if ((l as THREE.DirectionalLight).isDirectionalLight) dir++;
+        else if ((l as THREE.PointLight).isPointLight) point++;
+        else if ((l as THREE.SpotLight).isSpotLight) spot++;
+        else if ((l as THREE.HemisphereLight).isHemisphereLight) hemi++;
+        if (l.castShadow) shadow++;
+      });
+      /* Anything else that changes a program's key: a material swapped or
+         flagged `needsUpdate` (its version moves), `transparent`, and an
+         instanced mesh growing its colour attribute on first use. Folded into one
+         number so the state check stays cheap. */
+      let h = 0;
+      const mix32 = (v: number) => { h = (Math.imul(h ^ v, 2654435761) + 0x9e3779b9) | 0; };
+      scene.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.material) return;
+        mix32((o as THREE.InstancedMesh).instanceColor ? 7 : 3);
+        for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+          mix32(m.version);
+          mix32(m.transparent ? 11 : 5);
+          for (let i = 0; i < m.uuid.length; i += 6) mix32(m.uuid.charCodeAt(i));
+        }
+      });
+      return `${dir}.${point}.${spot}.${hemi}.${shadow}|${h}`;
+    };
+    const compiledStates = new Set<string>();
+    const playheads: [number, number][] = [];
+    for (let i = 0; i <= 50; i++) playheads.push([i / 50, 0]);
+    for (let i = 1; i <= 40; i++) playheads.push([1, i / 40]);
+    for (const [t, o] of playheads) {
+      update(t, 0, o);
+      const sig = signature();
+      if (compiledStates.has(sig)) continue;
+      compiledStates.add(sig);
+      if (await prepare()) return;
+    }
+    update(0);
+    try { await renderer.compileAsync(scene, camera); } catch { /* the first render compiles instead */ }
+    renderer.setRenderTarget(null);
+    if (await stage()) return;
     /* THE LOOP IS PARKED WHEN THE STAGE IS OFF SCREEN, not just short-circuited
        inside itself. It used to re-arm every frame and return early, which kept
        a rAF callback on the main thread's critical path for the whole page —
@@ -4272,6 +4467,9 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       update: (t, tl = 0) => { playhead = clamp01(t); tailv = tl; moved = performance.now(); },
       focusGate: () => { focusOn = true; },
     };
+    api.current.update(...pending.current);
+    if (pendingFocus.current) api.current.focusGate();
+    markBuilt();
 
     /* A ResizeObserver, NOT just `window.resize`.
        `resize()` bails when the host has no layout yet, and this component is
@@ -4324,7 +4522,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
     window.addEventListener('touchend', onTouchEnd, { passive: true });
     window.addEventListener('touchcancel', onTouchEnd, { passive: true });
 
-    return () => {
+    teardown = () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
       (['wheel', 'touchstart', 'keydown', 'pointerdown'] as const)
@@ -4350,16 +4548,23 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string }>(function HeroSi
       pmrem.dispose();
       scene.environment = null;
       renderer.dispose();
-      el.removeChild(renderer.domElement);
+      renderer.domElement.remove();
     };
+    })();
+    return () => { dead = true; teardown?.(); };
   }, []);
 
   useImperativeHandle(ref, () => ({
-    update: (t, tl) => api.current?.update(t, tl),
-    focusGate: () => api.current?.focusGate(),
+    update: (t, tl) => { pending.current = [t, tl ?? 0]; api.current?.update(t, tl); },
+    focusGate: () => { pendingFocus.current = true; api.current?.focusGate(); },
   }), []);
 
-  return <div ref={host} className={className} aria-hidden />;
+  return (
+    <>
+      {!ready && fallback}
+      <div ref={host} className={className} aria-hidden />
+    </>
+  );
 });
 
 export default HeroSite;

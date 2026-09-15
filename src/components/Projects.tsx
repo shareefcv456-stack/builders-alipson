@@ -7,7 +7,7 @@ import Modal from './ui/Modal';
 import BeforeAfter from './BeforeAfter';
 import AmbientCanvas from './AmbientCanvas';
 import { PROJECTS, PROJECT_FILTERS, type Project } from '../data/site';
-import { imgProps } from '../lib/media';
+import { imgProps, type MediaKey } from '../lib/media';
 import { useUI } from '../context/UIContext';
 
 /* The project the drag-to-compare frames actually show: the glass-facade
@@ -16,6 +16,15 @@ import { useUI } from '../context/UIContext';
 const TRANSFORMATION = PROJECTS.find((p) => p.title === 'Alipson Business Hub');
 
 const pad = (n: number) => String(n).padStart(2, '0');
+
+/* The panels share one sticky frame, so to `loading="lazy"` all six are "in
+   view" at once and every photo downloaded and decoded as the section arrived.
+   A panel's photo gets its source once the showcase reaches the panel before
+   it; the box (width/height) is always there, so nothing shifts. */
+const panelImg = (key: MediaKey, load: boolean) => {
+  const { src, srcSet, ...box } = imgProps(key, '(max-width: 900px) calc(100vw - 32px), 720px');
+  return load ? { src, srcSet, ...box } : box;
+};
 
 /* Everything the panel already shows plus the full description, one tap away.
    On desktop this is a centred dialog; on a phone `.modal--sheet` docks it to
@@ -75,6 +84,8 @@ export default function Projects() {
      "Commercial Buildings" while sitting on project 05 leaves the showcase
      pointing past the end of a two-item list. */
   useEffect(() => { setActive(0); }, [filter]);
+  const [reach, setReach] = useState(1);
+  useEffect(() => { setReach((r) => Math.max(r, active + 1)); }, [active]);
 
   return (
     /* The sheet is a sibling of the section rather than a child, which used to
@@ -128,7 +139,7 @@ export default function Projects() {
                   data-cursor="View"
                 >
                   <img
-                    {...imgProps(p.image, '(max-width: 900px) 100vw, 720px')}
+                    {...panelImg(p.image, i <= reach)}
                     alt={`${p.title} — ${p.category} in ${p.location}`}
                   />
                   {/* THE CATEGORY BELONGS TO THE PHOTOGRAPH, so it lives inside

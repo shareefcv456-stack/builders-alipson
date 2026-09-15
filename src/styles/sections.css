@@ -4081,3 +4081,25 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
    treatment, not a new one. */
 .mnav__link.active { color: var(--accent); }
 .mnav__link.active em { opacity: 1; }
+
+/* The hero poster is prepared at load now (StoryScroll), so it exists behind the
+   CLOSED gate. Held at `visibility: hidden` until the doors start to part, it
+   is never painted there (opacity 0 still counted as an LCP candidate) — it cannot become the page's LCP — and it is visible
+   the moment anyone could actually see it. `data-open` is written by the
+   ScrollTrigger in StoryScroll; the static (reduced-motion) hero never pins, so
+   it is exempt. */
+.story:not([data-open]):not(.story--static) .story__poster { visibility: hidden; }
+
+/* ---- PHONE GLASS, ONLY WHERE THERE IS SOMETHING TO BLUR ---------------------
+   Audited at 390px. These five cards sit on flat section grounds on a phone —
+   the ambient canvases are `display: none` below 768px — so their backdrop blur
+   was a full readback per composited frame that blurred a solid colour into the
+   same solid colour. Removing it leaves the pixels unchanged. Glass that sits
+   over photography or the moving 3D scene (the nav capsule, the ribbon cards,
+   the image labels, the hero buttons) keeps its blur; on a phone that still
+   cannot composite that, `watchFrameBudget` swaps to the low-end fills. */
+@media (max-width: 767.98px) {
+  .svc, .faq__item, .testimonial__card, .process__step, .contact__form {
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+}

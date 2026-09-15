@@ -154,8 +154,8 @@ export default function BeforeAfter({
         {/* `draggable={false}`: with the range no longer covering the frame, a
             mouse-down now lands on the photograph, and the browser's native
             image drag would hijack the gesture and show a ghost image. */}
-        <img {...imgProps(before, '(max-width: 800px) 100vw, 1100px')} alt={beforeAlt} className="ba__before" draggable={false} />
-        <img {...imgProps(after, '(max-width: 800px) 100vw, 1100px')} alt={afterAlt} className="ba__after" draggable={false} />
+        <img {...imgProps(before, '(max-width: 800px) calc(100vw - 32px), min(92vw, 1140px)')} alt={beforeAlt} className="ba__before" draggable={false} />
+        <img {...imgProps(after, '(max-width: 800px) calc(100vw - 32px), min(92vw, 1140px)')} alt={afterAlt} className="ba__after" draggable={false} />
 
         {/* The qualifier is its own element so a phone can drop it. At 390px the
             two full labels are wider than the frame and land on top of each

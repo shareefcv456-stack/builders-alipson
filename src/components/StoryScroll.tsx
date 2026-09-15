@@ -322,10 +322,20 @@ export default function StoryScroll() {
         : window.setTimeout(() => setHeavy(true), 200);
     };
     const opts = { once: true, passive: true } as const;
+    /* PREPARED BEFORE THE SWIPE, NOT ON IT. Waiting for the first scroll put the
+       whole build inside the visitor's opening gesture — measured as a 600 ms
+       frozen frame on a throttled phone. The gate is closed and still at load,
+       which is the one moment nobody is watching the stage, so the scene starts
+       in the first idle slot after `load` (first paint is long done by then) and
+       builds in stages behind the doors. The input triggers stay as a backstop
+       for a visitor who swipes before that idle slot arrives. */
+    if (document.readyState === 'complete') go();
+    else window.addEventListener('load', go, opts);
     window.addEventListener('scroll', go, opts);
     window.addEventListener('touchstart', go, opts);
     window.addEventListener('pointerdown', go, opts);
     return () => {
+      window.removeEventListener('load', go);
       window.removeEventListener('scroll', go);
       window.removeEventListener('touchstart', go);
       window.removeEventListener('pointerdown', go);
@@ -741,13 +751,18 @@ export default function StoryScroll() {
              change — a lazily-mounted section below resizing the page, an
              orientation change — because a refresh recomputes progress without
              necessarily firing onUpdate. */
-          onLeave: () => { setCtaIn(false); setStatsIn(true); },
+          onLeave: () => { setCtaIn(false); setStatsIn(true); root.current?.toggleAttribute('data-open', true); },
           onLeaveBack: () => { setCtaIn(false); setStatsIn(false); },
           onUpdate: (self) => {
             const build = clamp01(self.progress / BUILD_FRACTION);
             target.current = build;
             outro.current = span(BUILD_FRACTION, 1, self.progress);
             wake.current();
+            /* The poster only matters once the doors have parted. Hidden
+               behind the closed gate it is never painted, so
+               preparing the scene at load does not turn a decorative
+               placeholder into the page's LCP. */
+            root.current?.toggleAttribute('data-open', self.progress > 0.001);
             /* BOTH BLOCKS, ONE EXPRESSION, ONE CLOCK — the bidirectional
                sync, and the guarantee that they never share the foot of the
                stage. The buttons own it from the moment the landmark tops out
@@ -806,6 +821,7 @@ export default function StoryScroll() {
          paused, so onUpdate never runs and the bar would be missing from every
          frame it belongs in. */
       if (pinned !== null) {
+        root.current?.toggleAttribute('data-open', true);
         tl.progress(pinned);
         setStatsIn((pinnedOut ?? 0) >= STATS_AT);
       }
@@ -819,6 +835,24 @@ export default function StoryScroll() {
       ctx.revert();
     };
   }, [still, pinned, is3D, syncPhase, setStatsIn, setCtaIn]);
+
+  /* One element, two jobs: the Suspense fallback while the 3D chunk downloads,
+     and HeroSite's own placeholder while the scene builds in stages. */
+  const heroFallback = (
+    isLite()
+              ? <img
+                  className="story__poster"
+                  src={mediaSmall('heroPoster')}
+                  srcSet={`${mediaSmall('heroPoster')} 800w, ${MEDIA.heroPoster} 1024w`}
+                  sizes="100vw" width={1024} height={1024}
+                  alt="" aria-hidden decoding="async"
+                  /* React 18 does not map camelCase `fetchPriority` to the DOM
+                     attribute and logs an error for it; the lowercase form is
+                     what the browser reads. */
+                  {...{ fetchpriority: 'high' }}
+                />
+              : <HeroLoader />
+  );
 
   return (
     <section id="hero" className={`story ${still ? 'story--static' : ''} ${active !== 'flat' ? 'story--3d' : ''}`} ref={root} aria-label="Alipson Builders — a project from excavation to handover">
@@ -860,20 +894,8 @@ export default function StoryScroll() {
                is judged on. Rendered on the first scroll instead, it costs
                nothing and still does its job, because index.html preloads it at
                the same media query and it comes back from cache. */
-            <Suspense fallback={isLite()
-              ? <img
-                  className="story__poster"
-                  src={mediaSmall('heroPoster')}
-                  srcSet={`${mediaSmall('heroPoster')} 800w, ${MEDIA.heroPoster} 1024w`}
-                  sizes="100vw" width={1024} height={1024}
-                  alt="" aria-hidden decoding="async"
-                  /* React 18 does not map camelCase `fetchPriority` to the DOM
-                     attribute and logs an error for it; the lowercase form is
-                     what the browser reads. */
-                  {...{ fetchpriority: 'high' }}
-                />
-              : <HeroLoader />}>
-              <HeroSite ref={three} className="story__three" />
+            <Suspense fallback={heroFallback}>
+              <HeroSite ref={three} className="story__three" fallback={heroFallback} />
             </Suspense>
           )
         )}

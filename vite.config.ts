@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 // https://vitejs.dev/config/
@@ -61,8 +61,16 @@ const staticRoutes = () => ({
   },
 });
 
+/* Which optional hero models actually exist. Without this, every production
+   load sent eight HEAD probes for files that are absent by design (see
+   public/models/README.md). Dev keeps probing, so a dropped-in .glb still shows
+   up on reload without restarting the server. */
+const modelsDir = resolve(__dirname, 'public/models');
+const HERO_MODELS = existsSync(modelsDir) ? readdirSync(modelsDir).filter((f) => f.endsWith('.glb')) : [];
+
 export default defineConfig({
   plugins: [react(), nonBlockingCss(), staticRoutes()],
+  define: { __HERO_MODELS__: JSON.stringify(HERO_MODELS) },
   build: {
     rollupOptions: {
       output: {
