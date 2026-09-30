@@ -738,6 +738,14 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
         // On desktop everything goes through the composer's own MSAA target, so
         // the context flag would apply to a framebuffer nothing renders to.
         antialias: lite, alpha: false, powerPreference: 'high-performance',
+        /* SOFTWARE GL IS NO GL. When a GPU driver is blocklisted (common on
+           older Windows laptops) the browser still hands out a context — run on
+           the CPU by SwiftShader / WARP. Measured there, this scene froze the
+           tab for 8–13 s and then drew ~2 fps with the whole browser stalled.
+           This flag makes the browser refuse that context, so those machines
+           take the same poster path as no-WebGL below. Any real GPU is
+           unaffected. */
+        failIfMajorPerformanceCaveat: true,
       });
     } catch (err) {
       console.warn('[HeroSite] no WebGL context — holding the poster', err);
@@ -4178,6 +4186,33 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
       finishCamera(dt, fov);
     };
 
+    /* ---- constant light list -----------------------------------------------
+       A lamp inside a group that switches `visible` (the excavator's beam, the
+       gate light) drops out of three's light list with its group, and the light
+       COUNT is part of every lit program's key — so each on/off combination was
+       a full second set of programs: 166 linked at load, 4 lighting states.
+       Under Windows' ANGLE/D3D compiler that was multi-second freezes of the
+       whole browser. Instead each nested lamp is excluded via `layers` and
+       mirrored by a root-level proxy that is ALWAYS in the list, following the
+       lamp's world position and carrying its intensity, or 0 while any
+       ancestor is hidden. Intensity 0 adds exactly nothing, so every frame is
+       lit as before — but there is one lighting state, compiled once. */
+    const pinned: [THREE.PointLight, THREE.PointLight][] = [];
+    const shownInScene = (o: THREE.Object3D) => {
+      for (let p: THREE.Object3D | null = o; p && p !== scene; p = p.parent) if (!p.visible) return false;
+      return true;
+    };
+    const syncPinned = () => {
+      for (const [l, proxy] of pinned) {
+        l.updateWorldMatrix(true, false);
+        proxy.position.setFromMatrixPosition(l.matrixWorld);
+        proxy.color.copy(l.color);
+        proxy.distance = l.distance;
+        proxy.decay = l.decay;
+        proxy.intensity = shownInScene(l) ? l.intensity : 0;
+      }
+    };
+
     /* ---- master update ----------------------------------------------------- */
     const update = (t: number, dt = 0, tail = 0) => {
       for (let i = 0; i < tick.length; i++) tick[i](t, dt, tail);
@@ -4239,6 +4274,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
       inner.intensity = 29 * litNow;
       uplight.forEach((l) => { l.intensity = 13 * litNow; });
       driveCamera(t, dt, tail);
+      syncPinned();
     };
 
     if (await stage()) return;
@@ -4365,6 +4401,19 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
       if (composer) composer.render(); else renderer.render(scene, camera);
       if (!shown) { shown = true; el.appendChild(renderer.domElement); setReady(true); }
     };
+    /* Every point light below a toggling group gets its proxy (see syncPinned).
+       This also keeps the sliced `compile(part, camera, scene)` below honest:
+       three counts a part's lights once for the part and again for the scene,
+       so a part holding a lamp compiled phantom 11-light programs that no real
+       frame ever uses. With `layers` off the original is counted by neither. */
+    scene.traverse((o) => {
+      const l = o as THREE.PointLight;
+      if (!l.isPointLight || l.parent === world || l.parent === scene) return;
+      const proxy = new THREE.PointLight();
+      scene.add(proxy);
+      l.layers.disableAll();
+      pinned.push([l, proxy]);
+    });
     update(0);
     /* Programs compile in parallel off the main thread where the driver offers
        KHR_parallel_shader_compile, instead of inside the first render — which
