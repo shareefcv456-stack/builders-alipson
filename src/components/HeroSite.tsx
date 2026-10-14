@@ -2482,7 +2482,13 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
          seven types cost seven fleets' worth of vertices. `slotOf[car]` is the
          car's index inside its own type's mesh; `im.count` is set once the
          traffic has claimed its slots. Car ids: parked i, traffic CARN + ti. */
-      const GEO = Object.fromEntries(CAR_KINDS.map((kd) => [kd, carGeometry(kd)])) as Record<CarKind, CarSpec>;
+      /* One body type per slice: each is a sculpted extrusion with creased
+         normals, and all seven in one go was a single ~100 ms task on a phone. */
+      const GEO = {} as Record<CarKind, CarSpec>;
+      for (const kd of CAR_KINDS) {
+        GEO[kd] = carGeometry(kd);
+        if (await stage()) return;
+      }
       const CARN = lite ? 7 : 11;
       const TRAFFIC_MAX = 12;
       /* Which body each bay gets: every type appears before any repeats, the
@@ -4085,6 +4091,14 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
 
     /* ---- size, visibility, teardown ---------------------------------------- */
     let sizedW = 0, sizedH = 0;
+    /* BEHIND THE CLOSED GATE THERE IS NOTHING TO SEE. At playhead 0 the split
+       gate covers the whole stage, so the ambient frames (crane slew, dust,
+       drum) were being drawn ~30 times a second for nobody: profiled on a
+       throttled phone, that continuous render was most of the main-thread work
+       after load. One frame is drawn at the top (so the stage is ready the
+       instant the doors move), then the loop idles until something changes —
+       the first scroll that opens the doors, a resize, or the gate camera move. */
+    let topDrawn = false;
     const resize = () => {
       const w = el.clientWidth, h = el.clientHeight;
       if (!w || !h) return;
@@ -4117,6 +4131,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
       n8ao?.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
+      topDrawn = false;      // new size → the parked top frame is stale
     };
     resize();
 
@@ -4147,6 +4162,11 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
       const gap = document.documentElement.hasAttribute('data-intro') ? 250
         : !focusOn && now - moved > 250 ? 29 : 0;
       if (now - drawn < gap) return;
+      /* "At the top" with a tolerance: the pin leaves a ~1e-6 residue at scroll
+         0. Below 0.0005 of the build the doors have moved well under a pixel. */
+      const atTop = playhead < 0.0005 && tailv === 0 && !focusOn;
+      if (atTop && topDrawn && shown) return;
+      topDrawn = atTop;
       drawn = now;
       const dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
       last = now;
@@ -4199,7 +4219,10 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
     const prepare = async () => {
       for (const part of parts) {
         try { renderer.compile(part, camera, scene); } catch { /* compiled with the whole scene below */ }
-        if (performance.now() - sliceAt > 30) {
+        /* 8 ms, not 30: on a phone four times slower than this machine, a
+           30 ms slice is a 120 ms frozen frame. Short slices keep every one of
+           them under the 50 ms long-task line. */
+        if (performance.now() - sliceAt > 8) {
           renderer.setRenderTarget(null);
           if (await stage()) return true;
           if (composer) renderer.setRenderTarget(composer.readBuffer);

@@ -2586,7 +2586,11 @@
 .story__gate-l::after { right: -1px; }
 .story__gate-r::before { left: -1px; }
 .story__gate-brand { position: absolute; inset: 0; z-index: 7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.55rem; text-align: center; padding-inline: 6vw; will-change: transform, opacity; }
-.story__gate-name { font-family: var(--font-display); font-weight: 500; letter-spacing: 0.14em; font-size: clamp(1.3rem, 3.6vw, 2.3rem); color: #FFFFFF; margin-top: 0.6rem; }
+/* 'Jakarta Boot' first: the inline subset in index.html (same font, same
+   weight), so this name renders identically to the static boot gate from its
+   first frame instead of re-rendering larger when the web font arrives — which
+   is what made it the page's Largest Contentful Paint. */
+.story__gate-name { font-family: 'Jakarta Boot', var(--font-display); font-weight: 500; letter-spacing: 0.14em; font-size: clamp(1.3rem, 3.6vw, 2.3rem); color: #FFFFFF; margin-top: 0.6rem; }
 .story__gate-sub { font-family: var(--font-grotesk); font-weight: 600; letter-spacing: 0.5em; font-size: 0.66rem; color: var(--accent-soft); }
 .story__gate-hint { margin-top: 1.7rem; padding: 0.55rem 1.15rem; border-radius: 100px;
   border: 1px solid rgba(var(--accent-rgb), 0.45); background: var(--tint);

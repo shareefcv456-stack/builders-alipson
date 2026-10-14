@@ -93,6 +93,19 @@
       }
     }
     </script>
+    <style>
+        /* THE BOOT TEXT IN THE REAL FONT FROM THE FIRST PAINT. A ~2 KB subset of
+           Plus Jakarta Sans (SIL OFL) holding only the glyphs this gate shows,
+           inlined so it needs no request. In <head>, not in the #boot block, because
+           React's gate (.story__gate-name) uses it too and #boot is removed. Without it the name painted in the
+           narrower fallback font, and when React drew the same words in the web
+           font they were ~15% larger — so React's copy, seconds later, became
+           the Largest Contentful Paint. Same font, same size: LCP stays here. */
+        @font-face { font-family: 'Jakarta Boot'; font-weight: 500; font-display: block;
+          src: url(data:font/woff2;base64,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) format('woff2'); }
+        @font-face { font-family: 'Jakarta Boot'; font-weight: 600; font-display: block;
+          src: url(data:font/woff2;base64,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) format('woff2'); }
+    </style>
   </head>
   <body>
     <!-- ======================================================================
@@ -130,15 +143,15 @@
           filter: drop-shadow(0 0 6px rgba(211,16,24,0.55)); }
         #boot svg { display: block; position: relative; z-index: 1; }
         #boot b { position: relative; z-index: 1; margin-top: 0.6rem;
-          font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 500;
+          font-family: 'Jakarta Boot', 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 500;
           letter-spacing: 0.14em; font-size: clamp(1.3rem, 3.6vw, 2.3rem); color: #fff; }
         #boot i { position: relative; z-index: 1; font-style: normal;
-          font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 600;
+          font-family: 'Jakarta Boot', 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 600;
           letter-spacing: 0.5em; font-size: 0.66rem; color: #e52e35; }
         #boot em { position: relative; z-index: 1; font-style: normal; margin-top: 1.7rem;
           padding: 0.55rem 1.15rem; border-radius: 100px;
           border: 1px solid rgba(211,16,24,0.45); background: rgba(211,16,24,0.08);
-          font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 600;
+          font-family: 'Jakarta Boot', 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 600;
           font-size: 0.66rem; letter-spacing: 0.3em; text-transform: uppercase; color: #e52e35; }
       </style>
       <svg viewBox="0 0 100 100" width="72" height="72">

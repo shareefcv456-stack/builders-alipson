@@ -130,7 +130,10 @@ function wheel(r: number, w: number, m: PlantMats, lugs: boolean) {
     const a = (i / 8) * Math.PI * 2;
     g.add(mesh(cylZ(r * 0.028, w * 0.12, 6), m.steel, Math.cos(a) * r * 0.31, Math.sin(a) * r * 0.31, w * 0.33));
   }
-  return g;
+  /* Merged ONCE here, then reused for every hub: a wheel is ~60 parts (52
+     tread blocks), and handing 22 loose wheels to the machine's bake meant
+     ~1,300 separate geometries copied and merged on a phone's main thread. */
+  return bake(g, false, new Set());
 }
 /** Hang a wheel on `parent` with its outer face toward the side it is on. */
 const hangWheel = (parent: THREE.Object3D, wg: THREE.Group, x: number, y: number, z: number) => {
@@ -474,17 +477,23 @@ export function buildExcavator(m: PlantMats, cast: boolean, lite: boolean): { gr
   // Shoe positions round the loop.
   const per = 4 * h + 2 * Math.PI * TR;
   const shoes = lite ? 34 : 50;
-  for (const z of [-0.4, 0.4]) {
-    g.add(mesh(beltGeo, m.track, 0, 0, z));
-    for (let i = 0; i < shoes; i++) {
+  // The shoe ring is built and merged once, then hung on both tracks.
+  const ring = new THREE.Group();
+  for (let i = 0; i < shoes; i++) {
       let u = (i / shoes) * per, x: number, y: number, a: number;
       if (u < 2 * h) { x = -h + u; y = 0; a = 0; }
       else if ((u -= 2 * h) < Math.PI * TR) { const t = -Math.PI / 2 + u / TR; x = h + Math.cos(t) * TR; y = TR + Math.sin(t) * TR; a = t + Math.PI / 2; }
       else if ((u -= Math.PI * TR) < 2 * h) { x = h - u; y = 2 * TR; a = Math.PI; }
       else { u -= 2 * h; const t = Math.PI / 2 + u / TR; x = -h + Math.cos(t) * TR; y = TR + Math.sin(t) * TR; a = t + Math.PI / 2; }
       const n = V(Math.sin(a), -Math.cos(a));   // outward normal of the loop
-      g.add(mesh(box(0.05, 0.022, TWd + 0.02), m.frame, x + n.x * 0.009, y + n.y * 0.009, z, 0, 0, a));
-    }
+      ring.add(mesh(box(0.05, 0.022, TWd + 0.02), m.frame, x + n.x * 0.009, y + n.y * 0.009, 0, 0, 0, a));
+  }
+  const shoeRing = bake(ring, false, new Set());
+  for (const z of [-0.4, 0.4]) {
+    g.add(mesh(beltGeo, m.track, 0, 0, z));
+    const sr = shoeRing.clone();
+    sr.position.z = z;
+    g.add(sr);
     // Track frame, rollers, idler, sprocket with teeth.
     g.add(mesh(rbox(TL - 2 * TR + 0.04, 0.15, 0.16, 0.02), m.frame, 0, TR, z * 0.98));
     for (let i = 0; i < 6; i++) g.add(mesh(cylZ(0.052, 0.17, 14), m.frame, -h + 0.08 + i * ((2 * h - 0.16) / 5), TT + 0.052, z));
