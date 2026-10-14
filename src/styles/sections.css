@@ -1331,7 +1331,10 @@
 .pshow { position: relative; max-width: 100%;
   /* Anchor navigation lands on the section head, not mid-track. */
   scroll-margin-top: var(--nav-h, 104px);
-  height: calc(100svh + (var(--n) - 1) * 74vh); }
+  /* 55vh of scroll per project hand-off (was 74vh): the run through all six
+     is ~25% shorter at the client's request. Each project still holds for
+     over half a screen of scroll, so none is skipped past. */
+  height: calc(100svh + (var(--n) - 1) * 55vh); }
 .pshow__vp {
   position: sticky; top: 6.5rem;           /* clears the fixed navbar capsule */
   height: calc(100svh - 9rem);
@@ -2521,13 +2524,20 @@
   margin-top: 2rem; display: flex; flex-wrap: wrap; align-items: flex-start;
   gap: 1rem;
   opacity: 0; transform: translateY(22px); pointer-events: none;
-  transition: opacity 0.5s var(--ease-lux), transform 0.5s var(--ease-lux); }
-.story__cta.is-in { opacity: 1; transform: none; pointer-events: auto; }
+  /* visibility too, so Tab cannot land on an invisible button. It flips
+     instantly on the way in and only after the fade on the way out. */
+  visibility: hidden;
+  /* Exit is quicker than the entrance: the pills clear before the copy fades. */
+  transition: opacity 0.25s ease-in, transform 0.25s ease-in, visibility 0s linear 0.25s; }
+.story__cta.is-in { opacity: 1; transform: none; pointer-events: auto;
+  visibility: visible;
+  transition: opacity 0.5s var(--ease-lux), transform 0.5s var(--ease-lux), visibility 0s; }
 /* Reduced motion and screenshots hold the finished frame, so the buttons are
    simply there — matching how `.story--static` treats the copy and the bar. */
-.story--static .story__cta { opacity: 1; transform: none; pointer-events: auto; }
+.story--static .story__cta { opacity: 1; transform: none; pointer-events: auto; visibility: visible; }
 @media (prefers-reduced-motion: reduce) {
-  .story__cta { transition: opacity 0.3s ease-out; }
+  .story__cta { transition: opacity 0.25s ease-out, visibility 0s linear 0.25s; }
+  .story__cta.is-in { transition: opacity 0.3s ease-out, visibility 0s; }
 }
 /* The copy block is absolutely positioned and its height changes with each
    phase's line count; anchoring the CTAs to the block's own flow (rather than
@@ -2951,9 +2961,17 @@
    Here the element itself is offset and width-limited, so all four corners of
    the glass are visible. */
 .story--3d .story__finale-copy {
-  top: clamp(7rem, 17vh, 11rem); bottom: auto;
+  top: clamp(7rem, 17vh, 11rem); bottom: clamp(3rem, 11vh, 7rem);
   left: var(--pad-x); right: auto;
   width: min(38rem, 52vw); padding: 0; }
+/* CTAs LOW, OVER THE ROAD AND GATE — the client's marked position. The block
+   runs from the headline's existing top down to `bottom` above, and the CTA
+   row is pushed to its foot. The headline does not move. The beats' margin is
+   the floor: on a short viewport the row falls back to sitting under the
+   description rather than riding up over it. The phone block below sets its
+   own `bottom` to clear the fixed floaters. */
+.story--3d .story__beats { margin-bottom: 2rem; }
+.story--3d .story__finale-copy .story__cta { margin-top: auto; }
 @media (max-width: 760px) {
   .story--3d .story__finale-copy { width: calc(100% - var(--pad-x) * 2); }
 }
@@ -3203,12 +3221,24 @@
      no layout height and therefore cannot push the scene down or leave a band
      behind itself. GSAP still drives autoAlpha and yPercent on it exactly as
      before, and it still clears before the stats rise. */
+  /* Same layout as desktop: the block runs from under the navbar down the
+     stage and the CTA row is pushed to its foot (the desktop `margin-top:
+     auto`), so the buttons sit low over the road and gate. 9.5rem, not the
+     desktop clamp, because the fixed Call/WhatsApp floaters take the bottom
+     ~140px of the right edge on a phone and the row reaches that far across. */
   .story--3d .story__finale-copy {
     position: absolute; order: 0;
-    top: calc(72px + 1rem + 1.1rem); bottom: auto;
+    top: calc(72px + 1rem + 1.1rem); bottom: 9.5rem;
     left: 0; right: 0;
     width: 100%; max-width: none;
     padding: 0 var(--pad-x); }
+  /* On tall phones the stage is 90svh (see the min-height: 800px rule above),
+     so it stops 10svh short of the screen. Take that back off the inset and
+     the row lands the same 9.5rem above the SCREEN's foot (and the floaters)
+     as on a shorter phone. Placed after the rule it overrides. */
+  @media (min-height: 800px) {
+    .story--3d .story__finale-copy { bottom: calc(9.5rem - 10svh); }
+  }
   /* Tighter internal rhythm than the desktop overlay, which floats in open sky
      and can afford the air. Sizes, weights, colours and the red accent are all
      untouched — only the gaps. */
@@ -3223,8 +3253,9 @@
      0.9rem the pair measures ~375px against the 328px a 360px phone has
      between its gutters, so it WOULD have overflowed. Compact sizing is what
      makes the row fit, not a preference. */
+  .story--3d .story__beats { margin-bottom: 1.4rem; }
   .story__finale-copy .story__cta {
-    margin-top: 2rem; gap: 0.75rem;
+    gap: 0.75rem;
     flex-direction: row; align-items: center; justify-content: flex-start; }
   .story__finale-copy .story__cta :is(.btn, .btn-watch) {
     /* 44px, not the `py-2` that would land at ~36px. Height is the touch
@@ -3234,6 +3265,12 @@
     padding-inline: 0.85rem; }
   .story__finale-copy .story__cta .btn-watch { padding-left: 0.28rem; gap: 0.55rem; }
   .story__finale-copy .story__cta .btn-watch__play { width: 32px; height: 32px; }
+  /* 320px phones: the pair is ~318px against 288px of column. A touch tighter
+     keeps them side by side; same 44px height, so the tap target holds. */
+  @media (max-width: 340px) {
+    .story__finale-copy .story__cta { gap: 0.5rem; }
+    .story__finale-copy .story__cta :is(.btn, .btn-watch) { font-size: 0.78rem; padding-inline: 0.5rem; }
+  }
   /* MEASURED, not eyeballed. At these values the pair comes to roughly 304px
      against the 328px a 360px phone leaves between its gutters — about 24px of
      slack, which is what stops a slightly wider font metric from wrapping the
@@ -3873,7 +3910,10 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
    ========================================================================== */
 .story--3d .story__stage::after {
   content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 22%;
-  z-index: 31; pointer-events: none;
+  /* 29: over the render (1-4), UNDER the copy block (30). It was 31, which was
+     harmless while the copy sat high, but the CTA row now sits in this band
+     and the 85% black foot was dimming both buttons. */
+  z-index: 29; pointer-events: none;
   background: linear-gradient(to top, rgba(4, 7, 14, 0.85) 0%, rgba(4, 7, 14, 0.35) 42%, transparent 100%);
 }
 

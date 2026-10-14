@@ -10,7 +10,7 @@
  */
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { carGeometry, type CarKind } from './vehicle.js';
+import { carGeometry, CAR_KINDS } from './vehicle.js';
 
 /** Widest half-width of the body within a slab of x, ignoring the mirrors
  *  (which stick out past the shoulder on purpose). */
@@ -30,7 +30,7 @@ const halfWidthIn = (
 
 const measured = { taper: 0, tumblehome: 0 };
 
-for (const kind of ['saloon', 'suv', 'van'] as CarKind[]) {
+for (const kind of CAR_KINDS) {
   const car = carGeometry(kind);
   const pos = car.body.attributes.position as THREE.BufferAttribute;
 
@@ -44,8 +44,8 @@ for (const kind of ['saloon', 'suv', 'van'] as CarKind[]) {
   }
   assert.ok(pos.count > 200, `${kind}: only ${pos.count} vertices, the extrusion collapsed`);
 
-  const nose = kind === 'van' ? 0.95 : (kind === 'suv' ? 0.88 : 0.87);
-  const belt = kind === 'van' ? 0.46 : (kind === 'suv' ? 0.47 : 0.40);
+  const nose = car.halfLen;
+  const belt = car.belt;
   /* Every window stops at the beltline, which is also what keeps the mirrors
      out of the measurement — they sit just above it. Deliberately NOT clipped
      by a z derived from `width`: assuming the body is `width` across is the

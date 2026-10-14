@@ -14,105 +14,239 @@ import { mergeGeometries, toCreasedNormals } from 'three/examples/jsm/utils/Buff
    Sized off the same 1 unit = 2.8 m as everything else: the saloon is 4.5 m
    long, 1.85 m wide, 1.64 m tall on a 2.9 m wheelbase, and the wheels are 0.135
    (a 38 cm radius — a real 18-inch wheel and tyre).                          */
-export type CarKind = 'saloon' | 'suv' | 'van';
+/* Seven body types. Three are the original, tuned profiles (the long-bonnet
+   saloon is now the `luxury` body, the upright utility is `offroad`, and the
+   van); four are new: a family `sedan`, a sloped-roof premium `suv`, a fastback
+   `coupe` and a cab-forward `hyper`. Each has its own wheel size, ride height,
+   beltline and lamp line, so the silhouettes differ by proportion — which is
+   what reads at distance — not just by paint. */
+export type CarKind = 'luxury' | 'sedan' | 'suv' | 'offroad' | 'coupe' | 'hyper' | 'van';
+export const CAR_KINDS: CarKind[] = ['luxury', 'sedan', 'suv', 'offroad', 'coupe', 'hyper', 'van'];
 export type CarSpec = {
-  body: THREE.BufferGeometry; glass: THREE.BufferGeometry;
+  /** Paint: the sculpted shell, bumpers, mirrors, pillars, door handles. */
+  body: THREE.BufferGeometry;
+  /** Glazing only — windscreen, side and rear glass as one tinted shell. */
+  glass: THREE.BufferGeometry;
+  /** Black trim: window seals, wheel-arch liners, door shut lines, sill trim,
+   *  grille and intakes, and type-specific parts (spare wheel, wing). */
+  trim: THREE.BufferGeometry;
   axle: number; wheelR: number; width: number; lampY: number; lampX: number;
   /** |z| the wheels sit at — MEASURED off the finished body at the wheel arch,
    *  not guessed from `width`. See carGeometry for why that distinction had
    *  teeth. */
   track: number;
+  /** Nose half-length and beltline, for the shape checks and contact shadow. */
+  halfLen: number; belt: number;
 };
 
+type Profile = {
+  draw: (sh: THREE.Shape, glass: THREE.Shape) => void;
+  axle: number; wheelR: number; arch: number; archY: number; width: number;
+  lampY: number; lampX: number; halfLen: number; belt: number; roof: number;
+  mirrorX: number; pillars: number[]; seams: number[];
+};
+
+const PROFILES: Record<CarKind, Profile> = {
+  van: {
+    draw(sh, glass) {
+      sh.moveTo(-0.95, 0.22);
+      sh.quadraticCurveTo(-0.99, 0.32, -0.88, 0.39);
+      sh.lineTo(-0.74, 0.42);
+      sh.quadraticCurveTo(-0.66, 0.44, -0.58, 0.72);
+      sh.quadraticCurveTo(-0.52, 0.80, -0.34, 0.81);
+      sh.lineTo(0.72, 0.81);
+      sh.quadraticCurveTo(0.92, 0.81, 0.94, 0.68);
+      sh.lineTo(0.95, 0.24);
+      sh.lineTo(0.86, 0.12);
+      sh.lineTo(-0.84, 0.12);
+      sh.closePath();
+      glass.moveTo(-0.56, 0.50);
+      glass.quadraticCurveTo(-0.50, 0.70, -0.38, 0.72);
+      glass.lineTo(-0.06, 0.72);
+      glass.lineTo(-0.06, 0.50);
+      glass.closePath();
+    },
+    axle: 0.60, arch: 0.16, archY: 0.27, wheelR: 0.15, width: 0.60, lampY: 0.36, lampX: 0.93,
+    halfLen: 0.95, belt: 0.46, roof: 0.81, mirrorX: 0.5, pillars: [], seams: [0.44, 0.1],
+  },
+  /* UPRIGHT UTILITY — a Defender-style silhouette: high sill, near-vertical
+     screen, flat roof held level, squared-off tail. */
+  offroad: {
+    draw(sh, glass) {
+      sh.moveTo(-0.86, 0.26);
+      sh.lineTo(-0.87, 0.58);
+      sh.quadraticCurveTo(-0.87, 0.66, -0.79, 0.665);
+      sh.lineTo(-0.62, 0.67);
+      sh.lineTo(0.30, 0.685);
+      sh.quadraticCurveTo(0.40, 0.685, 0.44, 0.63);
+      sh.lineTo(0.56, 0.46);
+      sh.quadraticCurveTo(0.60, 0.42, 0.68, 0.415);
+      sh.lineTo(0.80, 0.41);
+      sh.quadraticCurveTo(0.86, 0.405, 0.865, 0.34);
+      sh.lineTo(0.87, 0.24);
+      sh.lineTo(0.78, 0.155);
+      sh.lineTo(-0.78, 0.155);
+      sh.closePath();
+      glass.moveTo(0.50, 0.475);
+      glass.quadraticCurveTo(0.52, 0.52, 0.46, 0.60);
+      glass.lineTo(-0.58, 0.605);
+      glass.lineTo(-0.58, 0.475);
+      glass.closePath();
+    },
+    axle: 0.545, arch: 0.175, archY: 0.295, wheelR: 0.163, width: 0.545, lampY: 0.345, lampX: 0.845,
+    halfLen: 0.88, belt: 0.47, roof: 0.685, mirrorX: 0.48, pillars: [0.06, -0.3], seams: [0.38, 0.06, -0.3],
+  },
+  /* LUXURY SALOON — long bonnet, cabin set back, long rear deck. */
+  luxury: {
+    draw(sh, glass) {
+      sh.moveTo(-0.86, 0.185);
+      sh.quadraticCurveTo(-0.90, 0.28, -0.80, 0.325);
+      sh.lineTo(-0.66, 0.35);
+      sh.quadraticCurveTo(-0.50, 0.375, -0.40, 0.50);
+      sh.quadraticCurveTo(-0.34, 0.545, -0.22, 0.552);
+      sh.lineTo(0.06, 0.556);
+      sh.quadraticCurveTo(0.20, 0.552, 0.30, 0.475);
+      sh.lineTo(0.44, 0.40);
+      sh.quadraticCurveTo(0.56, 0.375, 0.70, 0.365);
+      sh.quadraticCurveTo(0.82, 0.358, 0.845, 0.30);
+      sh.lineTo(0.85, 0.21);
+      sh.lineTo(0.74, 0.115);
+      sh.lineTo(-0.74, 0.115);
+      sh.closePath();
+      glass.moveTo(0.26, 0.455);
+      glass.quadraticCurveTo(0.20, 0.515, 0.06, 0.522);
+      glass.lineTo(-0.24, 0.518);
+      glass.quadraticCurveTo(-0.36, 0.512, -0.40, 0.455);
+      glass.closePath();
+    },
+    axle: 0.545, arch: 0.158, archY: 0.25, wheelR: 0.142, width: 0.525, lampY: 0.30, lampX: 0.825,
+    halfLen: 0.87, belt: 0.40, roof: 0.556, mirrorX: 0.34, pillars: [-0.07], seams: [0.31, -0.07, -0.4],
+  },
+  /* FAMILY SEDAN — shorter, cabin further forward, a short boot and a taller
+     greenhouse than the luxury car. */
+  sedan: {
+    draw(sh, glass) {
+      sh.moveTo(-0.80, 0.19);
+      sh.quadraticCurveTo(-0.83, 0.30, -0.74, 0.33);
+      sh.lineTo(-0.60, 0.35);
+      sh.quadraticCurveTo(-0.46, 0.37, -0.36, 0.49);
+      sh.quadraticCurveTo(-0.30, 0.545, -0.18, 0.55);
+      sh.lineTo(0.08, 0.55);
+      sh.quadraticCurveTo(0.18, 0.545, 0.27, 0.46);
+      sh.lineTo(0.38, 0.39);
+      sh.quadraticCurveTo(0.52, 0.37, 0.66, 0.355);
+      sh.quadraticCurveTo(0.78, 0.35, 0.795, 0.29);
+      sh.lineTo(0.80, 0.20);
+      sh.lineTo(0.70, 0.12);
+      sh.lineTo(-0.70, 0.12);
+      sh.closePath();
+      glass.moveTo(0.24, 0.45);
+      glass.quadraticCurveTo(0.17, 0.515, 0.06, 0.52);
+      glass.lineTo(-0.18, 0.518);
+      glass.quadraticCurveTo(-0.30, 0.51, -0.34, 0.45);
+      glass.closePath();
+    },
+    axle: 0.50, arch: 0.15, archY: 0.166, wheelR: 0.136, width: 0.50, lampY: 0.30, lampX: 0.77,
+    halfLen: 0.80, belt: 0.39, roof: 0.55, mirrorX: 0.3, pillars: [-0.06], seams: [0.28, -0.06, -0.36],
+  },
+  /* PREMIUM SUV — long, high-riding, with a raked screen and a roof that falls
+     gently to a sloped tailgate (the opposite of the boxy off-roader). */
+  suv: {
+    draw(sh, glass) {
+      sh.moveTo(-0.90, 0.27);
+      sh.lineTo(-0.905, 0.50);
+      sh.quadraticCurveTo(-0.90, 0.60, -0.80, 0.63);
+      sh.lineTo(-0.55, 0.655);
+      sh.lineTo(0.18, 0.67);
+      sh.quadraticCurveTo(0.27, 0.668, 0.33, 0.62);
+      sh.lineTo(0.48, 0.47);
+      sh.quadraticCurveTo(0.53, 0.43, 0.62, 0.425);
+      sh.lineTo(0.80, 0.41);
+      sh.quadraticCurveTo(0.88, 0.40, 0.895, 0.33);
+      sh.lineTo(0.90, 0.24);
+      sh.lineTo(0.80, 0.16);
+      sh.lineTo(-0.80, 0.16);
+      sh.closePath();
+      glass.moveTo(0.44, 0.48);
+      glass.quadraticCurveTo(0.41, 0.54, 0.31, 0.61);
+      glass.lineTo(-0.55, 0.60);
+      glass.quadraticCurveTo(-0.70, 0.595, -0.76, 0.53);
+      glass.lineTo(-0.76, 0.48);
+      glass.closePath();
+    },
+    axle: 0.56, arch: 0.172, archY: 0.188, wheelR: 0.158, width: 0.55, lampY: 0.36, lampX: 0.87,
+    halfLen: 0.905, belt: 0.48, roof: 0.67, mirrorX: 0.42, pillars: [0.04, -0.36], seams: [0.34, 0.04, -0.36],
+  },
+  /* SPORTS COUPE — low roof, long bonnet, fastback falling to a short tail,
+     two doors. */
+  coupe: {
+    draw(sh, glass) {
+      sh.moveTo(-0.84, 0.18);
+      sh.quadraticCurveTo(-0.86, 0.27, -0.78, 0.30);
+      sh.lineTo(-0.66, 0.32);
+      sh.quadraticCurveTo(-0.48, 0.34, -0.30, 0.44);
+      sh.quadraticCurveTo(-0.18, 0.475, -0.05, 0.478);
+      sh.lineTo(0.02, 0.476);
+      sh.quadraticCurveTo(0.12, 0.47, 0.22, 0.40);
+      sh.lineTo(0.34, 0.345);
+      sh.quadraticCurveTo(0.55, 0.33, 0.72, 0.31);
+      sh.quadraticCurveTo(0.83, 0.30, 0.84, 0.22);
+      sh.lineTo(0.84, 0.17);
+      sh.lineTo(0.74, 0.105);
+      sh.lineTo(-0.74, 0.105);
+      sh.closePath();
+      glass.moveTo(0.19, 0.392);
+      glass.quadraticCurveTo(0.12, 0.452, 0.0, 0.455);
+      glass.lineTo(-0.16, 0.452);
+      glass.quadraticCurveTo(-0.24, 0.44, -0.27, 0.40);
+      glass.closePath();
+    },
+    axle: 0.53, arch: 0.15, archY: 0.16, wheelR: 0.14, width: 0.52, lampY: 0.25, lampX: 0.81,
+    halfLen: 0.84, belt: 0.32, roof: 0.478, mirrorX: 0.2, pillars: [], seams: [0.25, -0.26],
+  },
+  /* HYPERCAR — cab-forward wedge, very low roof, high front fenders, a tall
+     flat tail and a rear wing. */
+  hyper: {
+    draw(sh, glass) {
+      sh.moveTo(-0.82, 0.15);
+      sh.lineTo(-0.83, 0.30);
+      sh.quadraticCurveTo(-0.80, 0.335, -0.72, 0.335);
+      sh.lineTo(-0.40, 0.36);
+      sh.quadraticCurveTo(-0.20, 0.405, -0.05, 0.405);
+      sh.quadraticCurveTo(0.08, 0.40, 0.16, 0.33);
+      sh.quadraticCurveTo(0.32, 0.33, 0.50, 0.335);
+      sh.quadraticCurveTo(0.72, 0.33, 0.80, 0.25);
+      sh.lineTo(0.82, 0.16);
+      sh.lineTo(0.80, 0.11);
+      sh.lineTo(0.70, 0.085);
+      sh.lineTo(-0.70, 0.085);
+      sh.closePath();
+      glass.moveTo(0.13, 0.335);
+      glass.quadraticCurveTo(0.06, 0.385, -0.05, 0.39);
+      glass.quadraticCurveTo(-0.16, 0.388, -0.22, 0.35);
+      glass.closePath();
+    },
+    axle: 0.52, arch: 0.142, archY: 0.15, wheelR: 0.13, width: 0.56, lampY: 0.21, lampX: 0.80,
+    halfLen: 0.83, belt: 0.27, roof: 0.405, mirrorX: 0.1, pillars: [], seams: [0.13, -0.24],
+  },
+};
+
+/* Wheel arches are HOLES in the profile and the greenhouse is a hole too:
+   the arches let the wheels sit in the body instead of clipping through it,
+   and the glazing is a genuine opening, filled by a separate, narrower glass
+   extrusion so a reveal round it reads as the window rubber. */
 export function carShapes(kind: CarKind) {
+  const pf = PROFILES[kind];
   const sh = new THREE.Shape();
   const glass = new THREE.Shape();
-  let axle: number, arch: number, archY: number, wheelR: number, width: number, lampY: number, lampX: number;
-
-  if (kind === 'van') {
-    sh.moveTo(-0.95, 0.22);
-    sh.quadraticCurveTo(-0.99, 0.32, -0.88, 0.39);
-    sh.lineTo(-0.74, 0.42);
-    sh.quadraticCurveTo(-0.66, 0.44, -0.58, 0.72);
-    sh.quadraticCurveTo(-0.52, 0.80, -0.34, 0.81);
-    sh.lineTo(0.72, 0.81);
-    sh.quadraticCurveTo(0.92, 0.81, 0.94, 0.68);
-    sh.lineTo(0.95, 0.24);
-    sh.lineTo(0.86, 0.12);
-    sh.lineTo(-0.84, 0.12);
-    sh.closePath();
-    glass.moveTo(-0.56, 0.50);
-    glass.quadraticCurveTo(-0.50, 0.70, -0.38, 0.72);
-    glass.lineTo(-0.06, 0.72);
-    glass.lineTo(-0.06, 0.50);
-    glass.closePath();
-    axle = 0.60; arch = 0.16; archY = 0.27; wheelR = 0.15; width = 0.60; lampY = 0.36; lampX = 0.93;
-  } else if (kind === 'suv') {
-    /* UPRIGHT SUV — a Defender/utility silhouette, not a taller hatchback.
-       What makes this read as an SUV rather than a big car is four things, and
-       all of them are proportions rather than detail: a HIGH SILL (0.155 here
-       against the sedan's 0.115, so it sits on its wheels instead of over
-       them), a NEAR-VERTICAL windscreen, a FLAT ROOF held level across most of
-       the length, and a squared-off tail with no taper into the boot.
-       Drawn nose at +x like every other body — see the note on the van. */
-    sh.moveTo(-0.86, 0.26);                     // tail, upright
-    sh.lineTo(-0.87, 0.58);
-    sh.quadraticCurveTo(-0.87, 0.66, -0.79, 0.665);
-    sh.lineTo(-0.62, 0.67);                     // rear roof corner
-    sh.lineTo(0.30, 0.685);                     // FLAT roof, long span
-    sh.quadraticCurveTo(0.40, 0.685, 0.44, 0.63);
-    sh.lineTo(0.56, 0.46);                      // steep screen, short and raked back
-    sh.quadraticCurveTo(0.60, 0.42, 0.68, 0.415);
-    sh.lineTo(0.80, 0.41);                      // long flat bonnet
-    sh.quadraticCurveTo(0.86, 0.405, 0.865, 0.34);
-    sh.lineTo(0.87, 0.24);                      // blunt vertical nose
-    sh.lineTo(0.78, 0.155);
-    sh.lineTo(-0.78, 0.155);                    // high sill
-    sh.closePath();
-    glass.moveTo(0.50, 0.475);
-    glass.quadraticCurveTo(0.52, 0.52, 0.46, 0.60);
-    glass.lineTo(-0.58, 0.605);
-    glass.lineTo(-0.58, 0.475);
-    glass.closePath();
-    // Bigger wheels set further out — the other half of the SUV read.
-    axle = 0.545; arch = 0.175; archY = 0.295; wheelR = 0.163; width = 0.545; lampY = 0.345; lampX = 0.845;
-  } else {
-    /* LUXURY SEDAN — long bonnet, cabin set back, long rear deck. The old
-       profile put the windscreen base at x = 0.05, which is mid-car and reads
-       as a compact hatch; a prestige saloon carries roughly half its length in
-       front of the A-pillar. The roofline is also lower and the tail longer. */
-    sh.moveTo(-0.86, 0.185);                    // long rear overhang
-    sh.quadraticCurveTo(-0.90, 0.28, -0.80, 0.325);
-    sh.lineTo(-0.66, 0.35);                     // boot lid
-    sh.quadraticCurveTo(-0.50, 0.375, -0.40, 0.50);   // rear screen, raked
-    sh.quadraticCurveTo(-0.34, 0.545, -0.22, 0.552);
-    sh.lineTo(0.06, 0.556);                     // low flat roof
-    sh.quadraticCurveTo(0.20, 0.552, 0.30, 0.475);    // windscreen, well forward
-    sh.lineTo(0.44, 0.40);
-    sh.quadraticCurveTo(0.56, 0.375, 0.70, 0.365);    // LONG bonnet
-    sh.quadraticCurveTo(0.82, 0.358, 0.845, 0.30);
-    sh.lineTo(0.85, 0.21);
-    sh.lineTo(0.74, 0.115);
-    sh.lineTo(-0.74, 0.115);
-    sh.closePath();
-    glass.moveTo(0.26, 0.455);
-    glass.quadraticCurveTo(0.20, 0.515, 0.06, 0.522);
-    glass.lineTo(-0.24, 0.518);
-    glass.quadraticCurveTo(-0.36, 0.512, -0.40, 0.455);
-    glass.closePath();
-    axle = 0.545; arch = 0.158; archY = 0.25; wheelR = 0.142; width = 0.525; lampY = 0.30; lampX = 0.825;
-  }
-
-  /* Wheel arches as holes. They must sit ENTIRELY inside the outline — a hole
-     that crosses the edge makes the triangulator produce garbage — which is why
-     the sill runs at 0.115 and the arch bottoms at 0.093. */
-  ([-axle, axle] as const).forEach((cx) => {
+  pf.draw(sh, glass);
+  ([-pf.axle, pf.axle] as const).forEach((cx) => {
     const h = new THREE.Path();
-    h.absarc(cx, archY, arch, 0, Math.PI * 2, true);
+    h.absarc(cx, pf.archY, pf.arch, 0, Math.PI * 2, true);
     sh.holes.push(h);
   });
   if (kind !== 'van') sh.holes.push(new THREE.Path(glass.getPoints(20)));
-  return { sh, glass, axle, wheelR, width, lampY, lampX };
+  return { sh, glass, ...pf };
 }
 
 /** Extrude a side profile to width, bevelled and centred on Z. The whole
@@ -267,52 +401,149 @@ const halfWidthAt = (g: THREE.BufferGeometry, x0: number, x1: number, yMax: numb
   return w;
 };
 
+/** Flatten to the attribute set every part shares, so they can merge. */
+const flat = (g: THREE.BufferGeometry) => {
+  const x = g.index ? g.toNonIndexed() : g;
+  for (const k of Object.keys(x.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'uv') x.deleteAttribute(k);
+  if (!x.attributes.normal) x.computeVertexNormals();
+  if (!x.attributes.uv) x.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(x.attributes.position.count * 2), 2));
+  return x;
+};
+const merge = (parts: THREE.BufferGeometry[], what: string) => {
+  const m = mergeGeometries(parts.map(flat), false);
+  if (!m) throw new Error(`carGeometry: ${what} merge failed`);
+  return m;
+};
+
 export function carGeometry(kind: CarKind): CarSpec {
-  const { sh, glass, axle, wheelR, width, lampY, lampX } = carShapes(kind);
+  const pf = carShapes(kind);
+  const { sh, glass, axle, wheelR, width, lampY, lampX, halfLen, belt, roof } = pf;
   const ex = extrudeProfile;
   const van = kind === 'van';
-  // Profile landmarks the sculpt needs, read off the shapes above.
-  const halfLen = van ? 0.95 : (kind === 'suv' ? 0.88 : 0.87);
-  const belt = van ? 0.46 : (kind === 'suv' ? 0.47 : 0.40);
-  const roof = van ? 0.81 : (kind === 'suv' ? 0.685 : 0.556);
   const body = sculptBody(ex(sh, width, 0.05, 14), halfLen, belt, roof);
   const gl = sculptBody(ex(glass, width - 0.06, 0.012, 14), halfLen, belt, roof);
   /* THE VAN IS DRAWN FACING THE WRONG WAY. Its profile rakes up at -x (that
      steep rise IS the windscreen) and its slab end is at +x — but `place` puts
-     head lamps at +lampX and tail lamps at -lampX for every body alike, so the
-     van was wearing its headlights on the rear doors and its tail lamps on the
-     bonnet. Turned here, at the source, rather than special-casing the lamp
-     placement: one body being backwards is a geometry bug, not a lamp bug, and
-     the lamp loop is shared by the whole fleet.
-     rotateY, NOT scale(-1,1,1): negating an axis reverses triangle winding and
-     turns the body inside out. A half-turn about Y maps +x to -x with the
-     winding — and so the normals — left intact, and the body is symmetric in z,
-     so it is exactly the mirror image and nothing else moves. */
+     head lamps at +lampX and tail lamps at -lampX for every body alike. Turned
+     here, at the source. rotateY, NOT scale(-1,1,1): negating an axis reverses
+     triangle winding and turns the body inside out. */
   if (van) { body.rotateY(Math.PI); gl.rotateY(Math.PI); }
-  /* TRACK IS MEASURED, NOT ASSUMED. The old code put the wheels at
-     `width / 2 - 0.06`, reading `width` as the body's half-depth — but
-     ExtrudeGeometry's bevel adds to Z as well as XY, so a 0.52-wide saloon is
-     actually 0.72 across the shoulders. The wheels were therefore sitting
-     0.11 INSIDE the bodywork: a car on a comically narrow track, its tyres
-     visible only down inside the arch openings. Measuring the finished body at
-     the arch and sitting the wheels a hair inside that puts the tyre where a
-     tyre goes, and stays correct if the bevel or the profile ever changes. */
-  const mirrorX = van ? 0.5 : 0.02, mirrorY = belt + 0.02;
-  /* Mirrors go outboard of the MEASURED shoulder for the same reason: hung off
-     `width` they sat inside the door skin, which is a mirror you cannot see. */
-  const shoulder = halfWidthAt(body, mirrorX - 0.15, mirrorX + 0.15, belt + 0.06);
-  /* Body extents, measured off the sculpted geometry so the bumpers land on
-     the actual nose and tail rather than at the profile's nominal ends. */
+  /* TRACK IS MEASURED, NOT ASSUMED: ExtrudeGeometry's bevel adds to Z as well
+     as XY, so the body is wider than `width`. Mirrors, handles, seams and the
+     wheels all hang off measured half-widths so they land on the skin. */
+  const mirrorY = belt + 0.02;
+  const shoulder = halfWidthAt(body, pf.mirrorX - 0.15, pf.mirrorX + 0.15, belt + 0.06);
   const bb = new THREE.Box3().setFromBufferAttribute(body.attributes.position as THREE.BufferAttribute);
-  const withM = withMirrors(body, mirrorX, mirrorY, shoulder, bb.max.x, bb.min.x, bb.min.y + 0.02);
+  const sill = bb.min.y;
+  const withM = withMirrors(body, pf.mirrorX, mirrorY, shoulder, bb.max.x, bb.min.x, sill + 0.02);
+  const skin = (x: number) => halfWidthAt(body, x - 0.03, x + 0.03, belt - 0.01);
+
+  /* PILLARS — split the side glass at the B-pillar (an SUV at a C-pillar too).
+     Body-coloured, as deep as the MEASURED glass so they sit flush. */
+  const glassBox = new THREE.Box3().setFromBufferAttribute(gl.attributes.position as THREE.BufferAttribute);
+  const paint: THREE.BufferGeometry[] = [withM];
+  pf.pillars.forEach((px) => {
+    const half = halfWidthAt(gl, px - 0.03, px + 0.03, glassBox.max.y) + 0.004;
+    const h = glassBox.max.y - glassBox.min.y + 0.01;
+    paint.push(new THREE.BoxGeometry(0.035, h, half * 2).translate(px, (glassBox.max.y + glassBox.min.y) / 2, 0));
+  });
+  /* DOOR HANDLES, body-coloured, just behind each door's leading shut line. */
+  pf.seams.slice(1).forEach((sx) => {
+    const hx = sx + (van ? -0.1 : 0.07), hw = skin(hx);
+    if (hw > 0) for (const z of [-1, 1]) paint.push(new THREE.BoxGeometry(0.05, 0.014, 0.012).translate(hx, belt - 0.035, z * (hw + 0.004)));
+  });
+
+  /* THE TRIM SET: every black detail, as one geometry (one draw per type). */
+  const dark: THREE.BufferGeometry[] = [];
+  /* WINDOW SEALS. A rubber ring round the glass opening, set a hair proud of
+     the glass: without it the glazing meets the paint edge-on and reads as a
+     dark panel painted onto the body. Outline = the glass shape; hole = the
+     same shape drawn in toward its centre. */
+  {
+    const pts = glass.getPoints(20);
+    const cx = pts.reduce((a, p) => a + p.x, 0) / pts.length, cy = pts.reduce((a, p) => a + p.y, 0) / pts.length;
+    const ring = new THREE.Shape(pts);
+    ring.holes.push(new THREE.Path(pts.map((p) => new THREE.Vector2(cx + (p.x - cx) * 0.93, cy + (p.y - cy) * 0.9))));
+    const seal = sculptBody(ex(ring, width - 0.045, 0.006, 8), halfLen, belt, roof);
+    if (van) seal.rotateY(Math.PI);
+    dark.push(seal);
+  }
   const archHalf = halfWidthAt(body, axle - 0.12, axle + 0.12, belt);
+  // Wheel wells: a dark drum filling each arch across the car, so the gap over
+  // the tyre reads as a well instead of showing lit bodywork through the car.
+  for (const ax of [-axle, axle]) {
+    dark.push(new THREE.CylinderGeometry(pf.arch - 0.004, pf.arch - 0.004, archHalf * 1.86, 20).rotateX(Math.PI / 2).translate(ax, pf.archY, 0));
+  }
+  // Door shut lines, from just above the sill tuck to under the beltline.
+  const seamY0 = Math.max(0.2, sill + 0.06), seamY1 = belt - 0.008;
+  if (seamY1 > seamY0) {
+    pf.seams.forEach((sx) => {
+      const hw = skin(sx);
+      if (hw > 0) for (const z of [-1, 1]) dark.push(new THREE.BoxGeometry(0.006, seamY1 - seamY0, 0.004).translate(sx, (seamY0 + seamY1) / 2, z * (hw + 0.0015)));
+    });
+  }
+  // Sill trim between the arches, and lower intake / rear diffuser.
+  const sillHw = halfWidthAt(body, -0.1, 0.1, sill + 0.08);
+  const sillLen = 2 * (axle - pf.arch) - 0.04;
+  if (sillLen > 0.05 && sillHw > 0) for (const z of [-1, 1]) dark.push(new THREE.BoxGeometry(sillLen, 0.028, 0.006).translate(0, sill + 0.03, z * (sillHw + 0.002)));
+  const bw = shoulder * 1.4;
+  dark.push(new THREE.BoxGeometry(0.02, 0.045, bw).translate(bb.max.x - 0.005, sill + 0.075, 0));
+  dark.push(new THREE.BoxGeometry(0.02, 0.035, bw * 0.9).translate(bb.min.x + 0.005, sill + 0.06, 0));
+  if (kind === 'luxury') {
+    // A tall, upright grille — the luxury saloon's signature.
+    dark.push(new THREE.BoxGeometry(0.02, 0.09, 0.26).translate(bb.max.x - 0.006, sill + 0.17, 0));
+  }
+  if (kind === 'offroad') {
+    // Spare wheel on the tailgate and roof rails.
+    dark.push(new THREE.TorusGeometry(0.11, 0.04, 8, 20).rotateY(Math.PI / 2).translate(bb.min.x - 0.035, 0.42, 0));
+    const rw = halfWidthAt(body, -0.3, 0.2, Infinity) - 0.05;
+    for (const z of [-1, 1]) dark.push(new THREE.BoxGeometry(0.9, 0.018, 0.022).translate(-0.15, roof + 0.03, z * rw));
+  }
+  if (kind === 'hyper') {
+    // Rear wing on two uprights, and an intake behind each door.
+    dark.push(new THREE.BoxGeometry(0.13, 0.012, width + 0.08).translate(-0.72, roof - 0.005, 0));
+    for (const z of [-1, 1]) dark.push(new THREE.BoxGeometry(0.02, 0.05, 0.02).translate(-0.72, roof - 0.035, z * 0.18));
+    const iw = skin(-0.32);
+    if (iw > 0) for (const z of [-1, 1]) dark.push(new THREE.BoxGeometry(0.14, 0.06, 0.006).translate(-0.32, 0.2, z * (iw + 0.002)));
+  }
+
   return {
-    body: withM,
-    // Narrower, so a shadow reveal shows round every opening — window rubber.
-    // Sculpted with the SAME curve as the body, or the glazing pushes back out
-    // through the tumblehome it is supposed to sit inside.
+    body: merge(paint, 'paint'),
     glass: gl,
+    trim: merge(dark, 'trim'),
     axle, wheelR, width: width + 0.1, lampY, lampX,
     track: archHalf - 0.022,
+    halfLen, belt,
   };
+}
+
+/* ---- lamps -----------------------------------------------------------------
+   A lamp is two parts on two instanced meshes: the HOUSING (an unlit lens over
+   a reflector — dark chrome at the front, smoked red at the back) and the
+   emitters inside it. Built facing +x for the head lamp; the tail unit is
+   built facing -x, so both mount at the car's own ±lampX with no special case.
+   Sized for a modern unit: a slim bar ~0.56 m wide, ~10 cm tall. */
+const lampMerge = (parts: THREE.BufferGeometry[]) => merge(parts, 'lamp');
+
+export function headLampGeometry() {
+  const housing = lampMerge([new THREE.BoxGeometry(0.03, 0.036, 0.2)]);
+  const led = lampMerge([
+    // LED daytime-running strip along the top edge of the lens.
+    new THREE.BoxGeometry(0.006, 0.008, 0.17).translate(0.016, 0.011, 0),
+    // Two projector lenses below it.
+    new THREE.CylinderGeometry(0.011, 0.011, 0.006, 14).rotateZ(-Math.PI / 2).translate(0.016, -0.005, -0.045),
+    new THREE.CylinderGeometry(0.011, 0.011, 0.006, 14).rotateZ(-Math.PI / 2).translate(0.016, -0.005, 0.0),
+  ]);
+  return { housing, led };
+}
+
+export function tailLampGeometry() {
+  const housing = lampMerge([new THREE.BoxGeometry(0.03, 0.046, 0.2)]);
+  const led = lampMerge([
+    // Light-bar along the top of the cluster…
+    new THREE.BoxGeometry(0.006, 0.01, 0.18).translate(-0.016, 0.014, 0),
+    // …and a separate, larger brake element below it.
+    new THREE.BoxGeometry(0.006, 0.02, 0.08).translate(-0.016, -0.007, 0.03),
+  ]);
+  return { housing, led };
 }

@@ -87,21 +87,21 @@ const GATE_END = 0.08;     // doors finished parting
  *  Derived from GATE_END and the pin runway below rather than restated, so the
  *  navbar (which stays hidden behind the closed gate) cannot drift out of sync
  *  with the gate it is waiting on. */
-/* MOVIE PACING. 4.6 viewports of runway on top of the 1-viewport section — a
-   ~560vh experience, at the top of the 400–600vh the brief asks for. Eight
-   camera scenes and eight construction stages across three viewports were
-   arriving faster than any of them could be read.
+/* MOVIE PACING. 4.0 viewports of pinned runway on desktop, 2.3 on a phone —
+   both ~28% shorter than the 5.6 / 3.2 they were, at the client's request for
+   a faster, more direct hero. Every phase beat, the gate, the copy, the CTAs
+   and the stats are fractions of this number, so the whole sequence plays
+   intact, just over less scroll.
 
-   The phone gets 3.2 rather than the same 5.6: a swipe covers far more of the
-   runway than a wheel notch does, so matching the desktop number would make the
-   phone SLOWER in scroll-gestures, not slower in time. Every phase beat is
-   expressed as a fraction, so both play the identical timeline. */
+   The phone gets less than the desktop: a swipe covers far more of the runway
+   than a wheel notch does, so matching the desktop number would make the
+   phone SLOWER in scroll-gestures, not slower in time. */
 /* Reads the CACHED viewport, not `window`. This is called from the navbar's
    scroll handler, i.e. on every scroll frame, and `innerWidth`/`innerHeight`
    are live-layout reads — asking for them while GSAP's pin has the page dirty
    forces a synchronous layout. The cache is refreshed on `resize`, which is
    every event that can actually change the answer. */
-const PIN_RUNWAY = () => viewportH() * (viewportW() < 760 ? 3.2 : 5.6);
+const PIN_RUNWAY = () => viewportH() * (viewportW() < 760 ? 2.3 : 4.0);
 export function gateOpenScroll() {
   if (typeof window === 'undefined') return 0;
   return PIN_RUNWAY() * GATE_END;
@@ -115,11 +115,11 @@ const BUILD_END = 0.9;
 /** When the headline starts to leave, as a fraction of the WHOLE trigger — the
  *  gsap beats below are fractions of the timeline's own duration, which is
  *  scrubbed across the entire pin, so these are trigger fractions and not build
- *  fractions. It clears just after the build ends, because everything after
- *  that belongs to the gate, the car and the road: a headline still sitting over
- *  the frame while the hero car drives out is the one thing that would stop act
- *  two reading as a shot rather than as a slide. */
-const COPY_OUT = 0.72;
+ *  fractions. The build ends at BUILD_FRACTION (0.70); the final headline and
+ *  its CTAs then hold together over the finished landmark and clear out before
+ *  the stats bar rises (outro STATS_AT ≈ 0.97 of the trigger). It was 0.72,
+ *  which left the CTAs no window beside the heading they belong to. */
+const COPY_OUT = 0.84;
 /** …and how long it takes to go. Short: it is leaving, not being animated. */
 const COPY_FADE = 0.08;
 /** Phase 1 and 2 edges (0.20 / 0.40). Derived from the drawing's own phase
@@ -161,42 +161,29 @@ const EASE = 0.12;
  */
 const BUILD_FRACTION = 0.70;
 
-/** WHEN THE TWO CTAs ARRIVE — the exact moment the construction finishes.
+/** WHEN THE TWO CTAs ARE ON SCREEN — a state, not a pair of scroll numbers.
  *
- *  BUILD_FRACTION, not a number of its own: the construction act runs 0 to
- *  BUILD_FRACTION of the trigger, so this IS "when the building is done", and
- *  it cannot drift if that boundary ever moves.
+ *  They were latched off RAW scroll progress (in at 0.70, out at 0.88) while
+ *  the headline they belong to lives on two OTHER clocks: the beat swaps on the
+ *  eased playhead and the block fades on the scrubbed timeline. So the pills
+ *  outlived "From Vision To Structure" by ~18% of the pin, sitting alone over
+ *  the outro in both scroll directions.
  *
- *  They have been walked back twice. Originally they rode in with the headline
- *  at GATE_END * 0.5 — the first 4% of the pin — which put two solid pills over
- *  a red survey grid on bare ground. Then 0.40, the end of PHASE 2, which was
- *  better but still had them sitting over the frame for the whole of the facade
- *  and the topping-out: the visitor was reading buttons while the building they
- *  are about is still going up.
- *
- *  The brief for this hero is that the construction plays CLEAN. So nothing is
- *  offered until there is a finished landmark to offer it about. */
-const CTA_AT = BUILD_FRACTION;
-/** …AND WHEN THEY LEAVE, which is just before the four figures rise.
- *
- *  THE STAGE HOLDS ONE BLOCK AT ITS FOOT AT A TIME. That was always the rule
- *  here — the copy cleared at COPY_OUT and the stats arrived long after — and
- *  letting the buttons outlive the headline quietly broke it. On a tall phone
- *  you cannot tell: at 390x844 the bar's top edge lands 39px below the pills.
- *  On a short one the two collide outright — measured at 375x667 the bar rises
- *  44px INTO "Explore Projects", and the stylesheet already carries a note that
- *  at 320x568 the same overlap runs to 190px.
- *
- *  Padding the copy clear of the bar was the obvious fix and is the wrong one:
- *  at this breakpoint the block is anchored to the TOP with no vertical
- *  padding, so there is nothing to pad against, and shoving it upward costs
- *  more room than the navbar leaves.
- *
- *  So the buttons hand over instead. They own the frame from the moment the
- *  landmark tops out until the figures come up for the closing beat, which is
- *  ~18% of the pin — on a phone, well over half a screen of scrolling to reach
- *  them in — and nothing is ever stacked on anything. */
-const CTA_OUT = 0.88;
+ *  Now all three conditions are read from the clocks that actually paint:
+ *    1. the build is finished — scroll wants it AND the eased playhead the
+ *       renderer draws has arrived there;
+ *    2. the final beat's entrance animation has completed;
+ *    3. the scrubbed timeline is not about to fade the copy (COPY_OUT - CTA_LEAD).
+ *  Any one failing hides them, so reverse scrolling hides them again before
+ *  the sequence rewinds. See `syncCta`. */
+const LAST_BEAT = 4; // index of 'From Vision To Structure' in PHASES
+/** "Arrived" for the eased playhead. It approaches 1 exponentially, so an exact
+ *  1 lands ~0.5s after the scene has visibly stopped; the last 0.5% of the
+ *  final pull-back is sub-pixel. */
+const BUILT = 0.995;
+/** The buttons leave this much timeline ahead of the copy, so the outgoing
+ *  pills are gone before the headline starts to fade — never the two together. */
+const CTA_LEAD = 0.06; // 0.04 at the old 5.6-viewport runway, scaled to keep the same scroll distance at 4.0
 
 /** WHEN THE FOUR FIGURES ARRIVE, as a fraction of ACT TWO (not of the trigger).
  *  They used to ride the scroll: up at o 0.02, ducked out of the car's way at
@@ -308,7 +295,7 @@ export default function StoryScroll() {
        exactly the "scroll stutter on first touch" this is meant to avoid.
        `requestIdleCallback` moves it into the gap BETWEEN frames instead. The
        timeout is the backstop: a visitor who keeps scrolling never yields an
-       idle period, and 1200ms of a 3.2-viewport phone runway is well before
+       idle period, and 1200ms of a 2.3-viewport phone runway is well before
        the poster has anything left to show. Nothing is skipped and nothing is
        downgraded — the same scene is built, a beat later, off the gesture. */
     let idle = 0;
@@ -354,12 +341,8 @@ export default function StoryScroll() {
      brisk scroll the headline announced a stage the building had not reached
      yet: "Structure In Motion" over a set of footings. Reading the same eased
      value the renderer reads puts the caption back on the frame it captions.
-     Functional updater returning the SAME value makes React bail out, so this
-     is free on every frame that does not cross a phase boundary. */
-  const syncPhase = useCallback((v: number) => {
-    const i = phaseAt(v);
-    setPhase((cur) => (cur === i ? cur : i));
-  }, []);
+     `syncPhase` (below `syncCta`, which it calls) only touches React state on
+     the frames that cross a phase boundary. */
   const outro = useRef(0);      // 0..1 across act two — stats, gate, car, road
   /* Restarts the playhead loop below, which parks itself once it has caught up
      with the scroll. Held in a ref because the only caller — ScrollTrigger's
@@ -411,6 +394,25 @@ export default function StoryScroll() {
     ctaShown.current = on;
     cta.current?.classList.toggle('is-in', on);
   }, []);
+  /* The three inputs to the CTA rule (see LAST_BEAT). `beatIn` is the beat
+     whose entrance has finished — the one on screen at mount is at rest, so it
+     counts. `copyLive` is false once the scrubbed timeline reaches COPY_OUT. */
+  const beatIn = useRef(phase);
+  const copyLive = useRef(true);
+  const syncCta = useCallback(() => {
+    setCtaIn(target.current >= 1 && cur.current >= BUILT && beatIn.current === LAST_BEAT && copyLive.current);
+  }, [setCtaIn]);
+  /* A new beat has not finished entering yet, so the CTAs drop before it
+     mounts — they never ride a crossfade. */
+  const phaseNow = useRef(phase);
+  const syncPhase = useCallback((v: number) => {
+    const i = phaseAt(v);
+    if (i === phaseNow.current) return;
+    phaseNow.current = i;
+    beatIn.current = -1;
+    syncCta();
+    setPhase(i);
+  }, [syncCta]);
   const still = pinned === null && (isCapture() || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches));
 
   /**
@@ -454,6 +456,7 @@ export default function StoryScroll() {
       if (Math.abs(t - cur.current) < 0.0002) cur.current = t;
       three.current?.update(cur.current, tail);
       syncPhase(cur.current);
+      syncCta();
       if (three.current && cur.current === t && tail === lastTail) { raf = 0; return; }
       lastTail = tail;
       raf = requestAnimationFrame(loop);
@@ -465,7 +468,7 @@ export default function StoryScroll() {
       raf = 0;
       wake.current = () => {};
     };
-  }, [is3D, still, pinned, pinnedOut, syncPhase]);
+  }, [is3D, still, pinned, pinnedOut, syncPhase, syncCta]);
 
   /**
    * VIDEO SCRUB. Same damped playhead as the other two renderers — `cur` eases
@@ -709,7 +712,11 @@ export default function StoryScroll() {
 
     /* Lenis → ScrollTrigger sync lives in useLenis, where the instance exists. */
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline(pinned !== null ? { paused: true } : {
+      /* The copy fade below is scrubbed, so whether it has started is read off
+         the timeline itself rather than raw scroll, which runs ~0.6s ahead. */
+      function onTl(this: gsap.core.Timeline) { copyLive.current = this.progress() < COPY_OUT - CTA_LEAD; syncCta(); }
+      const tl = gsap.timeline(pinned !== null ? { paused: true, onUpdate: onTl } : {
+        onUpdate: onTl,
         scrollTrigger: {
           trigger: root.current,
           start: 'top top',
@@ -763,12 +770,9 @@ export default function StoryScroll() {
                preparing the scene at load does not turn a decorative
                placeholder into the page's LCP. */
             root.current?.toggleAttribute('data-open', self.progress > 0.001);
-            /* BOTH BLOCKS, ONE EXPRESSION, ONE CLOCK — the bidirectional
-               sync, and the guarantee that they never share the foot of the
-               stage. The buttons own it from the moment the landmark tops out
-               until CTA_OUT; the bar takes over after that. Scrolling up runs
-               the same comparisons backwards and both classes come off. */
-            setCtaIn(self.progress >= CTA_AT && self.progress < CTA_OUT);
+            /* The buttons leave at COPY_OUT and the bar arrives at outro
+               STATS_AT, so the two never share the foot of the stage. */
+            syncCta();
             setStatsIn(outro.current >= STATS_AT);
             /* The 3D hero publishes its own phase from the eased playhead in
                the loop above (`syncPhase`), so this only covers the renderers
@@ -790,16 +794,20 @@ export default function StoryScroll() {
         .to('.story__gate-l', { xPercent: -104, ease: 'power2.inOut', duration: GATE_END * SPAN }, 0)
         .to('.story__gate-r', { xPercent: 104, ease: 'power2.inOut', duration: GATE_END * SPAN }, 0)
         .to('.story__gate-brand', { autoAlpha: 0, scale: 0.9, ease: 'power1.out', duration: GATE_END * SPAN * 0.8 }, 0)
-        // Headline and CTAs resolve in behind the opening doors and then hold,
-        // readable over every phase rather than arriving at the end.
+        // The headline resolves in behind the opening doors and is fully up by
+        // the time they clear (GATE_END * 1.5) — over PHASE_1_END it was still
+        // at ~30-50% opacity through all of "Built With Precision".
+        // A fixed rise, not yPercent: on a phone the block now stretches down
+        // the stage to carry the CTAs at its foot, and 18% of THAT height
+        // would triple the slide.
         .fromTo('.story__finale-copy',
-          { autoAlpha: 0, yPercent: 18 },
-          { autoAlpha: 1, yPercent: 0, ease: 'power1.out', duration: PHASE_1_END * SPAN },
+          { autoAlpha: 0, y: 44 },
+          { autoAlpha: 1, y: 0, ease: 'power1.out', duration: GATE_END * SPAN },
           GATE_END * SPAN * 0.5)
         // Scrim rides the copy exactly — it exists only to back this text.
         .fromTo('.story__copy-scrim',
           { autoAlpha: 0 },
-          { autoAlpha: 1, ease: 'power1.out', duration: PHASE_1_END * SPAN },
+          { autoAlpha: 1, ease: 'power1.out', duration: GATE_END * SPAN },
           GATE_END * SPAN * 0.5)
         /* …and the TEXT clears out before the handoff — `.story__beats`, not
            the whole block. That distinction is what lets the CTAs outlive the
@@ -834,7 +842,7 @@ export default function StoryScroll() {
       window.clearTimeout(t);
       ctx.revert();
     };
-  }, [still, pinned, is3D, syncPhase, setStatsIn, setCtaIn]);
+  }, [still, pinned, is3D, syncPhase, syncCta, setStatsIn, setCtaIn]);
 
   /* One element, two jobs: the Suspense fallback while the 3D chunk downloads,
      and HeroSite's own placeholder while the scene builds in stages. */
@@ -966,6 +974,11 @@ export default function StoryScroll() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
+              onAnimationComplete={(d) => {
+                if ((d as { opacity?: number }).opacity !== 1) return; // the exit, not the entrance
+                beatIn.current = phase;
+                syncCta();
+              }}
             >
               <span className="eyebrow story__eyebrow">Alipson Builders Pvt Ltd</span>
               {/* No `text-white` utility here — colour belongs to .story__headline,

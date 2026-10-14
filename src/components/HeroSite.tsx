@@ -10,7 +10,8 @@ import {
 } from '../lib/procTex';
 import { laneX, overtaker, type Lane } from '../lib/traffic';
 import { exitCurve, exitU } from '../lib/exit';
-import { carGeometry, extrudeProfile } from '../lib/vehicle';
+import { carGeometry, headLampGeometry, tailLampGeometry, CAR_KINDS, type CarKind, type CarSpec } from '../lib/vehicle';
+import { buildExcavator, buildMixer, buildTipper, type PlantMats } from '../lib/plant';
 import { EMPTY_GEO, loadModel, type PlantSlot } from '../lib/models';
 import { isLowPower, isPhone } from '../lib/device';
 import { mediaSmall } from '../lib/media';
@@ -603,80 +604,7 @@ function posedWorker(
   return g;
 }
 
-/* ---- construction plant ----------------------------------------------------
-   Built the same way as the cars: real side profiles, extruded and bevelled,
-   with proper tracked undercarriages, glazed cabs, tapered boom sections and
-   wheels that are tyres on rims. A 20-tonne excavator is ~3.4 units long over
-   the tracks here and stands 1.6 up to the cab roof, which is the right size
-   against a 22 m frontage — the previous versions were stacks of boxes and read
-   as toys next to the building they were supposedly putting up.               */
-
-/** Tracked undercarriage: a flat-bottomed frame with an idler at each end. */
-function trackProfile(len: number, r: number): THREE.Shape {
-  const sh = new THREE.Shape();
-  const h = len / 2 - r;
-  sh.absarc(-h, r, r, Math.PI / 2, Math.PI * 1.5, false);
-  sh.lineTo(h, 0);
-  sh.absarc(h, r, r, Math.PI * 1.5, Math.PI / 2, false);
-  sh.closePath();
-  return sh;
-}
-
-/** Excavator house: sloped bonnet at the back, tall glazed cab at the front. */
-function excavatorHouse(): { body: THREE.Shape; glass: THREE.Shape } {
-  const body = new THREE.Shape();
-  body.moveTo(-0.86, 0.0);
-  body.lineTo(-0.86, 0.40);
-  body.quadraticCurveTo(-0.84, 0.50, -0.70, 0.52);   // counterweight crown
-  body.lineTo(-0.10, 0.55);
-  body.lineTo(-0.10, 0.94);                           // cab back
-  body.quadraticCurveTo(-0.09, 1.02, 0.00, 1.02);
-  body.lineTo(0.50, 1.02);                            // cab roof
-  body.quadraticCurveTo(0.60, 1.02, 0.60, 0.94);
-  body.lineTo(0.62, 0.30);                            // raked screen
-  body.lineTo(0.86, 0.24);
-  body.lineTo(0.86, 0.0);
-  body.closePath();
-  const glass = new THREE.Shape();
-  glass.moveTo(0.02, 0.62);
-  glass.lineTo(0.02, 0.94);
-  glass.lineTo(0.50, 0.94);
-  glass.lineTo(0.52, 0.40);
-  glass.lineTo(0.20, 0.46);
-  glass.closePath();
-  body.holes.push(new THREE.Path(glass.getPoints(4)));
-  return { body, glass };
-}
-
-/** A tapering arm section — boom, dipper, and the lorry's tipper ram. */
-function armProfile(len: number, a: number, b: number): THREE.Shape {
-  const sh = new THREE.Shape();
-  sh.moveTo(0, -a / 2);
-  sh.lineTo(len, -b / 2);
-  sh.lineTo(len, b / 2);
-  sh.lineTo(0, a / 2);
-  sh.closePath();
-  return sh;
-}
-
-/** Forward-control lorry cab — the flat-fronted type a mixer or tipper uses. */
-function lorryCab(): { body: THREE.Shape; glass: THREE.Shape } {
-  const body = new THREE.Shape();
-  body.moveTo(-0.46, 0.0);
-  body.lineTo(-0.48, 0.86);
-  body.quadraticCurveTo(-0.47, 0.98, -0.36, 0.99);
-  body.lineTo(0.34, 0.99);
-  body.lineTo(0.34, 0.0);
-  body.closePath();
-  const glass = new THREE.Shape();
-  glass.moveTo(-0.40, 0.52);
-  glass.lineTo(-0.41, 0.88);
-  glass.lineTo(0.22, 0.89);
-  glass.lineTo(0.22, 0.52);
-  glass.closePath();
-  body.holes.push(new THREE.Path(glass.getPoints(4)));
-  return { body, glass };
-}
+/* Construction plant (excavator, tipper, mixer) is built in src/lib/plant.ts. */
 
 /** Growth axis helpers — geometry pushed off its origin so a scale of 0..1
  *  reads as "rising out of the ground" / "spanning across", not "inflating". */
@@ -2246,157 +2174,33 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
       const lampPMat = new THREE.MeshBasicMaterial({ color: 0xfff2d6 });
       dispose.push(plantMat, plantGlassMat, trackMat, bodyMat, tyrePMat, rimPMat, lampPMat);
 
-      /** Tyre + rim on one hub, so wheels are wheels rather than discs. */
-      const wheelAt = (parent: THREE.Object3D, x: number, y: number, z: number, r: number, w: number) => {
-        const t = new THREE.Mesh(new THREE.TorusGeometry(r * 0.78, r * 0.24, 6, 14), tyrePMat);
-        const rm = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.56, r * 0.56, w, 12).rotateX(Math.PI / 2), rimPMat);
-        t.position.set(x, y, z); rm.position.set(x, y, z);
-        t.castShadow = rm.castShadow = !lite;
-        parent.add(t, rm);
+      /* Lamps and spoil for the plant kit. Emissive on a near-black lens, like
+         the car lamps, so they burn through ACES instead of reading as decals. */
+      const plantHeadMat = new THREE.MeshStandardMaterial({ color: 0x141210, emissive: 0xffe9c2, emissiveIntensity: 2.9, roughness: 0.3 });
+      const plantTailMat = new THREE.MeshStandardMaterial({ color: 0x1a0304, emissive: 0xff2f26, emissiveIntensity: 2.4, roughness: 0.35 });
+      const plantAmberMat = new THREE.MeshStandardMaterial({ color: 0x1a1004, emissive: 0xffa21f, emissiveIntensity: 2.2, roughness: 0.35 });
+      const soilMat = new THREE.MeshStandardMaterial({ ...dirt, color: 0x9a7556, roughness: 1, metalness: 0 });
+      dispose.push(plantHeadMat, plantTailMat, plantAmberMat, soilMat);
+      /* One material kit for all three machines — see src/lib/plant.ts. Each
+         machine is built as a posed scene graph there and baked to one mesh per
+         material, so the detail costs vertices, not draw calls. */
+      const kit: PlantMats = {
+        paint: plantMat, white: bodyMat, glass: plantGlassMat, frame: darkMat, steel: steelMat,
+        track: trackMat, tyre: tyrePMat, chrome: rimPMat,
+        head: plantHeadMat, tail: plantTailMat, amber: plantAmberMat, soil: soilMat,
       };
 
-      /* EXCAVATOR — 9.5 m over the tracks, 3 m to the cab roof. */
-      const dig = new THREE.Group();
+      /* EXCAVATOR — 9.5 m over the tracks, 3 m to the cab roof. Built in
+         src/lib/plant.ts; only where it stands and its work light live here. */
+      const digB = buildExcavator(kit, !lite, lite);
+      const dig = digB.group;
       dig.position.set(HX - 2.6, 0, PD / 2 + 1.0);
       dig.rotation.y = -2.35;
-      const trackGeo = extrudeProfile(trackProfile(1.72, 0.19), 0.3, 0.03, 8);
-      ([-0.38, 0.38] as const).forEach((z) => {
-        const tr = new THREE.Mesh(trackGeo, trackMat);
-        tr.position.set(0, 0, z);
-        tr.castShadow = !lite;
-        dig.add(tr);
-        // Rollers along the bottom run, the detail that says "tracked".
-        for (let i = 0; i < 5; i++) {
-          const rl = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.16, 10).rotateX(Math.PI / 2), trackMat);
-          rl.position.set(-0.6 + i * 0.3, 0.11, z);
-          dig.add(rl);
-        }
-      });
-      const slew = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.44, 0.14, 14), plantMat);
-      slew.position.y = 0.42;
-      dig.add(slew);
-      const upper = new THREE.Group();
-      upper.position.y = 0.49;
-      upper.rotation.y = 0.5;
-      const hs = excavatorHouse();
-      const house = new THREE.Mesh(extrudeProfile(hs.body, 0.86, 0.045), plantMat);
-      house.castShadow = !lite;
-      const houseGl = new THREE.Mesh(extrudeProfile(hs.glass, 0.8, 0.01), plantGlassMat);
-      const cwStripe = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.16, 0.9), accentMat);
-      cwStripe.position.set(-0.76, 0.30, 0);
-      const stack = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.3, 8), trackMat);
-      stack.position.set(-0.2, 0.68, -0.3);
-      upper.add(house, houseGl, cwStripe, stack);
-      // Boom, dipper and bucket — a three-piece arm that folds like the real thing.
-      const boom = new THREE.Mesh(extrudeProfile(armProfile(1.55, 0.26, 0.17), 0.22, 0.02), plantMat);
-      boom.position.set(0.62, 0.34, 0);
-      boom.rotation.z = 0.62;
-      boom.castShadow = !lite;
-      const dipper = new THREE.Group();
-      dipper.position.set(0.62 + Math.cos(0.62) * 1.55, 0.34 + Math.sin(0.62) * 1.55, 0);
-      const dipArm = new THREE.Mesh(extrudeProfile(armProfile(1.15, 0.19, 0.12), 0.17, 0.02), plantMat);
-      dipArm.rotation.z = -1.28;
-      dipArm.castShadow = !lite;
-      const bucket = new THREE.Mesh(
-        extrudeProfile((() => {
-          const b = new THREE.Shape();
-          b.moveTo(0, 0); b.lineTo(0.34, -0.06);
-          b.quadraticCurveTo(0.40, -0.34, 0.12, -0.42);
-          b.lineTo(-0.06, -0.30);
-          b.closePath();
-          return b;
-        })(), 0.42, 0.02), trackMat);
-      bucket.position.set(Math.cos(-1.28) * 1.15, Math.sin(-1.28) * 1.15, 0);
-      bucket.castShadow = !lite;
-      dipper.add(dipArm, bucket);
-      const ram = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.9, 8), rimPMat);
-      ram.position.set(0.9, 0.72, 0);
-      ram.rotation.z = -0.5;
-      /* Second and third rams. A real excavator has one cylinder per joint —
-         boom, dipper and bucket — and the polished chrome rods are most of what
-         reads as "hydraulic" at a glance. The boom ram was carrying that on its
-         own. */
-      const dipRam = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.72, 8), rimPMat);
-      dipRam.position.set(0.42, 0.62, 0);
-      dipRam.rotation.z = 0.42;
-      dipper.add(dipRam);
-      const bktLink = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.34, 6), rimPMat);
-      bktLink.position.set(Math.cos(-1.28) * 0.86, Math.sin(-1.28) * 0.86 + 0.1, 0);
-      bktLink.rotation.z = -0.9;
-      dipper.add(bktLink);
-
-      /* SIDE GLAZING + FRAMES. The house was extruded with a single windscreen
-         opening, so from any angle other than dead ahead the cab read as a
-         solid block. Real machine cabs are glazed on three sides. These are
-         thin panels set just proud of the house flanks, with a dark surround so
-         the glass sits IN a frame rather than being a hole in the bodywork. */
-      ([-0.44, 0.44] as const).forEach((z) => {
-        const sg = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.42), plantGlassMat);
-        sg.position.set(0.12, 0.42, z);
-        sg.rotation.y = z > 0 ? 0 : Math.PI;
-        upper.add(sg);
-        const fr = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.46, 0.012), darkMat);
-        fr.position.set(0.12, 0.42, z + (z > 0 ? -0.008 : 0.008));
-        upper.add(fr);
-      });
-      // Surround for the windscreen, same reason.
-      const wsFrame = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.62, 0.84), darkMat);
-      wsFrame.position.set(0.53, 0.44, 0);
-      upper.add(wsFrame);
-
-      /* TWO HEADLAMPS on the cab front, plus one small warm light so they
-         actually put something on the ground in front of the machine. Compact
-         on purpose — a work lamp on an excavator is a 200 mm unit, and scaling
-         it up to be "readable" is what turns it into a glowing sphere. */
-      const digLampMat = new THREE.MeshStandardMaterial({
-        color: 0x141210, emissive: 0xffe9c2, emissiveIntensity: 2.9, roughness: 0.3,
-      });
-      dispose.push(digLampMat);
-      ([-0.3, 0.3] as const).forEach((z) => {
-        const hl = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.06, 0.1), digLampMat);
-        hl.position.set(0.55, 0.66, z);
-        upper.add(hl);
-      });
+      /* A warm light so the cab lamps actually put something on the ground in
+         front of the machine. */
       const digBeam = new THREE.PointLight(0xffdca8, 5.5, 6.5, 2);
-      digBeam.position.set(1.5, 0.5, 0);
-      upper.add(digBeam);
-
-      /* COUNTERWEIGHT, ENGINE DECK AND HOUSING SPLIT.
-         A tracked excavator is read by its rear as much as its arm: the slab
-         counterweight balancing the boom, the low engine housing beside the
-         cab, and the deck plate they all sit on. Without them the upper was one
-         extruded silhouette with nothing behind the cab, which is what made it
-         look like a single moulded shape. */
-      const cWeight = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.46, 0.82), plantMat);
-      cWeight.position.set(-0.86, 0.24, 0);
-      cWeight.castShadow = !lite;
-      const deck = new THREE.Mesh(new THREE.BoxGeometry(1.74, 0.07, 0.92), trackMat);
-      deck.position.set(-0.1, 0.0, 0);
-      // Engine housing beside the cab, a step down from the cab roof.
-      const engine = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.3, 0.86), plantMat);
-      engine.position.set(-0.46, 0.19, 0);
-      engine.castShadow = !lite;
-      // Louvre line where the housing panel meets the counterweight.
-      const louvre = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.2, 0.84), trackMat);
-      louvre.position.set(-0.7, 0.2, 0);
-      upper.add(cWeight, deck, engine, louvre);
-
-      upper.add(boom, dipper, ram);
-      dig.add(upper);
-      /* GROUSERS — the track plates. A smooth extruded track reads as a rubber
-         capsule; the cross-plates are what make it a track. Instanced, seven a
-         side along the visible bottom run, so the whole detail is one draw
-         call. */
-      const grouser = mkIM(new THREE.BoxGeometry(0.11, 0.035, 0.30), trackMat, 14, false, dig);
-      for (let i = 0, n = 0; i < 7; i++) {
-        for (const z of [-0.38, 0.38] as const) {
-          dummy.position.set(-0.66 + i * 0.22, 0.012, z);
-          dummy.rotation.set(0, 0, 0);
-          dummy.scale.setScalar(1);
-          put(grouser, n++);
-        }
-      }
-      grouser.instanceMatrix.needsUpdate = true;
+      digBeam.position.copy(digB.lampAt);
+      dig.add(digBeam);
       /* 13% up. The machine was sized off the tracks alone and read a little
          light against a 22 m frontage and a 32 m excavation; this puts it back
          in proportion without changing where it stands or what it does. */
@@ -2406,57 +2210,11 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
       if (await stage()) return;
 
       /* MIXER TRUCK — 8.5 m forward-control chassis on six wheels. */
-      const mixer = new THREE.Group();
+      const mixerB = buildMixer(kit, !lite, lite);
+      const mixer = mixerB.group;
+      const barrel = mixerB.barrel;          // spun by the render loop
       mixer.position.set(-HX + 2.8, 0, -2.4);
       mixer.rotation.y = 0.62;
-      const lc = lorryCab();
-      const mcab = new THREE.Mesh(extrudeProfile(lc.body, 0.86, 0.045), bodyMat);
-      mcab.position.set(1.18, 0.30, 0);
-      mcab.castShadow = !lite;
-      const mcabGl = new THREE.Mesh(extrudeProfile(lc.glass, 0.82, 0.012), plantGlassMat);
-      mcabGl.position.set(1.18, 0.30, 0);
-      const chassis = new THREE.Mesh(new THREE.BoxGeometry(3.05, 0.16, 0.74), trackMat);
-      chassis.position.set(0, 0.30, 0);
-      const mStripe = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.1, 0.88), accentMat);
-      mStripe.position.set(1.18, 0.36, 0);
-      // Drum: a cone pair, tilted on its axis the way a mixer barrel sits.
-      const drum = new THREE.Group();
-      drum.position.set(-0.28, 0.98, 0);
-      drum.rotation.z = -0.17;
-      const barrel = new THREE.Group();
-      drum.add(barrel);
-      /* Drum in the red, cab in the white — the livery the brief asks for, and
-         also how a real mixer is painted: the barrel takes the brand because it
-         is the part that turns and is seen from every angle. 24 sides, not 16:
-         a drum is the one part of this machine that is a pure surface of
-         revolution, so facets on it are the most visible in the scene. */
-      const d1 = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.46, 0.9, 24).rotateZ(Math.PI / 2), plantMat);
-      d1.position.x = 0.48;
-      const d2 = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.36, 0.85, 24).rotateZ(Math.PI / 2), plantMat);
-      d2.position.x = -0.41;
-      // Helical fins — the band that makes a drum read as a mixer at a glance.
-      for (let i = 0; i < 8; i++) {
-        // Steel bands over the red drum — chrome, so they catch the site
-        // floods and read as the fins they are instead of vanishing into it.
-        const f = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.022, 6, 18).rotateY(Math.PI / 2), rimPMat);
-        f.position.x = -0.5 + i * 0.14;
-        f.scale.setScalar(0.72 + Math.sin(i * 0.8) * 0.2);
-        barrel.add(f);
-      }
-      barrel.add(d1, d2);
-      d1.castShadow = d2.castShadow = !lite;
-      const chute = new THREE.Mesh(extrudeProfile(armProfile(0.7, 0.26, 0.16), 0.2, 0.02), plantMat);
-      chute.position.set(-1.3, 0.72, 0);
-      chute.rotation.z = -0.55;
-      mixer.add(chassis, mcab, mcabGl, mStripe, drum, chute);
-      for (let i = 0; i < 6; i++) {
-        wheelAt(mixer, 1.15 - (i >> 1) * 1.05, 0.19, i % 2 ? 0.42 : -0.42, 0.19, 0.16);
-      }
-      ([-0.3, 0.3] as const).forEach((z) => {
-        const hl = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.1, 0.14), lampPMat);
-        hl.position.set(1.62, 0.42, z);
-        mixer.add(hl);
-      });
       site.add(mixer);
 
       /* ---- PLANT UPGRADE --------------------------------------------------
@@ -2494,111 +2252,15 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
 
       /* ---- DUMP TRUCK -----------------------------------------------------
          Backed in toward the excavation on the east side of the plot, which is
-         where a tipper waits to be loaded. Built from the SAME parts the mixer
-         uses — `lorryCab` for the flat-fronted cab profile, `extrudeProfile`
-         for the body, `wheelAt` for tyre-on-rim wheels — so it shares the
-         fleet's proportions and materials rather than being a second style of
-         vehicle parked next to the first.
+         where a tipper waits to be loaded. Built from the SAME kit as the mixer
+         (src/lib/plant.ts) — same cab, wheels and materials — so the two read
+         as one contractor's fleet.
          Clear of everything: the pit rim is at z 4.7 and this sits at 7.0, the
          driveway runs x 4.9-7.9 and this occupies 1.9-2.9, and the excavator is
          6+ units away. */
-      const tipper = new THREE.Group();
+      const tipper = buildTipper(kit, !lite, lite);
       tipper.position.set(2.4, 0, 7.0);
       tipper.rotation.y = -Math.PI / 2;          // nose to +z, bed toward the pit
-      const tc = lorryCab();
-      const tCab = new THREE.Mesh(extrudeProfile(tc.body, 0.84, 0.045), plantMat);
-      tCab.position.set(1.05, 0.34, 0);
-      tCab.castShadow = !lite;
-      const tCabGl = new THREE.Mesh(extrudeProfile(tc.glass, 0.80, 0.012), plantGlassMat);
-      tCabGl.position.set(1.05, 0.34, 0);
-      // Chassis rails the whole thing sits on.
-      const tChassis = new THREE.Mesh(new THREE.BoxGeometry(3.15, 0.16, 0.76), trackMat);
-      tChassis.position.set(0, 0.34, 0);
-      /* Tipping body: sides, headboard and floor rather than one solid box, so
-         it reads as a container with a rim and a shadow inside it. */
-      const bodyG = new THREE.Group();
-      bodyG.position.set(-0.62, 0.44, 0);
-      const floorB = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.07, 0.86), plantMat);
-      bodyG.add(floorB);
-      ([-0.46, 0.46] as const).forEach((z) => {
-        const w = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.34, 0.05), plantMat);
-        w.position.set(0, 0.2, z);
-        w.castShadow = !lite;
-        bodyG.add(w);
-      });
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.46, 0.9), plantMat);
-      head.position.set(0.96, 0.24, 0);
-      bodyG.add(head);
-      // Ram that would tip it, tucked under the front of the body.
-      const tipRam = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.42, 8), rimPMat);
-      tipRam.position.set(0.62, 0.16, 0);
-      tipRam.rotation.z = 0.5;
-      bodyG.add(tipRam);
-      // Grille, mirrors and lamps — the details that stop a cab being a box.
-      const grille = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.24, 0.66), trackMat);
-      grille.position.set(1.62, 0.42, 0);
-      const tLampMat = new THREE.MeshStandardMaterial({
-        color: 0x141210, emissive: 0xffe9c2, emissiveIntensity: 2.9, roughness: 0.3,
-      });
-      dispose.push(tLampMat);
-      ([-0.28, 0.28] as const).forEach((z) => {
-        const hl = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.12), tLampMat);
-        hl.position.set(1.63, 0.3, z);
-        tipper.add(hl);
-        // Mirror on its stalk, off the A-pillar.
-        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.14), darkMat);
-        arm.position.set(1.3, 0.72, z * 1.6);
-        tipper.add(arm);
-        const mir = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.19, 0.07), darkMat);
-        mir.position.set(1.3, 0.66, z * 2.05);
-        tipper.add(mir);
-      });
-      /* Bumper, fenders and mudguards. A truck cab without a bumper and
-         without arches over its wheels is a box on wheels — these three are
-         most of what the eye uses to tell a lorry from a crate. */
-      const bumper = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, 0.94), trackMat);
-      bumper.position.set(1.66, 0.22, 0);
-      ([-0.42, 0.42] as const).forEach((z) => {
-        const fend = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.05, 0.26), plantMat);
-        fend.position.set(1.15, 0.41, z);
-        tipper.add(fend);
-      });
-      ([-0.44, 0.44] as const).forEach((z) => {
-        const mud = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.05, 0.28), trackMat);
-        mud.position.set(-0.84, 0.42, z);
-        tipper.add(mud);
-      });
-      /* SIDE GLAZING + FRAMES on the cab. `lorryCab` gives a windscreen only,
-         so the cab was blind from the side — which is the angle the hero camera
-         actually sees it from. */
-      ([-0.425, 0.425] as const).forEach((z) => {
-        const sw = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 0.24), plantGlassMat);
-        sw.position.set(0.92, 0.63, z);
-        sw.rotation.y = z > 0 ? 0 : Math.PI;
-        tipper.add(sw);
-        const swf = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.28, 0.012), darkMat);
-        swf.position.set(0.92, 0.63, z + (z > 0 ? -0.008 : 0.008));
-        tipper.add(swf);
-      });
-      // Windscreen surround, so the glass sits in a frame rather than in a hole.
-      const wsF = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.42, 0.86), darkMat);
-      wsF.position.set(1.44, 0.66, 0);
-      /* REAR LAMPS. Red, small, and on the tail of the tipping body — the truck
-         is backed toward the excavation, so its rear is what faces the camera
-         for most of the build. */
-      const tTailMat = new THREE.MeshStandardMaterial({
-        color: 0x1a0304, emissive: 0xff2f26, emissiveIntensity: 2.4, roughness: 0.35,
-      });
-      dispose.push(tTailMat);
-      ([-0.34, 0.34] as const).forEach((z) => {
-        const tl = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.13, 0.08), tTailMat);
-        tl.position.set(-1.60, 0.36, z);
-        tipper.add(tl);
-      });
-      tipper.add(tChassis, tCab, tCabGl, bodyG, grille, bumper, wsF);
-      // Six wheels: steer axle plus a twin-tyred rear bogie, on the ground.
-      ([[1.15, 0.42], [1.15, -0.42], [-0.62, 0.44], [-0.62, -0.44], [-1.06, 0.44], [-1.06, -0.44]] as const)
-        .forEach(([x, z]) => wheelAt(tipper, x, 0.21, z, 0.21, 0.17));
       site.add(tipper);
 
       const stackN = lite ? 14 : 26;
@@ -2747,17 +2409,48 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
          its paint. So metalness stays dielectric-with-flake and the
          ENVIRONMENT term goes up hard — 2.8 to 3.8 — with a slightly sharper
          coat so those reflections are legible shapes rather than a sheen. */
+      /* PAINT AS IT IS BUILT: a metallic base coat (flake — moderate metalness,
+         a little roughness so it is a sheen and not a mirror) under a hard,
+         near-glossy clear coat that carries the sharp reflections. 3.8 env on a
+         0.22-rough base read as polished chrome on the pale cars; the clear
+         coat now does the mirroring and the base does the colour. */
       const carMat = new THREE.MeshPhysicalMaterial({
-        color: 0xffffff, roughness: 0.22, metalness: 0.40, envMapIntensity: 3.8,
-        clearcoat: 1, clearcoatRoughness: 0.03, transparent: true, opacity: 0,
+        color: 0xffffff, roughness: 0.34, metalness: 0.5, envMapIntensity: 2.8,
+        clearcoat: 1, clearcoatRoughness: 0.04, transparent: true, opacity: 0,
       });
       /* Glazing DARKER than the paint, not brighter. At 2.2 the windows mirrored
          the sky so hard they read as white panels stuck on a black car. */
+      /* TINTED GLASS, NOT BLACK PAINT. Glass is a DIELECTRIC: metalness 0, a
+         near-mirror surface, and its look comes from Fresnel — weak straight on,
+         strong at a grazing angle, which is exactly the lit-facade streak you
+         see along a car's side glass at night. The base is a deep blue-grey
+         tint (the dark cabin behind it), not black. No `transmission`: that
+         needs a second full render of the scene, and with no cabin modelled
+         behind the glass it would only show an empty shell. */
       const carGlassMat = new THREE.MeshPhysicalMaterial({
-        color: 0x0d1119, roughness: 0.08, metalness: 0.25, envMapIntensity: 1.0,
-        clearcoat: 1, clearcoatRoughness: 0.04, transparent: true, opacity: 0,
+        color: 0x101820, roughness: 0.03, metalness: 0, envMapIntensity: 2.6,
+        clearcoat: 1, clearcoatRoughness: 0.02, ior: 1.52, specularIntensity: 1,
+        emissive: 0x05080c, transparent: true, opacity: 0,
       });
-      const tyreMat = new THREE.MeshStandardMaterial({ color: 0x121418, roughness: 0.94, transparent: true, opacity: 0 });
+      /* Black trim — seals, arch liners, shut lines, grilles, sills: textured
+         satin plastic and rubber, deliberately duller than the glass beside it
+         so the two read as different materials. */
+      const trimMat = new THREE.MeshStandardMaterial({
+        color: 0x0b0c0e, roughness: 0.6, metalness: 0.1, envMapIntensity: 0.6, transparent: true, opacity: 0,
+      });
+      /* Lamp housings: the unlit part of a lamp. Head = dark chrome reflector
+         under a clear lens; tail = smoked red lens. Both glossy, so they hold a
+         reflection like the glass they are. */
+      const headLensMat = new THREE.MeshPhysicalMaterial({
+        color: 0x0e1014, roughness: 0.06, metalness: 0.7, envMapIntensity: 2.6,
+        clearcoat: 1, clearcoatRoughness: 0.02, transparent: true, opacity: 0,
+      });
+      const tailLensMat = new THREE.MeshPhysicalMaterial({
+        color: 0x6a0b10, emissive: 0x4a0306, roughness: 0.1, metalness: 0.1, envMapIntensity: 1.8,
+        clearcoat: 1, clearcoatRoughness: 0.03, transparent: true, opacity: 0,
+      });
+      dispose.push(trimMat, headLensMat, tailLensMat);
+      const tyreMat = new THREE.MeshStandardMaterial({ color: 0x141619, roughness: 0.82, envMapIntensity: 0.5, transparent: true, opacity: 0 });
       // Rims carry the only bright note low on a dark car; they are what stops
       // the silhouette dissolving into the road under it.
       const rimMat = new THREE.MeshStandardMaterial({ color: 0xc2c8cf, roughness: 0.2, metalness: 0.95, envMapIntensity: 2.6, transparent: true, opacity: 0 });
@@ -2780,24 +2473,51 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
       });
       dispose.push(carMat, carGlassMat, tyreMat, rimMat, tailMat, headMatC);
 
-      const SALOON = carGeometry('saloon');
-      const SUV = carGeometry('suv');
-      const VAN = carGeometry('van');
+      /* SEVEN BODY TYPES (see carGeometry), one instanced paint mesh and one
+         instanced dark-trim mesh each, shared by the car park AND the road
+         traffic — fourteen draws in total, not fourteen per fleet.
+         COMPACT SLOTS: each type holds only the cars that ARE that type. Giving
+         every type a slot for every car and collapsing the unused ones looks
+         free, but a collapsed instance still runs its whole vertex shader, so
+         seven types cost seven fleets' worth of vertices. `slotOf[car]` is the
+         car's index inside its own type's mesh; `im.count` is set once the
+         traffic has claimed its slots. Car ids: parked i, traffic CARN + ti. */
+      const GEO = Object.fromEntries(CAR_KINDS.map((kd) => [kd, carGeometry(kd)])) as Record<CarKind, CarSpec>;
       const CARN = lite ? 7 : 11;
-      /* Which body each bay gets. The van is a service vehicle at the far end of
-         the run, where a delivery would actually park. */
-      const kindOf = (i: number) => (i === CARN - 2 ? VAN : i % 3 === 1 ? SUV : SALOON);
-      const carIM = mkIM(SALOON.body, carMat, CARN, true, done);
-      const carIM2 = mkIM(SUV.body, carMat, CARN, true, done);
-      const carIM3 = mkIM(VAN.body, carMat, CARN, true, done);
-      const glassIM1 = mkIM(SALOON.glass, carGlassMat, CARN, false, done);
-      const glassIM2 = mkIM(SUV.glass, carGlassMat, CARN, false, done);
-      const glassIM3 = mkIM(VAN.glass, carGlassMat, CARN, false, done);
-      const bodySets = [
-        { g: SALOON, im: carIM, gl: glassIM1 },
-        { g: SUV, im: carIM2, gl: glassIM2 },
-        { g: VAN, im: carIM3, gl: glassIM3 },
-      ];
+      const TRAFFIC_MAX = 12;
+      /* Which body each bay gets: every type appears before any repeats, the
+         van keeps the far end of the run where a delivery would park, and the
+         LAST bay — the hero car, which drives out through the gate — is the
+         luxury saloon. */
+      const PARK_KINDS: CarKind[] = ['sedan', 'suv', 'coupe', 'offroad', 'hyper', 'luxury', 'sedan', 'suv', 'offroad'];
+      const kindOf = (i: number): CarKind => (i === CARN - 1 ? 'luxury' : i === CARN - 2 ? 'van' : PARK_KINDS[i % PARK_KINDS.length]);
+      const bodySets = CAR_KINDS.map((kd) => ({
+        kind: kd, g: GEO[kd],
+        im: mkIM(GEO[kd].body, carMat, CARN + TRAFFIC_MAX, true, done),
+        gl: mkIM(GEO[kd].glass, carGlassMat, CARN + TRAFFIC_MAX, false, done),
+        tr: mkIM(GEO[kd].trim, trimMat, CARN + TRAFFIC_MAX, false, done),
+      }));
+      const setOf = (kd: CarKind) => bodySets[CAR_KINDS.indexOf(kd)];
+      const used = new Map<CarKind, number>();
+      const slotOf: number[] = [];
+      const claim = (car: number, kd: CarKind) => { const n = used.get(kd) ?? 0; slotOf[car] = n; used.set(kd, n + 1); };
+      for (let i = 0; i < CARN; i++) claim(i, kindOf(i));
+      /** Outer radius of the shared tyre; each body scales it to its own wheel. */
+      const TYRE_R = 0.142;
+      /* CONTACT SHADOW under every car, parked or moving: a soft dark ellipse on
+         the soft-dot texture the lamp pools use. A car is joined to the ground by
+         the dark patch under its sills, and on a phone (no shadow map) there was
+         nothing there at all. One draw for the whole fleet. */
+      const shadeMat = new THREE.MeshBasicMaterial({ color: 0x000000, map: poolTexS, transparent: true, opacity: 0, depthWrite: false });
+      dispose.push(shadeMat);
+      const shadeIM = mkIM(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), shadeMat, CARN + TRAFFIC_MAX, false, done);
+      shadeIM.renderOrder = 2;
+      const shadeAt = (idx: number, g: CarSpec, x: number, z: number, rot: number, on: number) => {
+        dummy.position.set(x, 0.018, z);
+        dummy.rotation.set(0, rot, 0);
+        grow(on, g.halfLen * 2.25, 1, (g.track + 0.1) * 2);
+        put(shadeIM, idx);
+      };
       /* THE "WHEEL-WELL TUB" IS GONE, and it was mine.
          It was a near-black 1.34 x 0.46 x 0.5 box drawn inside every car to
          darken the cabin seen through the glazing. That worked against the old
@@ -2816,14 +2536,37 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
          most legible "low-poly" tell on a car at this distance. Tube radius up a
          touch too: 0.033 was a bicycle tyre on a saloon. */
       const tyreGeo = new THREE.TorusGeometry(0.104, 0.038, 10, 24);
-      const rimGeo = new THREE.CylinderGeometry(0.076, 0.076, 0.085, 20).rotateX(Math.PI / 2);
+      /* SPOKED, not a solid disc. A plain cylinder reads as a hubcap from the
+         nineties; five spokes over the dark wheel well behind them is what a
+         modern alloy looks like at this distance. Rim lip + spokes + hub on
+         BOTH faces (a wheel's outer face is +z on one side of the car and -z on
+         the other), merged into one geometry so it stays one instanced draw. */
+      const rimGeo = (() => {
+        const parts: THREE.BufferGeometry[] = [
+          new THREE.CylinderGeometry(0.076, 0.076, 0.085, 18, 1, true).rotateX(Math.PI / 2),
+        ];
+        for (const fz of [-0.036, 0.036]) {
+          parts.push(new THREE.TorusGeometry(0.07, 0.008, 4, 18).translate(0, 0, fz));
+          parts.push(new THREE.CylinderGeometry(0.02, 0.024, 0.014, 8).rotateX(Math.PI / 2).translate(0, 0, fz));
+          for (let i = 0; i < 5; i++) {
+            const a = (i / 5) * Math.PI * 2;
+            parts.push(new THREE.BoxGeometry(0.052, 0.016, 0.01).translate(0.042, 0, fz).rotateZ(a));
+          }
+        }
+        const g = mergeGeometries(parts.map((p) => (p.index ? p.toNonIndexed() : p)), false);
+        parts.forEach((p) => p.dispose());
+        return g ?? new THREE.CylinderGeometry(0.076, 0.076, 0.085, 20).rotateX(Math.PI / 2);
+      })();
       const tyreIM = mkIM(tyreGeo, tyreMat, CARN * 4, false, done);
       const rimIM = mkIM(rimGeo, rimMat, CARN * 4, false, done);
-      const tailIM = mkIM(new THREE.BoxGeometry(0.035, 0.04, 0.2), tailMat, CARN * 2, false, done);
+      const HEAD = headLampGeometry(), TAIL = tailLampGeometry();
+      const tailIM = mkIM(TAIL.led, tailMat, CARN * 2, false, done);
+      const tailLensIM = mkIM(TAIL.housing, tailLensMat, CARN * 2, false, done);
+      const headLensIM = mkIM(HEAD.housing, headLensMat, CARN * 2, false, done);
       /* WIDER AND THINNER. 0.05 x 0.16 is 14 x 45 cm — a lamp from before
          about 1995. A modern unit is a shallow bar, and at this distance the
          PROPORTION is the only part of it that reads. */
-      const headIM = mkIM(new THREE.BoxGeometry(0.03, 0.035, 0.22), headMatC, CARN * 2, false, done);
+      const headIM = mkIM(HEAD.led, headMatC, CARN * 2, false, done);
       /* A real-world spread: two whites, two silvers, graphite, navy, a single
          crimson. Nothing saturated — car parks are overwhelmingly monochrome. */
       /* A real-world spread — nothing saturated, car parks are monochrome. The
@@ -2839,11 +2582,18 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
          0x1f2733) are lifted: below roughly #22 a car at blue hour has no
          value left to reflect INTO and reads as a hole in the render rather
          than as a dark car. */
-      const CAR_COL = [0x2e3540, 0x252b34, 0x39414d, 0x6d0f16, 0x2a3038, 0x2b3240, 0x4c5866, 0x272d36, 0x333a44, 0x2c3542, 0xd8dde2];
-      bodySets.forEach(({ im }) => {
-        for (let i = 0; i < CARN; i++) im.setColorAt(i, col.setHex(CAR_COL[i % CAR_COL.length]));
-        if (im.instanceColor) im.instanceColor.needsUpdate = true;
-      });
+      /* SEVEN PAINTS: pearl white, metallic black, silver, deep red, metallic
+         blue, forest green, bronze. The black is lifted off true black — below
+         roughly #22 a car at blue hour has nothing left to reflect INTO and
+         reads as a hole. Bays cycle the paints out of step with the body types,
+         so no type always wears the same colour. THE HERO CAR keeps the pale
+         paint: a dark car at blue hour is a silhouette, and it has to hold the
+         eye down the road once it leaves the gate. */
+      const PAINT = { pearl: 0xe6e3dc, black: 0x24272c, silver: 0xaeb4bb, red: 0x7a1018, blue: 0x1f3f78, green: 0x23432f, bronze: 0x7d5a35 };
+      const PARK_PAINT = [PAINT.silver, PAINT.blue, PAINT.red, PAINT.green, PAINT.black, PAINT.bronze, PAINT.pearl, PAINT.black, PAINT.silver, PAINT.blue];
+      for (let i = 0; i < CARN; i++) {
+        setOf(kindOf(i)).im.setColorAt(slotOf[i], col.setHex(i === CARN - 1 ? PAINT.pearl : PARK_PAINT[i % PARK_PAINT.length]));
+      }
       /* Where each car ends up. Bay-aligned, nose-in, with a little jitter so
          they are parked rather than placed on a grid. The LAST one is the hero:
          it waits at the drop-off and then drives out — see the outro. */
@@ -3240,11 +2990,12 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
          instances in one), and `mkIM` already gates shadows on `!lite`, so the
          phone is untouched. Wheels stay off: the body's shadow covers the
          contact patch and four more shadow-casting meshes buy nothing. */
-      const trafficIM = mkIM(SALOON.body, carMat, TOTN, true, done);
-      const trafficEs = mkIM(SUV.body, carMat, TOTN, true, done);
-      const trafficGl = mkIM(SALOON.glass, carGlassMat, TOTN, false, done);
-      const trafficTail = mkIM(new THREE.BoxGeometry(0.035, 0.04, 0.2), tailMat, TOTN * 2, false, done);
-      const trafficHead = mkIM(new THREE.BoxGeometry(0.03, 0.035, 0.22), headMatC, TOTN * 2, false, done);
+      /* Traffic bodies live in the shared body sets, at CARN + i. */
+      if (TOTN > TRAFFIC_MAX) throw new Error(`traffic ${TOTN} exceeds the ${TRAFFIC_MAX} reserved instances`);
+      const trafficTail = mkIM(TAIL.led, tailMat, TOTN * 2, false, done);
+      const trafficHead = mkIM(HEAD.led, headMatC, TOTN * 2, false, done);
+      const trafficTailLens = mkIM(TAIL.housing, tailLensMat, TOTN * 2, false, done);
+      const trafficHeadLens = mkIM(HEAD.housing, headLensMat, TOTN * 2, false, done);
       /* LIGHT SPILL ON THE ROAD. The lamps are emissive lenses — they read as
          lit, but they put nothing on the tarmac, so at blue hour the traffic
          floated on a dark road. One additive quad per car, ahead of it in its
@@ -3281,22 +3032,24 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
       /* COLOUR AND BODY TOGETHER, because "a white SUV" is one decision, not
          two that happen to land on the same car. Each flow gets three
          archetypes and they are cycled in order down the lane. */
-      const FLEET = {
+      const FLEET: Record<'-1' | '1', { hex: number; kind: CarKind }[]> = {
         // right-to-left
         '-1': [
-          { hex: 0xe9ecef, es: true },    // white SUV
-          { hex: 0x7d1219, es: false },   // deep red sedan
-          { hex: 0x2f3742, es: false },   // graphite sedan
+          { hex: PAINT.pearl, kind: 'suv' },
+          { hex: PAINT.red, kind: 'sedan' },
+          { hex: PAINT.black, kind: 'luxury' },
+          { hex: PAINT.green, kind: 'offroad' },
         ],
         // left-to-right
         '1': [
-          { hex: 0xc9a227, es: true },    // gold SUV
-          { hex: 0xb9bec4, es: false },   // silver sedan
-          { hex: 0x14171c, es: false },   // near-black sedan
+          { hex: PAINT.bronze, kind: 'suv' },
+          { hex: PAINT.silver, kind: 'coupe' },
+          { hex: PAINT.blue, kind: 'sedan' },
+          { hex: PAINT.red, kind: 'hyper' },
         ],
-      } as const;
+      };
       /** Colour and body type for traffic instance `i`, in draw order. */
-      const fleet: { hex: number; es: boolean }[] = [];
+      const fleet: { hex: number; kind: CarKind }[] = [];
       LANES.forEach((L, li) => {
         for (let j = 0; j < L.n; j++) {
           const pal = FLEET[L.dir > 0 ? '1' : '-1'];
@@ -3305,9 +3058,16 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
       });
       // The overtaker rides the far carriageway, so it takes that fleet.
       if (OVT) fleet.push(FLEET['-1'][2]);
-      [trafficIM, trafficEs].forEach((im) => {
-        for (let i = 0; i < TOTN; i++) im.setColorAt(i, col.setHex(fleet[i].hex));
-        if (im.instanceColor) im.instanceColor.needsUpdate = true;
+      for (let i = 0; i < TOTN; i++) {
+        claim(CARN + i, fleet[i].kind);
+        setOf(fleet[i].kind).im.setColorAt(slotOf[CARN + i], col.setHex(fleet[i].hex));
+      }
+      // Draw only the slots each type actually uses (and one shadow per car):
+      // an unwritten instance is an identity matrix, i.e. a car at the origin.
+      shadeIM.count = CARN + TOTN;
+      bodySets.forEach((b) => {
+        b.im.count = b.gl.count = b.tr.count = used.get(b.kind) ?? 0;
+        if (b.im.instanceColor) b.im.instanceColor.needsUpdate = true;
       });
 
       if (await stage()) return;
@@ -3335,25 +3095,23 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
             im.geometry = geo;
             setMats(im, mats);
           };
-          // Bodies: parked and traffic share one geometry per kind.
-          swap(carIM, sedan.body, sedan.materials);
-          swap(carIM2, suv.body, suv.materials);
-          swap(carIM3, vanM.body, vanM.materials);
-          swap(trafficIM, sedan.body.clone(), sedan.materials);
-          swap(trafficEs, suv.body.clone(), suv.materials);
-          // Glazing keeps the SCENE's glass material, not the model's — the
-          // windows have to mirror this dusk sky and this lit facade to sit in
-          // the frame, and a model ships with whatever its author's HDRI gave it.
-          const glassOf = (m: typeof sedan) => m.glass ?? EMPTY_GEO();
-          swap(glassIM1, glassOf(sedan), []);
-          swap(glassIM2, glassOf(suv), []);
-          swap(glassIM3, glassOf(vanM), []);
-          swap(trafficGl, sedan.glass ? sedan.glass.clone() : EMPTY_GEO(), []);
+          /* Seven procedural types, three model slots: the car-shaped types
+             take the sedan, the tall ones the SUV, the van the van. Glazing
+             keeps the SCENE's glass material so it mirrors this dusk sky. */
+          const modelFor: Record<CarKind, NonNullable<typeof sedan>> = {
+            luxury: sedan, sedan, coupe: sedan, hyper: sedan, suv, offroad: suv, van: vanM,
+          };
+          bodySets.forEach((b) => {
+            const m = modelFor[b.kind];
+            swap(b.im, m.body.clone(), m.materials);
+            swap(b.gl, m.glass ? m.glass.clone() : EMPTY_GEO(), []);
+            swap(b.tr, EMPTY_GEO(), []);
+          });
           /* The model brings its own wheels, so the procedural tyres, rims and
              wheel-well tub have to go. Collapsing their geometry is how: every
              placement loop keeps writing their matrices harmlessly, and nothing
              downstream needs a new branch. */
-          [tyreIM, rimIM].forEach((im) => {
+          [tyreIM, rimIM, trafficTyre, trafficRim].forEach((im) => {
             im.geometry.dispose();
             im.geometry = EMPTY_GEO();
           });
@@ -3445,22 +3203,22 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
            wheel tub and four lamps. Shared by the lane cars and the overtaker,
            so the one that changes lanes cannot drift out of step with the ones
            that do not. */
-        const putCar = (ti: number, x: number, z: number, rot: number, isEs: boolean) => {
+        const putCar = (ti: number, x: number, z: number, rot: number, kind: CarKind) => {
+          const g = GEO[kind], set = setOf(kind), idx = CARN + ti;
           dummy.position.set(x, 0, z);
           dummy.rotation.set(0, rot, 0);
-          grow(isEs ? 0 : k, 1, 1, 1); put(trafficIM, ti);
-          grow(isEs ? k : 0, 1, 1, 1); put(trafficEs, ti);
-          grow(isEs ? 0 : k, 1, 1, 1); put(trafficGl, ti);
+          grow(k, 1, 1, 1);
+          put(set.im, slotOf[idx]); put(set.gl, slotOf[idx]); put(set.tr, slotOf[idx]);
+          shadeAt(idx, g, x, z, rot, k);
           const c = Math.cos(rot), sn = Math.sin(rot);
           // Four wheels, in the car's own frame, rolling off distance travelled.
-          const gw = isEs ? SUV : SALOON;
-          const spin = -x / gw.wheelR;
+          const spin = -x / g.wheelR, ws = g.wheelR / TYRE_R;
           for (let w = 0; w < 4; w++) {
-            const lx = w < 2 ? gw.axle : -gw.axle;
-            const lz = w % 2 ? gw.track : -gw.track;
-            dummy.position.set(x + c * lx - sn * lz, gw.wheelR, z - sn * lx - c * lz);
+            const lx = w < 2 ? g.axle : -g.axle;
+            const lz = w % 2 ? g.track : -g.track;
+            dummy.position.set(x + c * lx - sn * lz, g.wheelR, z - sn * lx - c * lz);
             dummy.rotation.set(0, rot, spin);
-            grow(k, 1, 1, 1);
+            grow(k, ws, ws, ws);
             put(trafficTyre, ti * 4 + w);
             put(trafficRim, ti * 4 + w);
           }
@@ -3471,15 +3229,15 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
           put(carPool, ti);
           for (let l = 0; l < 2; l++) {
             const across = l ? 0.24 : -0.24;
-            // Tail lamps behind, heads in front — both in the car's own frame.
-            dummy.position.set(x + c * -0.79 - sn * across, 0.315, z - sn * -0.79 - c * across);
+            // Tail lamps behind, heads in front — on this body's own lamp line.
+            dummy.position.set(x + c * -g.lampX - sn * across, g.lampY, z - sn * -g.lampX - c * across);
             dummy.rotation.set(0, rot, 0);
             grow(k, 1, 1, 1);
-            put(trafficTail, ti * 2 + l);
-            dummy.position.set(x + c * 0.79 - sn * across, 0.315, z - sn * 0.79 - c * across);
+            put(trafficTail, ti * 2 + l); put(trafficTailLens, ti * 2 + l);
+            dummy.position.set(x + c * g.lampX - sn * across, g.lampY, z - sn * g.lampX - c * across);
             dummy.rotation.set(0, rot, 0);
             grow(k, 1, 1, 1);
-            put(trafficHead, ti * 2 + l);
+            put(trafficHead, ti * 2 + l); put(trafficHeadLens, ti * 2 + l);
           }
         };
 
@@ -3487,7 +3245,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
         LANES.forEach((L) => {
           for (let j = 0; j < L.n; j++, ti++) {
             // dir +1 travels toward +x, and the body's nose is +x at rot 0.
-            putCar(ti, laneX(L, j, clk), L.z, L.dir > 0 ? 0 : Math.PI, fleet[ti].es);
+            putCar(ti, laneX(L, j, clk), L.z, L.dir > 0 ? 0 : Math.PI, fleet[ti].kind);
           }
         });
 
@@ -3521,14 +3279,15 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
            half-width, so the transit itself is clear too. */
         if (OVT) {
           const ov = overtaker(LANES[0], LANES[1], clk);
-          putCar(ti, ov.x, ov.z, ov.yaw, fleet[ti].es);
+          putCar(ti, ov.x, ov.z, ov.yaw, fleet[ti].kind);
           ti++;
         }
-        trafficIM.instanceMatrix.needsUpdate = true;
-        trafficEs.instanceMatrix.needsUpdate = true;
-        trafficGl.instanceMatrix.needsUpdate = true;
+        bodySets.forEach((b) => { b.im.instanceMatrix.needsUpdate = true; b.gl.instanceMatrix.needsUpdate = true; b.tr.instanceMatrix.needsUpdate = true; });
+        shadeIM.instanceMatrix.needsUpdate = true;
         trafficTail.instanceMatrix.needsUpdate = true;
         trafficHead.instanceMatrix.needsUpdate = true;
+        trafficTailLens.instanceMatrix.needsUpdate = true;
+        trafficHeadLens.instanceMatrix.needsUpdate = true;
         carPool.instanceMatrix.needsUpdate = true;
         trafficTyre.instanceMatrix.needsUpdate = true;
         trafficRim.instanceMatrix.needsUpdate = true;
@@ -3594,21 +3353,16 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
            rims, lamps — from one position and heading, which is what keeps the
            parked cars and the moving hero car sharing exactly one code path. */
         const place = (i: number, x: number, z: number, rot: number, on: number, spin: number, head: number) => {
-          const g = kindOf(i);
-          const set = g === VAN ? bodySets[2] : g === SUV ? bodySets[1] : bodySets[0];
+          const g = GEO[kindOf(i)];
+          const set = setOf(kindOf(i));
           const c = Math.cos(rot), sn = Math.sin(rot);
+          shadeAt(i, g, x, z, rot, on);
           // Local (along, across) -> world, once, for every part of the car.
           const at = (along: number, across: number) => dummy.position.set(x + c * along - sn * across, 0, z - sn * along - c * across);
           at(0, 0);
           dummy.rotation.set(0, rot, 0);
           grow(on, 1, 1, 1);
-          bodySets.forEach((b) => {
-            // Only the set this car belongs to gets a real matrix; the other two
-            // collapse, so one bay never shows two bodies stacked.
-            const mine = b === set ? on : 0;
-            grow(mine, 1, 1, 1);
-            put(b.im, i); put(b.gl, i);
-          });
+          put(set.im, slotOf[i]); put(set.gl, slotOf[i]); put(set.tr, slotOf[i]);
           for (let w = 0; w < 4; w++) {
             const lx = w < 2 ? g.axle : -g.axle, lz = w % 2 ? g.track : -g.track;
             at(lx, lz);
@@ -3617,7 +3371,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
                about its own axle AFTER the car's heading is applied — which is
                why the tyres roll instead of skidding sideways. */
             dummy.rotation.set(0, rot, spin);
-            grow(on, 1, 1, 1);
+            grow(on, g.wheelR / TYRE_R, g.wheelR / TYRE_R, g.wheelR / TYRE_R);
             put(tyreIM, i * 4 + w); put(rimIM, i * 4 + w);
           }
           for (let l = 0; l < 2; l++) {
@@ -3626,10 +3380,13 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
             dummy.position.y = g.lampY;
             dummy.rotation.set(0, rot, 0);
             grow(on, 1, 1, 1);
-            put(tailIM, i * 2 + l);
+            put(tailIM, i * 2 + l); put(tailLensIM, i * 2 + l);
             at(g.lampX, lz);
             dummy.position.y = g.lampY;
             dummy.rotation.set(0, rot, 0);
+            // The housing is always there; only the LEDs switch on.
+            grow(on, 1, 1, 1);
+            put(headLensIM, i * 2 + l);
             grow(head, 1, 1, 1);
             put(headIM, i * 2 + l);
           }
@@ -3640,19 +3397,25 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
           const a = outCubic(stagger(t, P.cars[0], P.cars[1], i, CARN, 2.6));
           const on = a > 0.02 ? 1 : 0;
           const roll = (1 - a) * 1.9;
-          const g = kindOf(i);
+          const g = GEO[kindOf(i)];
           place(i, sl.x + Math.cos(sl.rot) * roll, sl.z - Math.sin(sl.rot) * roll, sl.rot, on, -roll / g.wheelR, 0);
         }
         // The hero car is placed by the outro ticker, which owns its path.
         rig.place = place;
         rig.heroIdx = CARN - 1;
-        rig.heroKind = kindOf(CARN - 1);
-        bodySets.forEach((b) => { b.im.instanceMatrix.needsUpdate = true; b.gl.instanceMatrix.needsUpdate = true; });
+        rig.heroKind = GEO[kindOf(CARN - 1)];
+        bodySets.forEach((b) => { b.im.instanceMatrix.needsUpdate = true; b.gl.instanceMatrix.needsUpdate = true; b.tr.instanceMatrix.needsUpdate = true; });
+        shadeIM.instanceMatrix.needsUpdate = true;
         tyreIM.instanceMatrix.needsUpdate = true;
         rimIM.instanceMatrix.needsUpdate = true;
         tailIM.instanceMatrix.needsUpdate = true;
         headIM.instanceMatrix.needsUpdate = true;
-        [carMat, carGlassMat, tyreMat, rimMat].forEach((m) => {
+        tailLensIM.instanceMatrix.needsUpdate = true;
+        headLensIM.instanceMatrix.needsUpdate = true;
+        shadeMat.opacity = 0.5 * k;
+        /* headMatC is in here too: it was created at opacity 0 and nothing ever
+           raised it, so no car in the scene ever showed a headlamp. */
+        [carMat, carGlassMat, trimMat, headLensMat, tailLensMat, headMatC, tyreMat, rimMat].forEach((m) => {
           m.opacity = k;
           if (m.transparent === solid) { m.transparent = !solid; m.needsUpdate = true; }
         });
