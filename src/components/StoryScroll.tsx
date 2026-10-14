@@ -854,10 +854,11 @@ export default function StoryScroll() {
                   srcSet={`${mediaSmall('heroPoster')} 800w, ${MEDIA.heroPoster} 1024w`}
                   sizes="100vw" width={1024} height={1024}
                   alt="" aria-hidden decoding="async"
-                  /* React 18 does not map camelCase `fetchPriority` to the DOM
-                     attribute and logs an error for it; the lowercase form is
-                     what the browser reads. */
-                  {...{ fetchpriority: 'high' }}
+                  /* LOW, not high: this is a stand-in shown only if the doors
+                     open before the 3D chunk has landed, so it must not compete
+                     with that chunk for bandwidth. (Lowercase attribute: React
+                     18 does not map camelCase `fetchPriority`.) */
+                  {...{ fetchpriority: 'low' }}
                 />
               : <HeroLoader />
   );

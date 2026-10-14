@@ -39,13 +39,12 @@
       })();
     </script>
 
-    <!-- The phone's LCP element. `StoryScroll` swaps the WebGL hero for this
-         poster on phones and low-end devices and only pulls the 3D chunk down
-         on the first scroll, which makes this image the largest thing the page
-         paints. The media query is what keeps it off desktop, where the poster
-         is never rendered at all. -->
-    <link rel="preload" as="image" href="/images/hero_background-800.webp"
-          media="(max-width: 767px)" fetchpriority="high" />
+    <!-- NO PHONE POSTER PRELOAD. The poster (hero_background-800.webp) is no
+         longer the phone's LCP: it renders only after load, `visibility:
+         hidden` behind the closed gate until the doors part (sections.css,
+         `.story:not([data-open])`), and the LCP is the gate name painted from
+         inline HTML. The preload was a 106 KB high-priority download competing
+         with the HTML, CSS and JS the first paint needs. -->
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
