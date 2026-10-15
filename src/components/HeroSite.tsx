@@ -3202,9 +3202,11 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
           put(lampPool, i);
         });
         lampPool.instanceMatrix.needsUpdate = true;
-        /* Scroll IS the clock. Both acts advance it, so traffic and pedestrians
-           keep moving through the whole ending and run backwards on the way up. */
+        /* Scroll IS the clock for pedestrians. Road traffic is HELD at the
+           finished frame's positions (clk 26 = t 1, o 0): the hero no longer
+           shows cars driving along the road, but the street keeps its cars. */
         const clk = t * 26 + o * 30;
+        const carClk = 26;
         /* One vehicle written from a position and a heading — body, glazing,
            wheel tub and four lamps. Shared by the lane cars and the overtaker,
            so the one that changes lanes cannot drift out of step with the ones
@@ -3251,7 +3253,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
         LANES.forEach((L) => {
           for (let j = 0; j < L.n; j++, ti++) {
             // dir +1 travels toward +x, and the body's nose is +x at rot 0.
-            putCar(ti, laneX(L, j, clk), L.z, L.dir > 0 ? 0 : Math.PI, fleet[ti].kind);
+            putCar(ti, laneX(L, j, carClk), L.z, L.dir > 0 ? 0 : Math.PI, fleet[ti].kind);
           }
         });
 
@@ -3284,7 +3286,7 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
            Between the lanes it is 0.65 off each centreline against a 0.31
            half-width, so the transit itself is clear too. */
         if (OVT) {
-          const ov = overtaker(LANES[0], LANES[1], clk);
+          const ov = overtaker(LANES[0], LANES[1], carClk);
           putCar(ti, ov.x, ov.z, ov.yaw, fleet[ti].kind);
           ti++;
         }

@@ -112,16 +112,6 @@ const PHASE_4_END = 0.85;  // facade closed, interior lights up
  *  runway: the building holds complete, the headline fades, and only then does
  *  the pin release — so the text can never share the viewport with the stats. */
 const BUILD_END = 0.9;
-/** When the headline starts to leave, as a fraction of the WHOLE trigger — the
- *  gsap beats below are fractions of the timeline's own duration, which is
- *  scrubbed across the entire pin, so these are trigger fractions and not build
- *  fractions. The build ends at BUILD_FRACTION (0.70); the final headline and
- *  its CTAs then hold together over the finished landmark and clear out before
- *  the stats bar rises (outro STATS_AT ≈ 0.97 of the trigger). It was 0.72,
- *  which left the CTAs no window beside the heading they belong to. */
-const COPY_OUT = 0.84;
-/** …and how long it takes to go. Short: it is leaving, not being animated. */
-const COPY_FADE = 0.08;
 /** Phase 1 and 2 edges (0.20 / 0.40). Derived from the drawing's own phase
  *  boundaries rather than restated, so the two files cannot drift out of sync. */
 const PHASE_1_END = GATE_END + P1_T * (PHASE_3_END - GATE_END);
@@ -144,22 +134,31 @@ if (import.meta.env.DEV) {
 const EASE = 0.12;
 
 /**
- * TWO ACTS ON ONE PIN.
+ * THE BUILD, THEN THE HAND-OFF — all over the finished building, which holds.
  *
- *   0 → 0.70   THE BUILD. The construction playhead runs 0..1 across this, so
- *              every phase fraction in HeroSite stays expressed against the
- *              construction and does not move when act two changes length.
- *   0.70 → 1   THE OUTRO. One continuous shot: the stats settle over the
- *              finished property, the camera drops to reveal the gate, the gate
- *              opens, the hero car lights up and drives out onto the road, the
- *              camera follows it, and the frame hands over to the section
- *              below. Nothing here is a cut — it is the same scene, still
- *              scrubbed by the same scroll.
+ *   0    → 0.70   THE BUILD. The construction playhead runs 0..1 across this,
+ *                 so every phase fraction in HeroSite stays expressed against
+ *                 the construction.
+ *   0.70 → 0.84   "From Vision To Structure" and the CTAs over the final frame.
+ *   0.84 → 0.92   the headline clears (CTAs leave CTA_LEAD earlier).
+ *   0.90 → 1      the four stat cards and the scroll cue rise, then the pin
+ *                 releases onto the next section.
  *
- * Both are pure functions of trigger progress, so scrolling UP runs the gate
- * shut and reverses the car for free.
+ * The old act two (camera drop, gate opening, hero car driving out, follow
+ * shot) is gone: HeroSite is always driven with outro 0, which is exactly the
+ * frame the build ends on.
  */
 const BUILD_FRACTION = 0.70;
+/** When the headline starts to leave, as a fraction of the trigger. */
+const COPY_OUT = 0.84;
+/** …and how long it takes to go. Short: it is leaving, not being animated. */
+const COPY_FADE = 0.08;
+/** The buttons leave this much timeline ahead of the copy, so the outgoing
+ *  pills are gone before the headline starts to fade — never the two together. */
+const CTA_LEAD = 0.06;
+/** When the stat cards rise, as a fraction of the trigger: after the CTAs are
+ *  gone (they share the foot of the stage), before the pin releases. */
+const STATS_AT = 0.90;
 
 /** WHEN THE TWO CTAs ARE ON SCREEN — a state, not a pair of scroll numbers.
  *
@@ -181,23 +180,6 @@ const LAST_BEAT = 4; // index of 'From Vision To Structure' in PHASES
  *  1 lands ~0.5s after the scene has visibly stopped; the last 0.5% of the
  *  final pull-back is sub-pixel. */
 const BUILT = 0.995;
-/** The buttons leave this much timeline ahead of the copy, so the outgoing
- *  pills are gone before the headline starts to fade — never the two together. */
-const CTA_LEAD = 0.06; // 0.04 at the old 5.6-viewport runway, scaled to keep the same scroll distance at 4.0
-
-/** WHEN THE FOUR FIGURES ARRIVE, as a fraction of ACT TWO (not of the trigger).
- *  They used to ride the scroll: up at o 0.02, ducked out of the car's way at
- *  0.50, back at 0.90 — three moves, every one of them re-rendered per frame,
- *  and the first of them put four opaque cards over the building while the shot
- *  that pays the whole hero off was still running. On a phone, where act two is
- *  a third of the scroll it is on a desktop, that first rise lands early enough
- *  to read as "the stats were there from the start".
- *  So they now do ONE thing, ONCE, at the end: the camera has lifted, the car
- *  has gone (its exit ends at o 0.96 and is off-frame well before), and the
- *  hand-off to the section below is the next thing to happen — this is the beat
- *  the choreography already called "the last thing standing". Latched, so
- *  scrolling back up leaves them up rather than flickering. */
-const STATS_AT = 0.90;
 
 /**
  * Left-hand copy, keyed to construction progress. `at` is the scroll fraction
@@ -332,7 +314,6 @@ export default function StoryScroll() {
   const cur = useRef(-1);     // where it actually is (eased toward target)
   const { openVideo } = useUI();
   const pinned = useRef(pinnedHero()).current;
-  const pinnedOut = useRef(pinnedAt('outro')).current;
   const [phase, setPhase] = useState(() => phaseAt(pinnedHero() ?? 0));
   /* THE COPY FOLLOWS THE PLAYHEAD, NOT THE SCROLLBAR. It used to be computed
      from `self.progress` inside ScrollTrigger's onUpdate — the RAW scroll
@@ -343,7 +324,6 @@ export default function StoryScroll() {
      value the renderer reads puts the caption back on the frame it captions.
      `syncPhase` (below `syncCta`, which it calls) only touches React state on
      the frames that cross a phase boundary. */
-  const outro = useRef(0);      // 0..1 across act two — stats, gate, car, road
   /* Restarts the playhead loop below, which parks itself once it has caught up
      with the scroll. Held in a ref because the only caller — ScrollTrigger's
      onUpdate — is created in a different effect. */
@@ -394,10 +374,11 @@ export default function StoryScroll() {
     ctaShown.current = on;
     cta.current?.classList.toggle('is-in', on);
   }, []);
-  /* The three inputs to the CTA rule (see LAST_BEAT). `beatIn` is the beat
-     whose entrance has finished — the one on screen at mount is at rest, so it
-     counts. `copyLive` is false once the scrubbed timeline reaches COPY_OUT. */
+  /* The inputs to the CTA rule (see LAST_BEAT). `beatIn` is the beat whose
+     entrance has finished — the one on screen at mount is at rest, so it
+     counts. */
   const beatIn = useRef(phase);
+  /* False once the scrubbed timeline reaches COPY_OUT - CTA_LEAD. */
   const copyLive = useRef(true);
   const syncCta = useCallback(() => {
     setCtaIn(target.current >= 1 && cur.current >= BUILT && beatIn.current === LAST_BEAT && copyLive.current);
@@ -438,8 +419,7 @@ export default function StoryScroll() {
   useEffect(() => {
     if (!is3D) return;
     let raf = 0;
-    if (still) { three.current?.update(1, 0.34); return; }
-    let lastTail = -1;
+    if (still) { three.current?.update(1, 0); return; }
     /* IT SLEEPS BETWEEN SCROLLS. This loop's only job is to ease `cur` toward
        where the scroll wants the playhead — so once it has arrived and the
        outro value has stopped moving there is nothing left to interpolate, and
@@ -450,15 +430,13 @@ export default function StoryScroll() {
        has mounted, or the first playhead would never reach it. */
     const loop = () => {
       const t = pinned ?? target.current;
-      const tail = pinnedOut ?? outro.current;
       if (cur.current < 0) cur.current = t;
       else cur.current += (t - cur.current) * EASE;
       if (Math.abs(t - cur.current) < 0.0002) cur.current = t;
-      three.current?.update(cur.current, tail);
+      three.current?.update(cur.current, 0);
       syncPhase(cur.current);
       syncCta();
-      if (three.current && cur.current === t && tail === lastTail) { raf = 0; return; }
-      lastTail = tail;
+      if (three.current && cur.current === t) { raf = 0; return; }
       raf = requestAnimationFrame(loop);
     };
     wake.current = () => { if (!raf) raf = requestAnimationFrame(loop); };
@@ -468,7 +446,7 @@ export default function StoryScroll() {
       raf = 0;
       wake.current = () => {};
     };
-  }, [is3D, still, pinned, pinnedOut, syncPhase, syncCta]);
+  }, [is3D, still, pinned, syncPhase, syncCta]);
 
   /**
    * VIDEO SCRUB. Same damped playhead as the other two renderers — `cur` eases
@@ -712,8 +690,8 @@ export default function StoryScroll() {
 
     /* Lenis → ScrollTrigger sync lives in useLenis, where the instance exists. */
     const ctx = gsap.context(() => {
-      /* The copy fade below is scrubbed, so whether it has started is read off
-         the timeline itself rather than raw scroll, which runs ~0.6s ahead. */
+      /* The copy fade is scrubbed, so whether it has started is read off the
+         timeline itself rather than raw scroll, which runs ~0.6s ahead. */
       function onTl(this: gsap.core.Timeline) { copyLive.current = this.progress() < COPY_OUT - CTA_LEAD; syncCta(); }
       const tl = gsap.timeline(pinned !== null ? { paused: true, onUpdate: onTl } : {
         onUpdate: onTl,
@@ -763,17 +741,14 @@ export default function StoryScroll() {
           onUpdate: (self) => {
             const build = clamp01(self.progress / BUILD_FRACTION);
             target.current = build;
-            outro.current = span(BUILD_FRACTION, 1, self.progress);
             wake.current();
             /* The poster only matters once the doors have parted. Hidden
                behind the closed gate it is never painted, so
                preparing the scene at load does not turn a decorative
                placeholder into the page's LCP. */
             root.current?.toggleAttribute('data-open', self.progress > 0.001);
-            /* The buttons leave at COPY_OUT and the bar arrives at outro
-               STATS_AT, so the two never share the foot of the stage. */
             syncCta();
-            setStatsIn(outro.current >= STATS_AT);
+            setStatsIn(self.progress >= STATS_AT);
             /* The 3D hero publishes its own phase from the eased playhead in
                the loop above (`syncPhase`), so this only covers the renderers
                that have no such loop running — and `?flat`/`?video` are debug
@@ -809,15 +784,10 @@ export default function StoryScroll() {
           { autoAlpha: 0 },
           { autoAlpha: 1, ease: 'power1.out', duration: GATE_END * SPAN },
           GATE_END * SPAN * 0.5)
-        /* …and the TEXT clears out before the handoff — `.story__beats`, not
-           the whole block. That distinction is what lets the CTAs outlive the
-           headline: they are children of `.story__finale-copy`, and opacity
-           multiplies down the tree, so fading the wrapper took the buttons with
-           it no matter what their own tween said. Fading only the beats leaves
-           the wrapper at full opacity carrying nothing but the two pills.
-           autoAlpha (not opacity) so the outgoing copy also goes
-           visibility:hidden — at opacity 0 alone it stays in the a11y tree,
-           read out over a section it is no longer part of. */
+        /* …and the TEXT clears out before the cards rise — `.story__beats`, not
+           the whole block, because the CTAs are its children and opacity
+           multiplies down the tree. autoAlpha so the outgoing copy also leaves
+           the a11y tree. */
         .to('.story__beats',
           { autoAlpha: 0, y: -26, ease: 'power1.out', duration: COPY_FADE * SPAN },
           COPY_OUT * SPAN)
@@ -825,13 +795,9 @@ export default function StoryScroll() {
           { autoAlpha: 0, ease: 'power1.out', duration: COPY_FADE * SPAN },
           COPY_OUT * SPAN);
 
-      /* `?hero=1&outro=0.95` freezes act two for a screenshot; the timeline is
-         paused, so onUpdate never runs and the bar would be missing from every
-         frame it belongs in. */
       if (pinned !== null) {
         root.current?.toggleAttribute('data-open', true);
         tl.progress(pinned);
-        setStatsIn((pinnedOut ?? 0) >= STATS_AT);
       }
     }, root);
 
