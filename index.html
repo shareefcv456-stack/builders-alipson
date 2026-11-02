@@ -38,6 +38,29 @@
         }
       })();
     </script>
+    <!-- BOOT WATCHDOG. #boot is removed only by main.tsx after React mounts, so
+         if any script chunk fails to arrive — a dropped request on a mobile
+         connection, or a tab holding HTML from before a deploy whose hashed
+         chunks are now gone — the gate stays up forever with nothing behind
+         it. Same for a lazy chunk (three, the intro) failing later: with no
+         error boundary that unmounts the whole app. Either way: reload ONCE per
+         tab. The session flag is never cleared, so a persistent failure cannot
+         turn into a reload loop. Hidden tabs are skipped — rAF is paused there,
+         so the gate is legitimately still up and leaves once the tab shows. -->
+    <script>
+      (function () {
+        function retry() {
+          try { if (sessionStorage.getItem('boot-retry')) return false; sessionStorage.setItem('boot-retry', '1'); }
+          catch (e) { return false; }
+          location.reload();
+          return true;
+        }
+        window.addEventListener('vite:preloadError', function (e) { if (retry()) e.preventDefault(); });
+        window.addEventListener('load', function () {
+          setTimeout(function () { if (!document.hidden && document.getElementById('boot')) retry(); }, 10000);
+        });
+      })();
+    </script>
 
     <!-- NO PHONE POSTER PRELOAD. The poster (hero_background-800.webp) is no
          longer the phone's LCP: it renders only after load, `visibility:

@@ -4387,7 +4387,23 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
       renderer.dispose();
       renderer.domElement.remove();
     };
-    })();
+    /* A STAGE THAT THROWS MUST NOT STRAND THE LOADER. The build is a floating
+       promise, so a rejection here was silent: `ready` never flipped and the
+       fallback — the "Preparing the site" spinner on anything not lite — sat
+       over the hero for good. Same exit as no-WebGL: hold the poster.
+       ponytail: a half-built renderer is not disposed on this path; one leaked
+       context on an already-failed load. */
+    })().catch((err) => {
+      if (dead) return;
+      console.warn('[HeroSite] scene build failed — holding the poster', err);
+      const poster = document.createElement('img');
+      poster.className = 'story__poster';
+      poster.src = mediaSmall('heroPoster');
+      poster.alt = '';
+      el.appendChild(poster);
+      teardown = () => { poster.remove(); };
+      setReady(true);
+    });
     return () => { dead = true; teardown?.(); };
   }, []);
 
