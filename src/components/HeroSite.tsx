@@ -723,11 +723,13 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
        must be untouched, which a `lite` gate would not have guaranteed
        (Save-Data and low-end desktops are lite too). */
     let phoneView = isPhone();
-    /* PHONES GET HALF THE PIXELS. Fill rate is the phone's bottleneck on this
-       scene, and 1.25² / 1.75² ≈ 0.51 — half the fragments of desktop for a
-       sharpness difference that a 6-inch screen at arm's length does not show.
-       Geometry, traffic and textures are already halved by `lite`. */
-    const DPR_CAP = Math.min(window.devicePixelRatio || 1, phoneView ? 1.25 : lite ? 1.5 : 1.75);
+    /* PHONES GET FEWER PIXELS, BUT NOT TOO FEW. Fill rate is the phone's
+       bottleneck, so it stays under desktop's 1.75. It was 1.25, and on a 3x
+       screen that is a 2.4x upscale: every edge, window mullion and machine
+       outline went soft, which was most of why the phone hero read less
+       clearly than desktop. 1.5 is a 2x upscale, ~1.44x the fragments of 1.25,
+       and the phone path still has no shadow maps and no AO pass to pay for. */
+    const DPR_CAP = Math.min(window.devicePixelRatio || 1, phoneView ? 1.5 : lite ? 1.5 : 1.75);
     renderer.setPixelRatio(DPR_CAP);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -3900,6 +3902,12 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
       curL.lerp(camL, a);
       camera.position.copy(curP);
       camera.lookAt(curL);
+      /* PORTRAIT LENS, ~7% TIGHTER. The portrait keys sit at 51-52°, wide
+         enough that the building, the plant and the trucks were small in a
+         frame mostly made of sky and dirt. Scaling the lens here, rather than
+         re-authoring every key, keeps the path, its timing and its hand-offs
+         exactly as they were; the frontage still clears both edges at 320px. */
+      if (KEYS === KEYS_M) fov *= 0.93;
       if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
     };
 
@@ -4132,6 +4140,16 @@ const HeroSite = forwardRef<ThreeHandle, { className?: string; fallback?: ReactN
       composer?.setSize(w, h);
       n8ao?.setSize(w, h);
       camera.aspect = w / h;
+      /* SHORT PHONES: DROP THE FRAME BELOW THE COPY. The hero copy is laid out
+         in fixed px (it ends ~270px down) but the scene scales with the stage
+         height, and the building's top peaks at ~36% of it mid-build. On a
+         320x568 or 320x691 phone that puts the parapet behind the last line of
+         copy. Shifting the image down by exactly the shortfall costs only
+         empty foreground at the bottom, leaves taller phones (390x844 and up)
+         at 0 and never touches the camera path. */
+      const drop = phoneView ? Math.max(0, 290 - 0.36 * h) : 0;
+      if (drop > 0) camera.setViewOffset(w, h, 0, -drop, w, h);
+      else camera.clearViewOffset();
       camera.updateProjectionMatrix();
       topDrawn = false;      // new size → the parked top frame is stale
     };

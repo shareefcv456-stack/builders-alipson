@@ -2302,7 +2302,12 @@
 .footer__cta h2 em { font-style: italic; color: var(--accent-soft); }
 /* Top row — Brand · Quick Links · Contact (clean 3-column) */
 .footer__top { position: relative; z-index: 1; display: grid; grid-template-columns: 1.3fr 0.8fr 1fr;
-  gap: clamp(2rem, 4vw, 3.5rem); padding: clamp(1.75rem, 3.5vw, 2.75rem) 0 clamp(1.25rem, 2vw, 1.75rem); align-items: start; }
+  gap: clamp(2rem, 4vw, 3.5rem); padding-block: clamp(1.75rem, 3.5vw, 2.75rem) clamp(1.25rem, 2vw, 1.75rem); align-items: start; }
+/* `padding-block`, not the shorthand: the shorthand zeroed the `.container`
+   gutter, so from 768px up to ~1264px (where the 1200px container stops
+   centring itself off the edge) the logo and text sat flush against the
+   screen. Wide desktops keep the old zero inset, so that layout is unchanged. */
+@media (min-width: 1280px) { .footer__top { padding-inline: 0; } }
 .footer__col--brand .logo { margin-bottom: 1.4rem; }
 /* Solid crimson, not the brand gradient. The mark's paths are filled from an
    SVG gradient, so they are overridden here rather than in the component —
@@ -2327,6 +2332,11 @@
   a.footer__contact-line:hover { color: var(--accent-soft); }
 }
 .footer__contact-addr { max-width: 30ch; }
+/* A flex item will not shrink below its longest word, so the email (one
+   unbreakable token) pushed past its column and was clipped by the footer's
+   `overflow-x: clip`. `min-width: 0` lets the text box shrink; `anywhere`
+   lets the address break as a last resort. */
+.footer__contact-line span { min-width: 0; overflow-wrap: anywhere; }
 .footer__col--contact .footer__social { margin-top: 1.4rem; }
 @media (max-width: 900px) { .footer__top { grid-template-columns: 1fr 1fr; } .footer__col--brand { grid-column: 1 / -1; } }
 /* TWO COLUMNS ON A PHONE, NOT ONE. Stacked, the foot ran brand → six link rows
@@ -3992,6 +4002,13 @@ html:not([data-perf='low']) .section--noir :is(.contact__form, .studio__details)
   .footer__bottom { padding-top: 1.25rem;
     padding-bottom: max(3.75rem, calc(env(safe-area-inset-bottom) + 3.4rem)); }
   .footer__bottom-inner { gap: 0.6rem; }
+}
+/* ONE COLUMN BELOW 480px. Two-up, each column is ~160px at 375 — narrower
+   than the email address and the address lines, which is the overflow in the
+   footer. Stacked, every contact line gets the full width and only wraps where
+   the words do. Sits after the 767.98px / 640px blocks so it wins on order. */
+@media (max-width: 480px) {
+  .footer__top { grid-template-columns: 1fr; gap: 1.5rem; }
 }
 
 /* ==========================================================================
